@@ -12,6 +12,14 @@ export type ProviderChoice = z.infer<typeof ProviderChoice>;
 export const ImageEngineSetting = z.enum(["auto", "codex", "gemini", "openai", "none"]);
 export type ImageEngineSetting = z.infer<typeof ImageEngineSetting>;
 
+/** Languages the web UI is translated into (§13); English is the source and the fallback. */
+export const UiLanguage = z.enum(["en", "pt-BR"]);
+export type UiLanguage = z.infer<typeof UiLanguage>;
+
+/** The UI language setting: a language, or `auto` for the browser's language. */
+export const UiLanguagePreference = z.union([z.literal("auto"), UiLanguage]);
+export type UiLanguagePreference = z.infer<typeof UiLanguagePreference>;
+
 /**
  * What read-aloud speaks when a turn finishes (§11.3):
  * - `summary`: a spoken TL;DR of at most two short sentences from the utility model (§7.4),
@@ -100,6 +108,8 @@ export const Settings = z.object({
   appearance: z
     .object({
       theme: z.enum(["system", "dark", "light"]).default("dark"),
+      /** The UI language; `auto` follows the browser's language (§13). */
+      language: UiLanguagePreference.default("auto"),
     })
     .prefault({}),
   /** Default autonomy level (§11.2), overridable per project and session. */
