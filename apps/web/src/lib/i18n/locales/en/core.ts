@@ -1,9 +1,5 @@
-/**
- * The English catalog: the source of every UI string and the fallback for missing ones (§13).
- * It ships in the entry chunk; other languages load on demand (`../index.ts`). Keys are grouped
- * by area; plurals use i18next's `_one` / `_other` suffixes and `{{name}}` interpolation.
- */
-export const en = {
+/** Shared strings and the app shell: sidebar, settings navigation, appearance, triage. */
+export const core = {
   common: {
     cancel: "Cancel",
     settings: "Settings",
@@ -82,8 +78,3 @@ export const en = {
     declinedToast: "Declined; the issue keeps its triage labels",
   },
 } as const;
-
-/** The shape every other catalog must match: same keys, any strings. */
-export type Catalog<T = typeof en> = {
-  [K in keyof T]: T[K] extends string ? string : Catalog<T[K]>;
-};

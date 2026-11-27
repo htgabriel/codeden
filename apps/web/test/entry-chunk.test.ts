@@ -35,7 +35,8 @@ const HEAVY: { name: string; matches: (dep: string) => boolean }[] = [
   { name: "the 3D factory floor (three)", matches: (d) => isPackage(d, "three") },
   {
     name: "UI translations other than English (loaded when chosen)",
-    matches: (d) => d.startsWith("src/lib/i18n/locales/") && d !== "src/lib/i18n/locales/en.ts",
+    matches: (d) =>
+      d.startsWith("src/lib/i18n/locales/") && !d.startsWith("src/lib/i18n/locales/en/"),
   },
 ];
 

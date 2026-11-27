@@ -1,7 +1,8 @@
-import type { Catalog } from "./en";
+import type { Catalog } from "../en";
+import type { core } from "../en/core";
 
-/** Brazilian Portuguese. Loaded on demand; the type keeps its keys in step with `en.ts`. */
-const ptBR: Catalog = {
+/** Brazilian Portuguese for `../en/core.ts`. */
+export const coreBR: Catalog<typeof core> = {
   common: {
     cancel: "Cancelar",
     settings: "Configurações",
@@ -81,5 +82,3 @@ const ptBR: Catalog = {
     declinedToast: "Recusada; a issue mantém os rótulos de triagem",
   },
 };
-
-export default ptBR;
