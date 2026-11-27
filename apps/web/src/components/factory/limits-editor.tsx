@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { type AgentsDraft, AgentsTuning } from "./agents-tuning";
 import { BudgetFields } from "./budget-fields";
-import { WIP_HELP } from "./meta";
+import { wipHelp } from "./meta";
 import { type ScoutDraft, ScoutTuning } from "./scout-tuning";
 import { SpotCheckField } from "./spot-check-tuning";
 
@@ -241,7 +241,7 @@ export function LimitsEditor({
           <Field
             label="PRs open at most"
             htmlFor={`${id}-open-prs`}
-            hint={WIP_HELP}
+            hint={wipHelp()}
             help="Empty: the same as Agents at once."
           >
             <NumberField

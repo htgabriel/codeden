@@ -10,7 +10,7 @@ import {
 import { createMockClient } from "@/lib/api/mock";
 import { sessions as fixtureSessions } from "@/lib/api/mock/fixtures/sessions";
 import { providers } from "@/lib/api/mock/fixtures/world";
-import { handoffBlocked, NOT_A_REPO_ACTION_REASON, useHandoffBlocked } from "@/lib/session-actions";
+import { handoffBlocked, notARepoActionReason, useHandoffBlocked } from "@/lib/session-actions";
 import { useTranscriptsStore } from "@/stores/transcripts";
 import { useUiStore } from "@/stores/ui";
 import { renderWithClient } from "./utils";
@@ -92,11 +92,9 @@ describe("handing a session off", () => {
 
   it("never hands off in a project whose folder isn't a git repository, and says so first (#424)", () => {
     const notGit = { isGitRepo: false };
-    expect(handoffBlocked(idle, 2, notGit)).toBe(NOT_A_REPO_ACTION_REASON);
-    expect(handoffBlocked({ ...idle, status: "running" }, 2, notGit)).toBe(
-      NOT_A_REPO_ACTION_REASON,
-    );
-    expect(handoffBlocked({ ...idle, branch: null }, 0, notGit)).toBe(NOT_A_REPO_ACTION_REASON);
+    expect(handoffBlocked(idle, 2, notGit)).toBe(notARepoActionReason());
+    expect(handoffBlocked({ ...idle, status: "running" }, 2, notGit)).toBe(notARepoActionReason());
+    expect(handoffBlocked({ ...idle, branch: null }, 0, notGit)).toBe(notARepoActionReason());
     expect(handoffBlocked(idle, 2, { isGitRepo: true })).toBeNull();
     expect(handoffBlocked(idle, 0, undefined)).toMatch(/Nothing to hand off/);
   });

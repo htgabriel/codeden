@@ -42,7 +42,7 @@ import { forkOriginLabel, isHandoff, isReview } from "@/lib/fork-origin";
 import { statusLabel } from "@/lib/format";
 import { useTranslation } from "@/lib/i18n";
 import { useProject, useSession } from "@/lib/queries";
-import { MARKDOWN_HINT, useSessionActions } from "@/lib/session-actions";
+import { markdownHint, useSessionActions } from "@/lib/session-actions";
 import { hasRightPanel } from "@/lib/session-workspace";
 import { cn } from "@/lib/utils";
 import { useViewport } from "@/lib/viewport";
@@ -271,14 +271,14 @@ export function ThreadHeader({ session, running }: { session: Session; running: 
               <ClipboardCopy />
               <span className="flex min-w-0 flex-col">
                 {t("orchestrator.threadHeader.copyMarkdown")}
-                <span className="text-2xs text-muted-foreground">{MARKDOWN_HINT}</span>
+                <span className="text-2xs text-muted-foreground">{markdownHint()}</span>
               </span>
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={actions.downloadMarkdown}>
               <FileDown />
               <span className="flex min-w-0 flex-col">
                 {t("orchestrator.threadHeader.downloadMarkdown")}
-                <span className="text-2xs text-muted-foreground">{MARKDOWN_HINT}</span>
+                <span className="text-2xs text-muted-foreground">{markdownHint()}</span>
               </span>
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => layout.openRightTab("details")}>

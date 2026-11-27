@@ -14,7 +14,7 @@ import {
   canStop,
   forkBlocked,
   forkSupported,
-  NOT_A_REPO_ACTION_REASON,
+  notARepoActionReason,
   type SessionActions,
   sessionLink,
   useForkSession,
@@ -269,11 +269,11 @@ describe("useSessionActions", () => {
       branch: "codeden/search",
     };
     const notGit = { isGitRepo: false };
-    expect(forkBlocked(idle, notGit)).toBe(NOT_A_REPO_ACTION_REASON);
+    expect(forkBlocked(idle, notGit)).toBe(notARepoActionReason());
     // A folder that isn't a repository won't change when the turn ends: that reason comes first.
-    expect(forkBlocked({ ...idle, status: "running" }, notGit)).toBe(NOT_A_REPO_ACTION_REASON);
-    expect(forkBlocked({ ...idle, status: "waiting" }, notGit)).toBe(NOT_A_REPO_ACTION_REASON);
-    expect(forkBlocked({ ...idle, branch: null }, notGit)).toBe(NOT_A_REPO_ACTION_REASON);
+    expect(forkBlocked({ ...idle, status: "running" }, notGit)).toBe(notARepoActionReason());
+    expect(forkBlocked({ ...idle, status: "waiting" }, notGit)).toBe(notARepoActionReason());
+    expect(forkBlocked({ ...idle, branch: null }, notGit)).toBe(notARepoActionReason());
     // A git project, or one not loaded yet, is as before.
     expect(forkBlocked(idle, { isGitRepo: true })).toBeNull();
     expect(forkBlocked({ ...idle, status: "running" }, undefined)).toMatch(/running turn/);
@@ -302,12 +302,12 @@ describe("useSessionActions", () => {
       client,
       { withRouter: true },
     );
-    await waitFor(() => expect(latest?.handoffBlocked).toBe(NOT_A_REPO_ACTION_REASON));
+    await waitFor(() => expect(latest?.handoffBlocked).toBe(notARepoActionReason()));
     expect(latest?.canFork).toBe(true);
-    expect(latest?.forkBlocked).toBe(NOT_A_REPO_ACTION_REASON);
+    expect(latest?.forkBlocked).toBe(notARepoActionReason());
     expect(latest?.canHandoff).toBe(true);
     expect(latest?.canReview).toBe(true);
-    expect(latest?.reviewBlocked).toBe(NOT_A_REPO_ACTION_REASON);
+    expect(latest?.reviewBlocked).toBe(notARepoActionReason());
   });
 
   it("offers Compact now only where the provider can compact, and only between turns", () => {

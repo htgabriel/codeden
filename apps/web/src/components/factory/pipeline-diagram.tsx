@@ -8,7 +8,7 @@ import { heldReason } from "@/components/factory-view/held-issues";
 import { statusTone, type Tone } from "@/lib/format";
 import { useSnapshot } from "@/lib/queries";
 import { cn } from "@/lib/utils";
-import { issueHelp, LANE_HELP, REVISE_HELP, stepHelp, stepLabel, TYPE_LABEL } from "./meta";
+import { issueHelp, LANE_HELP, reviseHelp, stepHelp, stepLabel, TYPE_LABEL } from "./meta";
 import { Badge, type Kind } from "./node-badge";
 import { ScoutNode } from "./scout-node";
 
@@ -219,7 +219,7 @@ function Revise({ count }: { count: number }) {
     >
       <RotateCcw className="size-2.5" /> Revise{count > 0 && ` · ${count}`}
       <InfoHint label="Revise" className="size-3 text-current [&_svg]:size-2.5">
-        {REVISE_HELP}
+        {reviseHelp()}
       </InfoHint>
     </span>
   );

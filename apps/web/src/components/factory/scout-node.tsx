@@ -3,7 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { InfoHint } from "@/components/common/info-hint";
 import { StatusDot } from "@/components/common/status-dot";
 import { HeldFollowUps } from "./held-follow-ups";
-import { AREA_LABEL, REVIEW_AREAS_HELP, ROUND_HELP, SCOUT_HELP } from "./meta";
+import { AREA_LABEL, reviewAreasHelp, roundHelp, scoutHelp } from "./meta";
 import { Badge } from "./node-badge";
 
 /**
@@ -33,13 +33,13 @@ export function ScoutNode({
         : scout.phase === "reviewing"
           ? "Reviewing areas"
           : "Filing issues";
-  const roundHint = <InfoHint label="rounds">{ROUND_HELP}</InfoHint>;
+  const roundHint = <InfoHint label="rounds">{roundHelp()}</InfoHint>;
   return (
     <div
       className="relative flex min-h-[64px] w-[132px] shrink-0 flex-col items-center gap-1 rounded-lg border border-foreground/30 bg-card px-2 pt-3.5 pb-2 text-center"
       data-testid="pipeline-scout"
     >
-      <Badge kind="scout" hint={SCOUT_HELP} />
+      <Badge kind="scout" hint={scoutHelp()} />
       <button
         type="button"
         disabled={!scout.sessionId}
@@ -83,7 +83,7 @@ export function ScoutNode({
               {AREA_LABEL[l.area]}
             </button>
           ))}
-          <InfoHint label="review areas">{REVIEW_AREAS_HELP}</InfoHint>
+          <InfoHint label="review areas">{reviewAreasHelp()}</InfoHint>
         </div>
       )}
       {scout.phase === "filing" || scout.filed > 0 ? (

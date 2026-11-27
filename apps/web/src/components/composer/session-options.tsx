@@ -8,7 +8,7 @@ import { AUTONOMY, supportsReadOnly } from "@/components/thread/autonomy";
 import { useClient } from "@/lib/api";
 import { i18n, useTranslation } from "@/lib/i18n";
 import { snapshotKey, useSnapshotData } from "@/lib/queries";
-import { NOT_A_REPO_ACTION_REASON, useHandoffBlocked } from "@/lib/session-actions";
+import { notARepoActionReason, useHandoffBlocked } from "@/lib/session-actions";
 import { useUiStore } from "@/stores/ui";
 import { ChecksToggle } from "./checks-toggle";
 import { PickerFooterAction } from "./model-picker/footer";
@@ -109,7 +109,7 @@ export function SessionOptions({ session, running }: { session: Session; running
             ? {
                 blocked: handoffBlocked,
                 // A folder that isn't a repository won't become one when a turn ends.
-                lasting: handoffBlocked === NOT_A_REPO_ACTION_REASON,
+                lasting: handoffBlocked === notARepoActionReason(),
                 onHandoff: (provider) => setHandoff({ sessionId: session.id, provider }),
               }
             : undefined

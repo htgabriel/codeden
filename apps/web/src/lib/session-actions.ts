@@ -8,6 +8,7 @@ import {
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
+import { i18n } from "@/lib/i18n";
 import { useUiStore } from "@/stores/ui";
 import { useClient } from "./api";
 import { copyWithFeedback, notifyCopyFailed } from "./copy";
@@ -30,7 +31,7 @@ export {
   forkBlocked,
   forkSupported,
   handoffBlocked,
-  NOT_A_REPO_ACTION_REASON,
+  notARepoActionReason,
   reviewBlocked,
   useHandoffBlocked,
   useReviewBlocked,
@@ -48,13 +49,12 @@ export function useHandoffSession(session: Session) {
   const providers = useSnapshotData((s) => s.runner.providers, []);
   return useMutation({
     mutationFn: (req: HandoffSessionRequest) => client.handoffSession(session.id, req),
-    onMutate: () => ({ toastId: toast.loading("Writing the handoff brief…") }),
+    onMutate: () => ({ toastId: toast.loading(i18n.t("session.handoff.writing")) }),
     onSuccess: ({ sessionId }, req, context) => {
       const name = providers.find((p) => p.id === req.provider)?.displayName ?? req.provider;
-      toast.success(`Continued in a new ${name} session`, {
+      toast.success(i18n.t("session.handoff.continued", { name }), {
         id: context?.toastId,
-        description:
-          "It has this session's code and a brief of the work. This session is unchanged.",
+        description: i18n.t("session.handoff.continuedDescription"),
       });
       void navigate({ to: "/sessions/$sessionId", params: { sessionId } });
     },
@@ -107,38 +107,39 @@ export function announceArchive(
   result: ArchiveSessionResponse,
   actions: { undo: () => void; retry: () => void; force: () => void; push: () => void },
 ): void {
-  const undo = { label: "Undo", onClick: actions.undo };
+  const t = i18n.t;
+  const undo = { label: t("session.archive.undo"), onClick: actions.undo };
   const { status, message: detail, unpushed } = result.worktree;
   if (status === "removed") {
     toast.success(
-      unpushed
-        ? "Session archived and its container deleted"
-        : "Session archived and its worktree removed",
+      unpushed ? t("session.archive.containerDeleted") : t("session.archive.worktreeRemoved"),
       { action: undo, description: brief(detail) },
     );
   } else if (status === "none") {
-    toast.success("Session archived", { action: undo });
+    toast.success(t("session.archive.archived"), { action: undo });
   } else if (status === "kept_changes" && unpushed) {
     const work = describeUnpushedWork(unpushed);
-    const remove = { label: "Delete anyway", onClick: actions.force };
-    const push = { label: "Push the branch first", onClick: actions.push };
-    toast.warning("Session archived. Its container was kept: it holds work that isn't pushed.", {
-      description: `${work.charAt(0).toUpperCase()}${work.slice(1)}. Delete anyway deletes this work for good.`,
+    const remove = { label: t("session.archive.deleteAnyway"), onClick: actions.force };
+    const push = { label: t("session.archive.pushFirst"), onClick: actions.push };
+    toast.warning(t("session.archive.keptUnpushed"), {
+      description: t("session.archive.keptUnpushedDescription", {
+        work: `${work.charAt(0).toUpperCase()}${work.slice(1)}`,
+      }),
       action: canPushFirst(unpushed) ? push : remove,
       cancel: canPushFirst(unpushed) ? remove : undo,
       duration: 20_000,
       classNames: WIDE_ACTIONS,
     });
   } else if (status === "kept_changes") {
-    toast("Session archived. The worktree has uncommitted changes, so it was kept.", {
-      action: { label: "Remove anyway", onClick: actions.force },
+    toast(t("session.archive.keptChanges"), {
+      action: { label: t("session.archive.removeAnyway"), onClick: actions.force },
       cancel: undo,
       duration: 10_000,
     });
   } else {
-    toast.warning("Session archived, but its worktree couldn't be removed yet", {
+    toast.warning(t("session.archive.notRemoved"), {
       description: brief(detail),
-      action: { label: "Try again", onClick: actions.retry },
+      action: { label: t("session.archive.tryAgain"), onClick: actions.retry },
       cancel: undo,
       duration: 10_000,
     });
@@ -157,13 +158,13 @@ export function useForkSession(session: Session) {
   const fork = useMutation({
     mutationFn: (turnId: string | undefined) =>
       turnId ? client.forkSession(session.id, { turnId }) : client.forkSession(session.id),
-    onMutate: () => ({ toastId: toast.loading("Forking the session…") }),
+    onMutate: () => ({ toastId: toast.loading(i18n.t("session.fork.forking")) }),
     onSuccess: ({ sessionId }, turnId, context) => {
-      toast.success("Forked into a new session", {
+      toast.success(i18n.t("session.fork.forked"), {
         id: context?.toastId,
         description: turnId
-          ? "It has the conversation and the code as they were after that turn. The original is unchanged."
-          : "It has the conversation and the code so far. The original is unchanged.",
+          ? i18n.t("session.fork.afterTurnDescription")
+          : i18n.t("session.fork.soFarDescription"),
       });
       void navigate({ to: "/sessions/$sessionId", params: { sessionId } });
     },
@@ -177,7 +178,11 @@ export function useForkSession(session: Session) {
   const canFork = forkSupported(session, provider);
   return {
     canFork,
-    blocked: canFork ? (fork.isPending ? "Forking…" : forkBlocked(session, project)) : null,
+    blocked: canFork
+      ? fork.isPending
+        ? i18n.t("session.fork.pending")
+        : forkBlocked(session, project)
+      : null,
     /** The project folder isn't a git repository, so no fork can be made there (§9). */
     notARepo: notARepoReason(project) !== null,
     /** A fork is under way (its "Forking the session…" toast is showing). */
@@ -187,8 +192,11 @@ export function useForkSession(session: Session) {
   };
 }
 
-/** The second line under Copy and Download as Markdown: the export hides secrets (§13). */
-export const MARKDOWN_HINT = "Secrets redacted";
+/**
+ * The second line under Copy and Download as Markdown: the export hides secrets (§13). A
+ * function, so it follows the UI language.
+ */
+export const markdownHint = () => i18n.t("session.actions.markdownHint");
 
 /**
  * What you can do to a session from its row menu, the thread header's ⋯ menu or the command
@@ -203,12 +211,12 @@ export function useSessionActions(session: Session) {
 
   const stop = useMutation({
     mutationFn: () => client.stopSession(session.id),
-    onSuccess: () => toast("Session stopped"),
+    onSuccess: () => toast(i18n.t("session.actions.stopped")),
     onError,
   });
   const unarchive = useMutation({
     mutationFn: () => client.unarchiveSession(session.id),
-    onSuccess: () => toast.success("Session restored to the sidebar"),
+    onSuccess: () => toast.success(i18n.t("session.actions.restored")),
     onError,
   });
   const announce = (result: ArchiveSessionResponse, force: boolean) =>
@@ -231,7 +239,8 @@ export function useSessionActions(session: Session) {
       return client.archiveSession(session.id, { force: false });
     },
     onSuccess: (result) => announce(result, false),
-    onError: (error) => toast.error("Couldn't push the branch", { description: message(error) }),
+    onError: (error) =>
+      toast.error(i18n.t("session.actions.pushFailed"), { description: message(error) }),
   });
   const rename = useMutation({
     mutationFn: (title: string) => client.updateSession(session.id, { title }),
@@ -251,10 +260,11 @@ export function useSessionActions(session: Session) {
       return { how, fileName: file.fileName, copied };
     },
     onSuccess: ({ how, fileName, copied }) => {
-      if (how === "download") toast.success(`Downloaded ${fileName}`);
-      else if (copied) toast.success("Copied as Markdown");
+      if (how === "download") toast.success(i18n.t("session.actions.downloaded", { fileName }));
+      else if (copied) toast.success(i18n.t("session.actions.copiedMarkdown"));
     },
-    onError: (error) => toast.error("Couldn't export the session", { description: message(error) }),
+    onError: (error) =>
+      toast.error(i18n.t("session.actions.exportFailed"), { description: message(error) }),
   });
   const fork = useForkSession(session);
   const setHandoff = useUiStore((s) => s.setHandoff);
@@ -271,7 +281,7 @@ export function useSessionActions(session: Session) {
       if (next && next !== (session.title ?? session.purpose)) rename.mutate(next);
     },
     copyLink: async () => {
-      await copyWithFeedback(sessionLink(session.id), "Link copied");
+      await copyWithFeedback(sessionLink(session.id), i18n.t("session.actions.linkCopied"));
     },
     /** Copy the transcript as Markdown, to paste into an issue, a PR or a write-up. */
     copyMarkdown: () => exportMarkdown.mutate("copy"),

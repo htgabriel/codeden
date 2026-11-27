@@ -4,7 +4,7 @@ import { Field } from "@/components/automations/form-bits";
 import { InfoHint } from "@/components/common/info-hint";
 import { NumberField } from "@/components/common/number-field";
 import { AgentPicker } from "./agents-tuning";
-import { REVIEW_AREAS_HELP, SCOUT_HELP } from "./meta";
+import { reviewAreasHelp, scoutHelp } from "./meta";
 
 /** The scout's knobs (dark factory). */
 export type ScoutDraft = Pick<
@@ -43,7 +43,7 @@ export function ScoutTuning<T extends ScoutDraft>({
       <div>
         <p className="flex items-center gap-1 text-[13px] font-medium">
           The scout
-          <InfoHint label="the scout">{SCOUT_HELP}</InfoHint>
+          <InfoHint label="the scout">{scoutHelp()}</InfoHint>
         </p>
         <p className="text-3xs text-muted-foreground">
           It reviews the app against the vision{" "}
@@ -86,7 +86,7 @@ export function ScoutTuning<T extends ScoutDraft>({
             className="text-[13px]"
           />
         </Field>
-        <Field label="Review areas per round" htmlFor={`${id}-areas`} hint={REVIEW_AREAS_HELP}>
+        <Field label="Review areas per round" htmlFor={`${id}-areas`} hint={reviewAreasHelp()}>
           <NumberField
             id={`${id}-areas`}
             min={0}

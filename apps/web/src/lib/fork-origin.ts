@@ -1,4 +1,5 @@
 import type { ForkOrigin, Session } from "@codeden/contracts";
+import { i18n } from "@/lib/i18n";
 
 /**
  * How a fork describes where it came from (§9): `upTo` finishes "the conversation and the code
@@ -11,35 +12,36 @@ export function forkOriginText(origin: ForkOrigin): {
   code: string;
   conversation: string | null;
 } {
+  const t = i18n.t;
   const n = origin.turnNumber ?? null;
   if (origin.turnId) {
     return {
-      upTo: n ? `as they were after turn ${n}` : "as they were after the turn it was forked from",
+      upTo: n ? t("session.origin.upToAfterTurn", { n }) : t("session.origin.upToAfterForkedTurn"),
       code:
         origin.checkpoint === null
-          ? "Code: its branch"
+          ? t("session.origin.codeBranch")
           : n
-            ? `Code: its files after turn ${n}`
-            : "Code: its files at the end of that turn",
+            ? t("session.origin.codeAfterTurn", { n })
+            : t("session.origin.codeEndOfTurn"),
       conversation: n
-        ? `Conversation: up to the end of turn ${n}`
-        : "Conversation: up to the end of the turn it was forked from",
+        ? t("session.origin.conversationUpToTurn", { n })
+        : t("session.origin.conversationUpToForkedTurn"),
     };
   }
   return {
-    upTo: "so far",
+    upTo: t("session.origin.upToSoFar"),
     code:
       origin.checkpoint === null
-        ? "Code: its branch"
+        ? t("session.origin.codeBranch")
         : origin.checkpoint === 0
-          ? "Code: its files when it started"
-          : `Code: its files after turn ${origin.checkpoint}`,
+          ? t("session.origin.codeStarted")
+          : t("session.origin.codeAfterTurn", { n: origin.checkpoint }),
     // A handoff or a review starts a new conversation, possibly on another provider (§9).
     conversation:
       origin.kind === "handoff"
-        ? "Conversation: a new one, opened with a brief of its work"
+        ? t("session.origin.conversationHandoff")
         : origin.kind === "review"
-          ? "Conversation: a new, read-only one, opened with a review brief"
+          ? t("session.origin.conversationReview")
           : null,
   };
 }
@@ -55,9 +57,16 @@ export const isReview = (origin: ForkOrigin | null | undefined) => origin?.kind 
  * thread header ("Fork of …", "Handed off from …", "Review of …").
  */
 export function forkOriginLabel(origin: ForkOrigin): { from: string; chip: string } {
-  if (origin.kind === "handoff") return { from: "Handed off from", chip: "Handed off from" };
-  if (origin.kind === "review") return { from: "Review of", chip: "Review of" };
-  return { from: "Forked from", chip: "Fork of" };
+  const t = i18n.t;
+  if (origin.kind === "handoff") {
+    const from = t("session.origin.handedOffFrom");
+    return { from, chip: from };
+  }
+  if (origin.kind === "review") {
+    const from = t("session.origin.reviewOf");
+    return { from, chip: from };
+  }
+  return { from: t("session.origin.forkedFrom"), chip: t("session.origin.forkOf") };
 }
 
 /** How a session is related to the one whose diff is open. */

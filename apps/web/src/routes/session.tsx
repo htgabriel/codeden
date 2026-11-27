@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { EmptyState } from "@/components/common/bits";
 import { ThreadView } from "@/components/thread/thread-view";
 import { forkOriginText, isHandoff, isReview } from "@/lib/fork-origin";
+import { Trans, useTranslation } from "@/lib/i18n";
 import { useSession } from "@/lib/queries";
 import { useLayoutStore } from "@/stores/layout";
 
@@ -13,55 +14,29 @@ import { useLayoutStore } from "@/stores/layout";
  * says its brief is on the way instead (§9).
  */
 function ForkedEmpty({ origin }: { origin: ForkOrigin }) {
+  const { t } = useTranslation();
   const sourceId = origin.sessionId;
   const source = useSession(sourceId);
   // Forked from a turn ("Fork from here"): the conversation and code end with that turn.
   const { upTo } = forkOriginText(origin);
-  if (isReview(origin)) {
-    return (
-      <EmptyState icon={<ScanSearch />} title="Review session" className="flex-1">
-        Reviews the changes of{" "}
-        <Link
-          to="/sessions/$sessionId"
-          params={{ sessionId: sourceId }}
-          className="font-medium text-foreground underline-offset-2 hover:underline"
-        >
-          {source ? (source.title ?? source.purpose) : "another session"}
-        </Link>
-        , read-only, in its own worktree with that session's code. Once the worktree is ready,
-        CodeDen sends the agent a review brief as its first message. The original session is
-        unchanged.
-      </EmptyState>
-    );
-  }
-  if (isHandoff(origin)) {
-    return (
-      <EmptyState icon={<ArrowRightLeft />} title="Handed-off session" className="flex-1">
-        Continues{" "}
-        <Link
-          to="/sessions/$sessionId"
-          params={{ sessionId: sourceId }}
-          className="font-medium text-foreground underline-offset-2 hover:underline"
-        >
-          {source ? (source.title ?? source.purpose) : "another session"}
-        </Link>{" "}
-        with its code so far, in its own worktree and branch. Once the worktree is ready, CodeDen
-        sends the agent a brief of the work as its first message. The original session is unchanged.
-      </EmptyState>
-    );
-  }
+  const link = (
+    <Link
+      to="/sessions/$sessionId"
+      params={{ sessionId: sourceId }}
+      className="font-medium text-foreground underline-offset-2 hover:underline"
+    />
+  );
+  const name = source ? (source.title ?? source.purpose) : t("session.anotherSession");
+  const kind = isReview(origin) ? "review" : isHandoff(origin) ? "handoff" : "fork";
+  const icon =
+    kind === "review" ? <ScanSearch /> : kind === "handoff" ? <ArrowRightLeft /> : <GitFork />;
   return (
-    <EmptyState icon={<GitFork />} title="Forked session" className="flex-1">
-      Forked from{" "}
-      <Link
-        to="/sessions/$sessionId"
-        params={{ sessionId: sourceId }}
-        className="font-medium text-foreground underline-offset-2 hover:underline"
-      >
-        {source ? (source.title ?? source.purpose) : "another session"}
-      </Link>
-      . The agent has the conversation and the code {upTo}, in its own worktree and branch. Send a
-      message to continue; the original session is unchanged.
+    <EmptyState icon={icon} title={t(`session.empty.${kind}.title`)} className="flex-1">
+      <Trans
+        i18nKey={`session.empty.${kind}.body`}
+        values={{ source: name, upTo }}
+        components={{ link }}
+      />
     </EmptyState>
   );
 }

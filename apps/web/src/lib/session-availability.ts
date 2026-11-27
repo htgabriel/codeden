@@ -1,5 +1,6 @@
 import type { Project, ProviderInfo, Session } from "@codeden/contracts";
 import { isReview } from "@/lib/fork-origin";
+import { i18n } from "@/lib/i18n";
 import { useTranscriptsStore } from "@/stores/transcripts";
 import { useProject } from "./queries";
 
@@ -22,7 +23,7 @@ type ProjectFacts = Pick<Project, "isGitRepo">;
  * repository (`Project.isGitRepo`, §9): each makes a new worktree, and the server refuses it
  * (`not_a_repo`).
  */
-export const NOT_A_REPO_ACTION_REASON = "The project folder isn't a git repository";
+export const notARepoActionReason = () => i18n.t("session.blocked.notARepo");
 
 /**
  * The reason that comes before all others: a project folder that isn't a git repository won't
@@ -30,7 +31,7 @@ export const NOT_A_REPO_ACTION_REASON = "The project folder isn't a git reposito
  * loaded yet) leaves it to the server.
  */
 export const notARepoReason = (project: ProjectFacts | undefined) =>
-  project?.isGitRepo === false ? NOT_A_REPO_ACTION_REASON : null;
+  project?.isGitRepo === false ? notARepoActionReason() : null;
 
 /**
  * Whether the Fork action applies to a session at all: an agent session on a provider that
@@ -46,11 +47,11 @@ export const forkSupported = (session: Session, provider: ProviderInfo | undefin
 export function forkBlocked(session: Session, project?: ProjectFacts): string | null {
   const reason = notARepoReason(project);
   if (reason) return reason;
-  if (session.status === "waiting") return "Answer what it's waiting on first";
-  if (canStop(session)) return "Wait for the running turn to finish";
-  if (NOT_STARTED.has(session.status)) return "The session hasn't started yet";
-  if (!session.resumeToken) return "No conversation to fork yet";
-  if (!session.branch) return "Only sessions on a git branch can be forked";
+  if (session.status === "waiting") return i18n.t("session.blocked.answerFirst");
+  if (canStop(session)) return i18n.t("session.blocked.waitForTurn");
+  if (NOT_STARTED.has(session.status)) return i18n.t("session.blocked.notStarted");
+  if (!session.resumeToken) return i18n.t("session.blocked.noConversation");
+  if (!session.branch) return i18n.t("session.blocked.forkNeedsBranch");
   return null;
 }
 
@@ -68,11 +69,11 @@ export function handoffBlocked(
 ): string | null {
   const reason = notARepoReason(project);
   if (reason) return reason;
-  if (session.status === "waiting") return "Answer what it's waiting on first";
-  if (canStop(session)) return "Wait for the running turn to finish";
-  if (NOT_STARTED.has(session.status)) return "The session hasn't started yet";
-  if (!session.branch) return "Only sessions on a git branch can be handed off";
-  if (turns === 0) return "Nothing to hand off yet";
+  if (session.status === "waiting") return i18n.t("session.blocked.answerFirst");
+  if (canStop(session)) return i18n.t("session.blocked.waitForTurn");
+  if (NOT_STARTED.has(session.status)) return i18n.t("session.blocked.notStarted");
+  if (!session.branch) return i18n.t("session.blocked.handoffNeedsBranch");
+  if (turns === 0) return i18n.t("session.blocked.nothingToHandOff");
   return null;
 }
 
@@ -112,11 +113,11 @@ export function reviewBlocked(
 ): string | null {
   const reason = notARepoReason(project);
   if (reason) return reason;
-  if (session.status === "waiting") return "Answer what it's waiting on first";
-  if (canStop(session)) return "Wait for the running turn to finish";
-  if (NOT_STARTED.has(session.status)) return "The session hasn't started yet";
-  if (!session.branch) return "Only sessions on a git branch can be reviewed";
-  if (turns === 0) return "No changes to review yet";
+  if (session.status === "waiting") return i18n.t("session.blocked.answerFirst");
+  if (canStop(session)) return i18n.t("session.blocked.waitForTurn");
+  if (NOT_STARTED.has(session.status)) return i18n.t("session.blocked.notStarted");
+  if (!session.branch) return i18n.t("session.blocked.reviewNeedsBranch");
+  if (turns === 0) return i18n.t("session.blocked.nothingToReview");
   return null;
 }
 

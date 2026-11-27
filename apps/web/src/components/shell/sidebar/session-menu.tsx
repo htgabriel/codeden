@@ -8,7 +8,7 @@ import {
   Pencil,
   Square,
 } from "lucide-react";
-import { MARKDOWN_HINT, type SessionActions } from "@/lib/session-actions";
+import { markdownHint, type SessionActions } from "@/lib/session-actions";
 import type { RowMenuEntry } from "./row-menu";
 
 /**
@@ -25,13 +25,13 @@ export function sessionMenuEntries(
     { label: "Copy link", icon: <Link2 />, onSelect: () => void actions.copyLink() },
     {
       label: "Copy as Markdown",
-      hint: MARKDOWN_HINT,
+      hint: markdownHint(),
       icon: <ClipboardCopy />,
       onSelect: actions.copyMarkdown,
     },
     {
       label: "Download as Markdown",
-      hint: MARKDOWN_HINT,
+      hint: markdownHint(),
       icon: <FileDown />,
       onSelect: actions.downloadMarkdown,
     },
