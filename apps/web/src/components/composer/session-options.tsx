@@ -1,10 +1,12 @@
 import type { Session, Snapshot, UpdateSessionRequest } from "@codeden/contracts";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
+import type { TFunction } from "i18next";
 import { useRef } from "react";
 import { toast } from "sonner";
 import { AUTONOMY, supportsReadOnly } from "@/components/thread/autonomy";
 import { useClient } from "@/lib/api";
+import { i18n, useTranslation } from "@/lib/i18n";
 import { snapshotKey, useSnapshotData } from "@/lib/queries";
 import { NOT_A_REPO_ACTION_REASON, useHandoffBlocked } from "@/lib/session-actions";
 import { useUiStore } from "@/stores/ui";
@@ -14,15 +16,27 @@ import { roleSwitchHint } from "./model-picker/logic";
 import { ModelPicker } from "./model-picker/model-picker";
 import { AutonomyPicker, PlanToggle } from "./pickers";
 
-function changeSummary(patch: UpdateSessionRequest): string {
-  if (patch.planMode !== undefined) return patch.planMode ? "Plan mode on" : "Plan mode off";
-  if (patch.untilChecksPass === false) return "Keep going until checks pass: off";
-  if (patch.untilChecksPass !== undefined || patch.checkRounds !== undefined) {
-    return `Keep going until checks pass${patch.checkRounds ? `, up to ${patch.checkRounds} ${patch.checkRounds === 1 ? "round" : "rounds"}` : ""}`;
+function changeSummary(patch: UpdateSessionRequest, t: TFunction): string {
+  if (patch.planMode !== undefined) {
+    return patch.planMode
+      ? t("orchestrator.sessionOptions.planOn")
+      : t("orchestrator.sessionOptions.planOffSummary");
   }
-  if (patch.autonomy !== undefined) return `Permissions: ${AUTONOMY[patch.autonomy].label}`;
-  if (patch.model !== undefined && patch.effort !== undefined) return "Model and effort changed";
-  return patch.model !== undefined ? "Model changed" : "Effort changed";
+  if (patch.untilChecksPass === false) return t("orchestrator.sessionOptions.checksOff");
+  if (patch.untilChecksPass !== undefined || patch.checkRounds !== undefined) {
+    return patch.checkRounds
+      ? t("orchestrator.sessionOptions.checksRounds", { count: patch.checkRounds })
+      : t("orchestrator.sessionOptions.checksOn");
+  }
+  if (patch.autonomy !== undefined) {
+    return t("orchestrator.sessionOptions.permissions", { level: AUTONOMY[patch.autonomy].label });
+  }
+  if (patch.model !== undefined && patch.effort !== undefined) {
+    return t("orchestrator.sessionOptions.modelAndEffort");
+  }
+  return patch.model !== undefined
+    ? t("orchestrator.sessionOptions.model")
+    : t("orchestrator.sessionOptions.effort");
 }
 
 /**
@@ -34,14 +48,15 @@ export function appliesFrom(
   patch: UpdateSessionRequest,
   running: boolean,
   liveAutonomy: boolean,
+  t: TFunction = i18n.t,
 ): string | undefined {
   if (!running) return undefined;
   if (patch.untilChecksPass !== undefined || patch.checkRounds !== undefined) {
-    return "Applies when this turn ends.";
+    return t("orchestrator.sessionOptions.appliesTurnEnd");
   }
   const live = patch.autonomy !== undefined || patch.planMode !== undefined;
-  if (live && liveAutonomy) return "Applies from the next tool call.";
-  return "Applies from the next turn.";
+  if (live && liveAutonomy) return t("orchestrator.sessionOptions.appliesToolCall");
+  return t("orchestrator.sessionOptions.appliesNextTurn");
 }
 
 /**
@@ -55,6 +70,7 @@ export function appliesFrom(
  */
 export function SessionOptions({ session, running }: { session: Session; running: boolean }) {
   const client = useClient();
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const providers = useSnapshotData((s) => s.runner.providers, []);
@@ -68,12 +84,13 @@ export function SessionOptions({ session, running }: { session: Session; running
       queryClient.setQueryData<Snapshot>(snapshotKey, (s) =>
         s ? { ...s, sessions: s.sessions.map((x) => (x.id === updated.id ? updated : x)) } : s,
       );
-      toast.success(changeSummary(patch), {
+      toast.success(changeSummary(patch, t), {
         id: `session-options-${session.id}`,
-        description: appliesFrom(patch, running, liveAutonomy),
+        description: appliesFrom(patch, running, liveAutonomy, t),
       });
     },
-    onError: (e) => toast.error("Couldn't change the session", { description: e.message }),
+    onError: (e) =>
+      toast.error(t("orchestrator.sessionOptions.changeFailed"), { description: e.message }),
   });
   // Changes go out one at a time, so a model pick and an effort pick land in order.
   const queue = useRef<Promise<unknown>>(Promise.resolve());
@@ -104,8 +121,12 @@ export function SessionOptions({ session, running }: { session: Session; running
             ? undefined
             : (close) => (
                 <PickerFooterAction
-                  note={`${session.role === "orchestrator" ? "The orchestrator" : "Project managers"} can run on another provider.`}
-                  action="Change provider"
+                  note={
+                    session.role === "orchestrator"
+                      ? t("orchestrator.sessionOptions.orchestratorProvider")
+                      : t("orchestrator.sessionOptions.pmProvider")
+                  }
+                  action={t("orchestrator.sessionOptions.changeProvider")}
                   onClick={() => {
                     close();
                     void navigate({ to: "/settings/$section", params: { section: "providers" } });

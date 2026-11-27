@@ -40,6 +40,7 @@ import { useClient } from "@/lib/api";
 import { copyWithFeedback } from "@/lib/copy";
 import { forkOriginLabel, isHandoff, isReview } from "@/lib/fork-origin";
 import { statusLabel } from "@/lib/format";
+import { useTranslation } from "@/lib/i18n";
 import { useProject, useSession } from "@/lib/queries";
 import { MARKDOWN_HINT, useSessionActions } from "@/lib/session-actions";
 import { hasRightPanel } from "@/lib/session-workspace";
@@ -75,8 +76,11 @@ function Chip({
 
 /** Where a forked, handed-off or reviewing session came from, linking to the source session. */
 function ForkedFromChip({ origin, className }: { origin: ForkOrigin; className?: string }) {
+  const { t } = useTranslation();
   const source = useSession(origin.sessionId);
-  const title = source ? (source.title ?? source.purpose) : "another session";
+  const title = source
+    ? (source.title ?? source.purpose)
+    : t("orchestrator.threadHeader.anotherSession");
   const label = forkOriginLabel(origin);
   return (
     <Link
@@ -103,13 +107,14 @@ function ForkedFromChip({ origin, className }: { origin: ForkOrigin; className?:
  */
 export function ThreadHeader({ session, running }: { session: Session; running: boolean }) {
   const client = useClient();
+  const { t } = useTranslation();
   const project = useProject(session.projectId);
   const layout = useLayoutStore();
   const { sheetPanels, phone } = useViewport();
   const panelOpen = sheetPanels ? layout.rightSheetOpen : layout.rightOpen;
   const stop = useMutation({
     mutationFn: () => client.interrupt(session.id),
-    onSuccess: () => toast("Turn stopped"),
+    onSuccess: () => toast(t("orchestrator.threadHeader.turnStopped")),
   });
   // Stop, archive and unarchive are shared with the sidebar's session row menu.
   const actions = useSessionActions(session);
@@ -118,9 +123,9 @@ export function ThreadHeader({ session, running }: { session: Session; running: 
 
   const title =
     session.role === "orchestrator"
-      ? "Orchestrator"
+      ? t("orchestrator.roleBadge.orchestrator")
       : session.role === "pm"
-        ? "Project manager"
+        ? t("orchestrator.roleBadge.pm")
         : (session.title ?? session.purpose);
 
   return (
@@ -149,7 +154,7 @@ export function ThreadHeader({ session, running }: { session: Session; running: 
           )}
         >
           {statusLabel[session.status]}
-          {session.archivedAt && " · Archived"}
+          {session.archivedAt && t("orchestrator.threadHeader.archived")}
         </span>
       </div>
 
@@ -158,7 +163,7 @@ export function ThreadHeader({ session, running }: { session: Session; running: 
           <Chip
             className="hidden @[54rem]:inline-flex"
             icon={<GitBranch />}
-            title={`Base: ${session.baseBranch ?? "main"}`}
+            title={t("orchestrator.threadHeader.base", { branch: session.baseBranch ?? "main" })}
           >
             {session.branch}
           </Chip>
@@ -172,7 +177,9 @@ export function ThreadHeader({ session, running }: { session: Session; running: 
             icon={<FolderTree />}
             title={
               session.worktreeRemovedAt
-                ? `Worktree cleaned up. It's recreated from ${session.branch ?? "its branch"} when you send a message.`
+                ? t("orchestrator.threadHeader.worktreeRemoved", {
+                    branch: session.branch ?? t("orchestrator.threadHeader.itsBranch"),
+                  })
                 : session.worktreePath
             }
           >
@@ -198,7 +205,7 @@ export function ThreadHeader({ session, running }: { session: Session; running: 
             onClick={() => stop.mutate()}
             disabled={stop.isPending}
           >
-            <Square className="size-2.5 fill-current" /> Stop
+            <Square className="size-2.5 fill-current" /> {t("orchestrator.threadHeader.stop")}
           </Button>
         )}
         <Tooltip>
@@ -213,12 +220,12 @@ export function ThreadHeader({ session, running }: { session: Session; running: 
                 phone && "hidden",
               )}
               onClick={() => layout.toggleDrawer()}
-              aria-label="Toggle terminal"
+              aria-label={t("orchestrator.threadHeader.toggleTerminal")}
             >
               <SquareTerminal />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Terminal · Ctrl J</TooltipContent>
+          <TooltipContent>{t("orchestrator.threadHeader.terminalTooltip")}</TooltipContent>
         </Tooltip>
         {hasRightPanel(session) && (
           <Tooltip>
@@ -228,12 +235,12 @@ export function ThreadHeader({ session, running }: { session: Session; running: 
                 size="icon-sm"
                 className={cn("text-muted-foreground", panelOpen && "bg-accent text-foreground")}
                 onClick={() => layout.toggleRight(!panelOpen)}
-                aria-label="Toggle right panel"
+                aria-label={t("orchestrator.threadHeader.toggleRightPanel")}
               >
                 <PanelRight />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Right panel · Ctrl \</TooltipContent>
+            <TooltipContent>{t("orchestrator.threadHeader.rightPanelTooltip")}</TooltipContent>
           </Tooltip>
         )}
         <DropdownMenu>
@@ -242,7 +249,7 @@ export function ThreadHeader({ session, running }: { session: Session; running: 
               variant="ghost"
               size="icon-sm"
               className="text-muted-foreground"
-              aria-label="More"
+              aria-label={t("orchestrator.threadHeader.more")}
             >
               <MoreHorizontal />
             </Button>
@@ -250,27 +257,32 @@ export function ThreadHeader({ session, running }: { session: Session; running: 
           <DropdownMenuContent align="end" className="w-60">
             {session.branch && (
               <DropdownMenuItem
-                onSelect={() => void copyWithFeedback(session.branch ?? "", "Branch copied")}
+                onSelect={() =>
+                  void copyWithFeedback(
+                    session.branch ?? "",
+                    t("orchestrator.threadHeader.branchCopied"),
+                  )
+                }
               >
-                <Copy /> Copy branch name
+                <Copy /> {t("orchestrator.threadHeader.copyBranch")}
               </DropdownMenuItem>
             )}
             <DropdownMenuItem onSelect={actions.copyMarkdown}>
               <ClipboardCopy />
               <span className="flex min-w-0 flex-col">
-                Copy as Markdown
+                {t("orchestrator.threadHeader.copyMarkdown")}
                 <span className="text-2xs text-muted-foreground">{MARKDOWN_HINT}</span>
               </span>
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={actions.downloadMarkdown}>
               <FileDown />
               <span className="flex min-w-0 flex-col">
-                Download as Markdown
+                {t("orchestrator.threadHeader.downloadMarkdown")}
                 <span className="text-2xs text-muted-foreground">{MARKDOWN_HINT}</span>
               </span>
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => layout.openRightTab("details")}>
-              <Bot /> Session details
+              <Bot /> {t("orchestrator.threadHeader.sessionDetails")}
             </DropdownMenuItem>
             {actions.canFork && (
               <DropdownMenuItem
@@ -280,9 +292,9 @@ export function ThreadHeader({ session, running }: { session: Session; running: 
               >
                 <GitFork />
                 <span className="flex min-w-0 flex-col">
-                  Fork session
+                  {t("orchestrator.threadHeader.fork")}
                   <span className="text-2xs text-muted-foreground">
-                    {actions.forkBlocked ?? "Try another approach in a new worktree"}
+                    {actions.forkBlocked ?? t("orchestrator.threadHeader.forkHint")}
                   </span>
                 </span>
               </DropdownMenuItem>
@@ -295,9 +307,9 @@ export function ThreadHeader({ session, running }: { session: Session; running: 
               >
                 <ArrowRightLeft />
                 <span className="flex min-w-0 flex-col">
-                  Hand off…
+                  {t("orchestrator.threadHeader.handoff")}
                   <span className="text-2xs text-muted-foreground">
-                    {actions.handoffBlocked ?? "Continue in a new session, on any provider"}
+                    {actions.handoffBlocked ?? t("orchestrator.threadHeader.handoffHint")}
                   </span>
                 </span>
               </DropdownMenuItem>
@@ -310,16 +322,16 @@ export function ThreadHeader({ session, running }: { session: Session; running: 
               >
                 <ScanSearch />
                 <span className="flex min-w-0 flex-col">
-                  Review with another agent…
+                  {t("orchestrator.threadHeader.review")}
                   <span className="text-2xs text-muted-foreground">
-                    {actions.reviewBlocked ?? "A read-only second opinion on its changes"}
+                    {actions.reviewBlocked ?? t("orchestrator.threadHeader.reviewHint")}
                   </span>
                 </span>
               </DropdownMenuItem>
             )}
             {actions.canMakeAutomation && (
               <DropdownMenuItem onSelect={actions.makeAutomation}>
-                <Workflow /> Make an automation…
+                <Workflow /> {t("orchestrator.threadHeader.makeAutomation")}
               </DropdownMenuItem>
             )}
             {fresh.available && (
@@ -332,9 +344,9 @@ export function ThreadHeader({ session, running }: { session: Session; running: 
                 >
                   <RotateCcw />
                   <span className="flex min-w-0 flex-col">
-                    Start fresh…
+                    {t("orchestrator.threadHeader.startFresh")}
                     <span className="text-2xs text-muted-foreground">
-                      {fresh.blocked ?? "Archive this conversation and begin a new one"}
+                      {fresh.blocked ?? t("orchestrator.threadHeader.startFreshHint")}
                     </span>
                   </span>
                 </DropdownMenuItem>
@@ -345,18 +357,18 @@ export function ThreadHeader({ session, running }: { session: Session; running: 
                 <DropdownMenuSeparator />
                 {actions.archived ? (
                   <DropdownMenuItem onSelect={actions.unarchive}>
-                    <ArchiveRestore /> Unarchive
+                    <ArchiveRestore /> {t("orchestrator.threadHeader.unarchive")}
                   </DropdownMenuItem>
                 ) : (
                   <DropdownMenuItem onSelect={actions.archive}>
-                    <Archive /> Archive session
+                    <Archive /> {t("orchestrator.threadHeader.archive")}
                   </DropdownMenuItem>
                 )}
                 {/* Only while a turn runs or a question is open, like the sidebar's row menu:
                     stopping a finished session would overwrite its outcome. */}
                 {actions.canStop && (
                   <DropdownMenuItem variant="destructive" onSelect={actions.stop}>
-                    <X /> Stop session
+                    <X /> {t("orchestrator.threadHeader.stopSession")}
                   </DropdownMenuItem>
                 )}
               </>

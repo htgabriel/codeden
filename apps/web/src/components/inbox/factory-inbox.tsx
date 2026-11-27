@@ -7,6 +7,7 @@ import { SpecDecision } from "@/components/factory/spec-approval";
 import { Markdown } from "@/components/thread/markdown";
 import { Button } from "@/components/ui/button";
 import { useClient } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n";
 import { InboxActions, PrReviewStatus } from "./inbox-actions";
 
 const DIGEST = "inbox:factory-digest:";
@@ -32,17 +33,18 @@ function Header({ icon, label, tone }: { icon: React.ReactNode; label: string; t
 
 /** The daily factory digest: shipped, rejected, spend against budget and what waits on you. */
 function DigestCard({ item }: { item: InboxItem }) {
+  const { t } = useTranslation();
   const client = useClient();
   const open = item.status === "open";
   const done = useMutation({
     mutationFn: () => client.resolveInbox(item.id, { status: "resolved" }),
-    onSuccess: () => toast.success("Digest read"),
+    onSuccess: () => toast.success(t("inbox.factory.digestRead")),
   });
   return (
     <div className="rounded-xl border border-border bg-card" data-testid="factory-digest">
       <Header
         icon={<Newspaper className="size-3.5" />}
-        label="Factory digest"
+        label={t("inbox.factory.digest")}
         tone="border-border text-muted-foreground"
       />
       <div className="space-y-3 px-4 py-3">
@@ -56,7 +58,7 @@ function DigestCard({ item }: { item: InboxItem }) {
           {item.projectId && (
             <Button size="sm" variant="outline" asChild>
               <Link to="/projects/$projectId" params={{ projectId: item.projectId }}>
-                <Factory /> Factory panel
+                <Factory /> {t("inbox.factory.factoryPanel")}
               </Link>
             </Button>
           )}
@@ -67,7 +69,7 @@ function DigestCard({ item }: { item: InboxItem }) {
               onClick={() => done.mutate()}
               disabled={done.isPending}
             >
-              Mark read
+              {t("inbox.factory.markRead")}
             </Button>
           )}
         </div>
@@ -78,6 +80,7 @@ function DigestCard({ item }: { item: InboxItem }) {
 
 /** A factory PR that touches a protected area: the factory never merges it; you decide. */
 function EscalationCard({ item }: { item: InboxItem }) {
+  const { t } = useTranslation();
   const itemId = item.id.slice(ESCALATED.length);
   const open = item.status === "open";
   return (
@@ -87,7 +90,7 @@ function EscalationCard({ item }: { item: InboxItem }) {
     >
       <Header
         icon={<ShieldAlert className="size-3.5" />}
-        label="Protected area · needs you"
+        label={t("inbox.factory.protectedArea")}
         tone="border-status-waiting/20 bg-status-waiting/[0.06] text-status-waiting"
       />
       <div className="space-y-3 px-4 py-3">
@@ -106,7 +109,7 @@ function EscalationCard({ item }: { item: InboxItem }) {
                 to="/projects/$projectId/factory/$itemId"
                 params={{ projectId: item.projectId, itemId }}
               >
-                Merge checks
+                {t("inbox.factory.mergeChecks")}
               </Link>
             </Button>
           )}
@@ -118,6 +121,7 @@ function EscalationCard({ item }: { item: InboxItem }) {
 
 /** A feature's spec waiting for your approval before it is built (spec approval on). */
 function SpecCard({ item }: { item: InboxItem }) {
+  const { t } = useTranslation();
   const itemId = item.id.slice(SPEC.length);
   const open = item.status === "open";
   return (
@@ -127,7 +131,7 @@ function SpecCard({ item }: { item: InboxItem }) {
     >
       <Header
         icon={<FileCheck className="size-3.5" />}
-        label="Spec to approve · needs you"
+        label={t("inbox.factory.specToApprove")}
         tone="border-status-waiting/20 bg-status-waiting/[0.06] text-status-waiting"
       />
       <div className="space-y-3 px-4 py-3">
@@ -152,7 +156,7 @@ function SpecCard({ item }: { item: InboxItem }) {
               to="/projects/$projectId/factory/$itemId"
               params={{ projectId: item.projectId, itemId }}
             >
-              Open the work item
+              {t("inbox.factory.openWorkItem")}
             </Link>
           </Button>
         )}

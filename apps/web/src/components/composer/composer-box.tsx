@@ -13,6 +13,7 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useTranslation } from "@/lib/i18n";
 import { useSnapshotData } from "@/lib/queries";
 import { useComposerBounds } from "@/lib/toast-placement";
 import { cn } from "@/lib/utils";
@@ -23,11 +24,12 @@ import { DictationStrip } from "./dictation-strip";
 import { useDictation } from "./use-dictation";
 import { VoiceButton } from "./voice-button";
 
-export const composerPlaceholders: Record<Session["role"], string> = {
-  orchestrator: "Ask the orchestrator to start a project, triage issues or check on work…",
-  pm: "Message the project manager…",
-  agent: "Message the agent — @ to mention files, / for commands and skills",
-};
+/** Catalog keys of the composer placeholder for each role; pass them to `t`. */
+export const composerPlaceholders = {
+  orchestrator: "orchestrator.composer.placeholders.orchestrator",
+  pm: "orchestrator.composer.placeholders.pm",
+  agent: "orchestrator.composer.placeholders.agent",
+} as const satisfies Record<Session["role"], string>;
 
 /** A draft can be sent with text, attachments or both. */
 export const canSendDraft = (draft: Draft) =>
@@ -88,13 +90,14 @@ export function ComposerBox({
   /** Overrides the dictation engine from Settings (tests). */
   dictationEngine?: SpeechToText;
 }) {
+  const { t } = useTranslation();
   const draft = useComposerStore((s) => getDraft(s, draftKey));
   const focusToken = useComposerStore((s) => s.focusToken);
   const { setText, addAttachments, removeAttachment } = useComposerStore.getState();
   const dictationLanguage = useSnapshotData((s) => s.settings.voice.dictation.language, null);
   const dictation = useDictation({
     baseText: draft.text,
-    onText: (t) => setText(draftKey, t),
+    onText: (text) => setText(draftKey, text),
     language: dictationLanguage,
     engine: dictationEngine,
   });
@@ -120,10 +123,10 @@ export function ComposerBox({
       const { attachments, tooLarge } = await filesToAttachments(files);
       if (attachments.length > 0) addAttachments(draftKey, attachments);
       if (tooLarge.length > 0) {
-        toast.error("Attachments are limited to 20 MB", { description: tooLarge.join(", ") });
+        toast.error(t("orchestrator.composer.tooLarge"), { description: tooLarge.join(", ") });
       }
     } catch (e) {
-      toast.error("Couldn't attach the file", { description: (e as Error).message });
+      toast.error(t("orchestrator.composer.attachFailed"), { description: (e as Error).message });
     }
   };
   const onPaste = (e: ClipboardEvent) => {
@@ -173,7 +176,7 @@ export function ComposerBox({
             onKeyDown={onKeyDown}
             onPaste={onPaste}
             placeholder={placeholder}
-            aria-label="Message"
+            aria-label={t("orchestrator.composer.message")}
             role={combobox ? "combobox" : undefined}
             aria-autocomplete={combobox ? "list" : undefined}
             aria-expanded={combobox ? combobox.open : undefined}
@@ -197,12 +200,12 @@ export function ComposerBox({
                   size="icon-sm"
                   className="text-muted-foreground"
                   onClick={() => fileInput.current?.click()}
-                  aria-label="Attach files"
+                  aria-label={t("orchestrator.composer.attachFiles")}
                 >
                   <Paperclip />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Attach files or paste an image</TooltipContent>
+              <TooltipContent>{t("orchestrator.composer.attachTooltip")}</TooltipContent>
             </Tooltip>
             {options}
             <div className="ml-auto flex items-center gap-1">

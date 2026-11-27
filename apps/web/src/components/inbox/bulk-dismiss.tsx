@@ -1,5 +1,6 @@
 import { INBOX_BULK_MAX, type InboxItem } from "@codeden/contracts";
 import { useMutation } from "@tanstack/react-query";
+import type { TFunction } from "i18next";
 import { CheckCheck } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -15,6 +16,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { type CodeDenClient, useClient } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n";
 import { splitForDismiss } from "@/lib/inbox";
 
 /** How long a bulk dismiss can be undone from its toast. */
@@ -23,17 +25,17 @@ export const UNDO_MS = 10_000;
 /** How many of the items that stay the confirmation names. */
 const NAMED = 5;
 
-const count = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
-const notices = (n: number) => count(n, "notice");
+/** "6 notices". */
+const notices = (t: TFunction, count: number) => t("inbox.bulkDismiss.notices", { count });
 
 /** "3 items that wait on you stay" (or "1 item that waits on you stays"). */
-function stayLine(n: number): string {
-  return n === 1 ? "1 item that waits on you stays" : `${n} items that wait on you stay`;
+function stayLine(t: TFunction, count: number): string {
+  return t("inbox.bulkDismiss.stay", { count });
 }
 
 /** A toast's line for the items the server kept: "3 items that wait on you stay.", or none. */
-function keptLine(kept: number): string | undefined {
-  return kept > 0 ? `${stayLine(kept)}.` : undefined;
+function keptLine(t: TFunction, kept: number): string | undefined {
+  return kept > 0 ? `${stayLine(t, kept)}.` : undefined;
 }
 
 /** `message` ending as a sentence, so another can follow it. */
@@ -52,16 +54,21 @@ function batches(ids: string[]): string[][] {
  * Undo from the toast: reopens exactly what the dismiss closed (`POST /api/inbox/restore`). When
  * a later request fails, the toast still says what the earlier ones reopened.
  */
-async function undo(client: CodeDenClient, ids: string[], what: (n: number) => string) {
+async function undo(
+  t: TFunction,
+  client: CodeDenClient,
+  ids: string[],
+  what: (n: number) => string,
+) {
   let restored = 0;
   try {
     for (const batch of batches(ids)) restored += (await client.restoreInbox(batch)).restored;
-    toast.success(`Restored ${what(restored)}`);
+    toast.success(t("inbox.bulkDismiss.restored", { what: what(restored) }));
   } catch (e) {
     const message =
       restored > 0
-        ? `Restored ${what(restored)}, then couldn't restore the rest`
-        : "Couldn't undo the dismiss";
+        ? t("inbox.bulkDismiss.restoredPartly", { what: what(restored) })
+        : t("inbox.bulkDismiss.undoFailed");
     toast.error(message, { description: (e as Error).message });
   }
 }
@@ -81,6 +88,7 @@ interface BulkResult {
  * them) are gone. `what` names the items: "6 notices".
  */
 export function useBulkDismiss(what: (n: number) => string) {
+  const { t } = useTranslation();
   const client = useClient();
   return useMutation({
     mutationFn: async (items: InboxItem[]): Promise<BulkResult> => {
@@ -99,25 +107,29 @@ export function useBulkDismiss(what: (n: number) => string) {
       }
       return total;
     },
-    onError: (e: Error) => toast.error("Couldn't dismiss them", { description: e.message }),
+    onError: (e: Error) =>
+      toast.error(t("inbox.bulkDismiss.dismissFailed"), { description: e.message }),
     onSuccess: (res) => {
-      const kept = keptLine(res.kept);
+      const kept = keptLine(t, res.kept);
       if (res.dismissed === 0) {
-        toast.warning("Nothing was dismissed", { description: kept });
+        toast.warning(t("inbox.bulkDismiss.nothingDismissed"), { description: kept });
         return;
       }
-      const action = { label: "Undo", onClick: () => void undo(client, res.ids, what) };
+      const action = {
+        label: t("inbox.bulkDismiss.undo"),
+        onClick: () => void undo(t, client, res.ids, what),
+      };
       if (res.error) {
         // The reason first, then what the requests that went through kept, as on success.
         const reason = res.error.message;
-        toast.error(`Dismissed ${what(res.dismissed)}, then couldn't dismiss the rest`, {
+        toast.error(t("inbox.bulkDismiss.dismissedPartly", { what: what(res.dismissed) }), {
           description: kept ? `${sentence(reason)} ${kept}` : reason,
           action,
           duration: UNDO_MS,
         });
         return;
       }
-      toast.success(`Dismissed ${what(res.dismissed)}`, {
+      toast.success(t("inbox.bulkDismiss.dismissed", { what: what(res.dismissed) }), {
         description: kept,
         action,
         duration: UNDO_MS,
@@ -144,8 +156,9 @@ export function DismissView({
   items: InboxItem[];
   alsoStaying?: StayingItem[];
 }) {
+  const { t } = useTranslation();
   const [confirming, setConfirming] = useState(false);
-  const bulk = useBulkDismiss(notices);
+  const bulk = useBulkDismiss((n) => notices(t, n));
   const { dismiss, stay } = splitForDismiss(items);
   const staying: StayingItem[] = [...alsoStaying, ...stay];
   const n = dismiss.length;
@@ -159,25 +172,33 @@ export function DismissView({
         size="sm"
         variant="ghost"
         className="text-muted-foreground"
-        title={`Dismiss the ${notices(n)} in this view`}
+        title={t("inbox.bulkDismiss.buttonTitle", { notices: notices(t, n) })}
         onClick={() => setConfirming(true)}
         disabled={bulk.isPending}
       >
-        <CheckCheck /> Dismiss {n}
+        <CheckCheck /> {t("inbox.bulkDismiss.dismissCount", { count: n })}
       </Button>
       <AlertDialog open={confirming} onOpenChange={setConfirming}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Dismiss {notices(n)}?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {t("inbox.bulkDismiss.confirmTitle", { notices: notices(t, n) })}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              {notices(n)} will be dismissed
-              {staying.length > 0 ? `; ${stayLine(staying.length)}.` : "."} You can undo it for a
-              few seconds.
+              {staying.length > 0
+                ? t("inbox.bulkDismiss.willBeDismissedStaying", {
+                    notices: notices(t, n),
+                    stay: stayLine(t, staying.length),
+                  })
+                : t("inbox.bulkDismiss.willBeDismissed", { notices: notices(t, n) })}{" "}
+              {t("inbox.bulkDismiss.undoHint")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           {named.length > 0 && (
             <div className="min-w-0 text-[13px]" data-testid="dismiss-staying">
-              <div className="mb-1.5 text-2xs text-muted-foreground">Staying</div>
+              <div className="mb-1.5 text-2xs text-muted-foreground">
+                {t("inbox.bulkDismiss.staying")}
+              </div>
               <ul className="space-y-1">
                 {named.map((s) => (
                   <li key={s.id} className="truncate">
@@ -185,12 +206,18 @@ export function DismissView({
                   </li>
                 ))}
               </ul>
-              {more > 0 && <div className="mt-1 text-muted-foreground">and {more} more</div>}
+              {more > 0 && (
+                <div className="mt-1 text-muted-foreground">
+                  {t("inbox.bulkDismiss.andMore", { count: more })}
+                </div>
+              )}
             </div>
           )}
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => bulk.mutate(dismiss)}>Dismiss {n}</AlertDialogAction>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => bulk.mutate(dismiss)}>
+              {t("inbox.bulkDismiss.dismissCount", { count: n })}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

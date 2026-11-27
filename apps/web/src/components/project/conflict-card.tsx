@@ -14,21 +14,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { type CodeDenClient, useClient } from "@/lib/api";
 import { ago } from "@/lib/format";
+import { Trans, useTranslation } from "@/lib/i18n";
 import { LOCAL_CONFLICT_PREFIX } from "@/lib/new-session";
-
-const startedBy = {
-  user: "You",
-  orchestrator: "The orchestrator",
-  pm: "The PM",
-  automation: "An automation",
-};
-
-const doneText: Record<ConflictDecision["resolution"], string> = {
-  wait: "Queued behind the running work",
-  skip: "Skipped",
-  join: "Sent to the running session",
-  force: "Started anyway",
-};
 
 async function decide(
   client: CodeDenClient,
@@ -69,6 +56,7 @@ export function ConflictCard({
   replace?: boolean;
   startBlocked?: string | null;
 }) {
+  const { t } = useTranslation();
   const client = useClient();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -80,7 +68,7 @@ export function ConflictCard({
     mutationFn: (decision: ConflictDecision): Promise<ConflictOutcome> =>
       decideWith ? decideWith(decision) : decide(client, conflict, decision),
     onSuccess: (result, decision) => {
-      toast.success(doneText[decision.resolution]);
+      toast.success(t(`inbox.conflict.done.${decision.resolution}`));
       void queryClient.invalidateQueries({ queryKey: ["conflicts"] });
       onResolved?.(result);
       const moved = ["started", "joined", "queued"].includes(result.status);
@@ -91,7 +79,7 @@ export function ConflictCard({
           replace,
         });
     },
-    onError: (e) => toast.error("Couldn't resolve the conflict", { description: e.message }),
+    onError: (e) => toast.error(t("inbox.conflict.resolveFailed"), { description: e.message }),
   });
 
   return (
@@ -102,7 +90,7 @@ export function ConflictCard({
       <div className="flex items-center gap-2 border-b border-chart-5/15 bg-chart-5/[0.06] px-3.5 py-2">
         <Swords className="size-4 text-chart-5" />
         <span className="text-2xs font-semibold tracking-wider text-chart-5 uppercase">
-          Already running
+          {t("inbox.conflict.alreadyRunning")}
         </span>
         <span className="text-3xs text-muted-foreground">{ago(conflict.createdAt)}</span>
         <code className="ml-auto rounded bg-background/60 px-1.5 py-px font-mono text-3xs text-muted-foreground">
@@ -111,9 +99,14 @@ export function ConflictCard({
       </div>
       <div className="space-y-3 px-3.5 py-3">
         <p className="text-[13px]">
-          <span className="font-medium">{startedBy[conflict.request.startedBy.kind]}</span> asked to{" "}
-          <span className="font-medium">“{conflict.request.purpose}”</span>, but matching work is
-          already in progress:
+          <Trans
+            i18nKey="inbox.conflict.askedTo"
+            values={{
+              who: t(`inbox.conflict.startedBy.${conflict.request.startedBy.kind}`),
+              purpose: conflict.request.purpose,
+            }}
+            components={{ b: <span className="font-medium" /> }}
+          />
         </p>
         {conflict.existing.map((work) => (
           <div
@@ -124,7 +117,8 @@ export function ConflictCard({
             <div className="min-w-0 flex-1">
               <div className="text-[13px] font-medium">{work.purpose}</div>
               <div className="text-2xs text-muted-foreground">
-                {startedBy[work.startedBy.kind]} · {work.status} · {ago(work.startedAt)}
+                {t(`inbox.conflict.startedBy.${work.startedBy.kind}`)} · {work.status} ·{" "}
+                {ago(work.startedAt)}
                 {work.progress && ` · ${work.progress.text}`}
               </div>
             </div>
@@ -134,7 +128,7 @@ export function ConflictCard({
                 params={{ sessionId: work.sessionId }}
                 className="shrink-0 text-2xs text-primary hover:underline"
               >
-                Open
+                {t("inbox.conflict.open")}
               </Link>
             )}
           </div>
@@ -145,8 +139,8 @@ export function ConflictCard({
               autoFocus
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Why start a duplicate? (recorded)"
-              aria-label="Reason to start anyway"
+              placeholder={t("inbox.conflict.forcePlaceholder")}
+              aria-label={t("inbox.conflict.forceLabel")}
               className="h-8 text-[13px]"
             />
             <Button
@@ -155,10 +149,10 @@ export function ConflictCard({
               disabled={!reason.trim() || blocked || resolve.isPending}
               onClick={() => resolve.mutate({ resolution: "force", reason: reason.trim() })}
             >
-              Start anyway
+              {t("inbox.conflict.startAnyway")}
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setForcing(false)}>
-              Cancel
+              {t("common.cancel")}
             </Button>
           </div>
         ) : (
@@ -168,7 +162,7 @@ export function ConflictCard({
               onClick={() => resolve.mutate({ resolution: "wait", behindId: existing?.id })}
               disabled={blocked || resolve.isPending}
             >
-              <Clock /> Wait
+              <Clock /> {t("inbox.conflict.wait")}
             </Button>
             <Button
               size="sm"
@@ -179,7 +173,7 @@ export function ConflictCard({
                 resolve.mutate({ resolution: "join", sessionId: existing.sessionId })
               }
             >
-              <GitMerge /> Join
+              <GitMerge /> {t("inbox.conflict.join")}
             </Button>
             <Button
               size="sm"
@@ -187,7 +181,7 @@ export function ConflictCard({
               onClick={() => resolve.mutate({ resolution: "skip" })}
               disabled={resolve.isPending}
             >
-              <SkipForward /> Skip
+              <SkipForward /> {t("inbox.conflict.skip")}
             </Button>
             <Button
               size="sm"
@@ -196,14 +190,13 @@ export function ConflictCard({
               disabled={blocked}
               onClick={() => setForcing(true)}
             >
-              <Zap /> Force…
+              <Zap /> {t("inbox.conflict.force")}
             </Button>
             {startBlocked ? (
               <span className="ml-auto self-center text-3xs text-chart-5">{startBlocked}</span>
             ) : (
               <span className="ml-auto flex items-center gap-1 self-center text-3xs text-muted-foreground/70">
-                <ListPlus className="size-3" /> Wait queues it to start when the current run
-                finishes
+                <ListPlus className="size-3" /> {t("inbox.conflict.waitHint")}
               </span>
             )}
           </div>

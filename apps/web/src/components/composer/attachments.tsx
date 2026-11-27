@@ -1,5 +1,6 @@
 import { type Attachment, ImageMediaType, MAX_ATTACHMENT_BYTES } from "@codeden/contracts";
 import { FileText, X } from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
 import type { ComposerAttachment } from "@/stores/composer";
 
 let n = 0;
@@ -88,6 +89,7 @@ export function AttachmentStrip({
   items: ComposerAttachment[];
   onRemove: (id: string) => void;
 }) {
+  const { t } = useTranslation();
   if (items.length === 0) return null;
   return (
     <div className="flex flex-wrap gap-2 px-3 pt-3">
@@ -107,7 +109,7 @@ export function AttachmentStrip({
           )}
           <button
             type="button"
-            aria-label={`Remove ${a.name}`}
+            aria-label={t("orchestrator.composer.removeAttachment", { name: a.name })}
             onClick={() => onRemove(a.id)}
             className="absolute -top-1.5 -right-1.5 flex size-5 items-center justify-center rounded-full border border-border bg-popover text-muted-foreground opacity-0 shadow-sm transition-opacity group-hover:opacity-100 hover:text-foreground touch:opacity-100"
           >

@@ -4,26 +4,9 @@ import { Check, ShieldAlert, ShieldCheck, ShieldX } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useClient } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { PlanApprovalCard } from "./plan-approval-card";
-
-const actionLabel: Record<ItemOf<"approval_request">["action"], string> = {
-  command: "Command",
-  file_change: "File change",
-  outside_worktree: "Outside the worktree",
-  network: "Network access",
-  git_destructive: "Destructive git",
-  secrets: "Secrets access",
-  tool: "Tool",
-  plan: "Plan",
-  other: "Action",
-};
-
-const decisionLabel: Record<ApprovalDecision, string> = {
-  allow_once: "Approved once",
-  allow_session: "Always allowed this session",
-  deny: "Denied",
-};
 
 /**
  * An approval the agent is waiting on (§11.2), answerable inline. Plan approvals (plan mode)
@@ -55,12 +38,13 @@ function ActionApprovalCard({
   sessionId: string;
   compact: boolean;
 }) {
+  const { t } = useTranslation();
   const client = useClient();
   const pending = item.status === "in_progress";
   const decide = useMutation({
     mutationFn: (decision: ApprovalDecision) =>
       client.respond(sessionId, item.requestId, { kind: "approval", decision }),
-    onError: (e) => toast.error("Couldn't send the decision", { description: e.message }),
+    onError: (e) => toast.error(t("inbox.approval.sendFailed"), { description: e.message }),
   });
 
   if (!pending) {
@@ -73,8 +57,12 @@ function ActionApprovalCard({
         />
         <span className="min-w-0 truncate">{item.title}</span>
         <span className="ml-auto shrink-0 text-2xs">
-          {item.decision ? decisionLabel[item.decision] : "Cancelled"}
-          {item.decidedBy && item.decidedBy !== "user" ? ` by ${item.decidedBy}` : ""}
+          {item.decision
+            ? t(`inbox.approval.decisions.${item.decision}`)
+            : t("inbox.approval.cancelled")}
+          {item.decidedBy && item.decidedBy !== "user"
+            ? t("inbox.approval.by", { who: item.decidedBy })
+            : ""}
         </span>
       </div>
     );
@@ -87,10 +75,10 @@ function ActionApprovalCard({
       <div className="flex items-center gap-2 border-b border-status-waiting/15 bg-status-waiting/[0.07] px-3.5 py-2">
         <ShieldAlert className="size-4 text-status-waiting" />
         <span className="text-2xs font-semibold tracking-wider text-status-waiting uppercase">
-          Approval needed
+          {t("inbox.approval.needed")}
         </span>
         <span className="ml-auto rounded-full border border-status-waiting/25 px-2 py-px text-3xs text-status-waiting/90">
-          {actionLabel[item.action]}
+          {t(`inbox.approval.actions.${item.action}`)}
         </span>
       </div>
       <div className="space-y-2.5 px-3.5 py-3 wrap-break-word">
@@ -126,7 +114,7 @@ function ActionApprovalCard({
         <div className="flex flex-wrap items-center gap-2 pt-0.5">
           {item.options.includes("allow_once") && (
             <Button size="sm" disabled={busy} onClick={() => decide.mutate("allow_once")}>
-              <Check /> Approve
+              <Check /> {t("inbox.approval.approve")}
             </Button>
           )}
           {item.options.includes("allow_session") && (
@@ -136,7 +124,7 @@ function ActionApprovalCard({
               disabled={busy}
               onClick={() => decide.mutate("allow_session")}
             >
-              Always allow this session
+              {t("inbox.approval.alwaysAllow")}
             </Button>
           )}
           {item.options.includes("deny") && (
@@ -147,7 +135,7 @@ function ActionApprovalCard({
               className="text-muted-foreground hover:text-status-failed"
               onClick={() => decide.mutate("deny")}
             >
-              Deny
+              {t("inbox.approval.deny")}
             </Button>
           )}
           {!compact && item.cwd && (

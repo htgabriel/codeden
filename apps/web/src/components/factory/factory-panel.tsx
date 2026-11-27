@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useClient } from "@/lib/api";
 import { factoryKeys, useFactoryStatus } from "@/lib/factory";
 import { ago, compact, usd } from "@/lib/format";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { AutonomyDialog, ExperimentalBadge } from "./autonomy-dialog";
 import { DrainChip } from "./drain-chip";
@@ -55,6 +56,7 @@ function Meter(props: {
 }
 
 function LoopState({ state, stopped }: { state: keyof typeof LOOP_LABEL; stopped: boolean }) {
+  const { t } = useTranslation();
   const loop = LOOP_LABEL[stopped ? "stopped" : state];
   return (
     <span
@@ -67,7 +69,7 @@ function LoopState({ state, stopped }: { state: keyof typeof LOOP_LABEL; stopped
       )}
       data-testid="factory-loop-state"
     >
-      Loop {loop.label.toLowerCase()}
+      {t("project.factoryPanel.loopState", { state: loop.label.toLowerCase() })}
     </span>
   );
 }
@@ -77,6 +79,7 @@ function LoopState({ state, stopped }: { state: keyof typeof LOOP_LABEL; stopped
  * agent pool and budget, merge checks, recent results and the issues ignored for their author.
  */
 export function FactoryPanel({ project }: { project: Project }) {
+  const { t } = useTranslation();
   const projectId = project.id;
   const client = useClient();
   const queryClient = useQueryClient();
@@ -89,20 +92,24 @@ export function FactoryPanel({ project }: { project: Project }) {
   const resume = useMutation({
     mutationFn: () => client.factory.resume(projectId),
     onSuccess: () => {
-      toast.success("Loop resumed");
+      toast.success(t("project.factoryPanel.resumed"));
       refresh();
     },
-    onError: fail("Couldn't resume"),
+    onError: fail(t("project.factoryPanel.resumeFailed")),
   });
   const digest = useMutation({
     mutationFn: () => client.factory.digest(projectId),
     onSuccess: (d) => {
-      toast.success("Digest ready in your inbox", {
-        description: `${d.shipped.length} shipped, ${d.rejected.length} rejected, ${d.waiting.length} waiting`,
+      toast.success(t("project.factoryPanel.digestReady"), {
+        description: t("project.factoryPanel.digestCounts", {
+          shipped: d.shipped.length,
+          rejected: d.rejected.length,
+          waiting: d.waiting.length,
+        }),
       });
       refresh();
     },
-    onError: fail("Couldn't build the digest"),
+    onError: fail(t("project.factoryPanel.digestFailed")),
   });
 
   if (!f) return <Skeleton className="h-72 w-full rounded-xl" />;
@@ -129,18 +136,18 @@ export function FactoryPanel({ project }: { project: Project }) {
           </div>
           <div className="text-2xs text-muted-foreground">
             {f.mode === "dark_factory"
-              ? "The scout and trusted issues feed the pipelines; "
-              : "Trusted GitHub issues feed the pipelines; "}
+              ? t("project.factoryPanel.feedDark")
+              : t("project.factoryPanel.feedTrusted")}
             {f.limits.autoMerge
-              ? "CodeDen merges when every check passes."
-              : "you merge the pull requests."}
+              ? t("project.factoryPanel.autoMerges")
+              : t("project.factoryPanel.youMerge")}
           </div>
         </div>
         <div className="ml-auto flex flex-wrap items-center gap-1">
           <OpenFactoryViewButton projectId={projectId} variant="outline" />
           {f.loopState === "paused" && !f.drain && (
             <Button size="sm" onClick={() => resume.mutate()} disabled={resume.isPending}>
-              <Play /> Resume
+              <Play /> {t("project.factoryPanel.resume")}
             </Button>
           )}
           <FactoryRunButtons f={f} stopped={stopped} />
@@ -150,14 +157,14 @@ export function FactoryPanel({ project }: { project: Project }) {
             onClick={() => digest.mutate()}
             disabled={digest.isPending}
           >
-            <Newspaper /> Digest
+            <Newspaper /> {t("project.factoryPanel.digest")}
           </Button>
           <Button size="sm" variant="ghost" onClick={() => setLimitsOpen(true)}>
-            <SlidersHorizontal /> Settings
+            <SlidersHorizontal /> {t("common.settings")}
           </Button>
           <Button size="sm" variant="ghost" asChild>
             <Link to="/projects/$projectId/vision" params={{ projectId }}>
-              <FileText /> Vision
+              <FileText /> {t("project.page.vision")}
             </Link>
           </Button>
           <FactoryGuideButton />
@@ -176,19 +183,21 @@ export function FactoryPanel({ project }: { project: Project }) {
             <AlertTriangle className="size-3.5 text-status-waiting" />
             <span className="min-w-0 flex-1">
               {f.globalKillSwitch
-                ? "The global kill switch is on: no project's factory runs."
+                ? t("project.factoryPanel.globalKillSwitch")
                 : !f.visionExists
-                  ? "The vision file is missing; the loop will not start work without it."
-                  : `Paused: ${f.pausedReason}`}
+                  ? t("project.factoryPanel.visionMissing")
+                  : t("project.factoryPanel.paused", { reason: f.pausedReason ?? "" })}
             </span>
             {f.globalKillSwitch && <KillSwitchButton scope="global" on size="xs" />}
           </div>
         )}
         <div>
           <div className="mb-1 flex items-center gap-2">
-            <span className="text-2xs font-medium text-muted-foreground">Pipelines</span>
+            <span className="text-2xs font-medium text-muted-foreground">
+              {t("project.factoryPanel.pipelines")}
+            </span>
             <span className="text-3xs text-muted-foreground/80">
-              Click an issue to open the agent working on it
+              {t("project.factoryPanel.pipelinesHint")}
             </span>
             <span className="ml-auto flex min-w-0 items-center gap-1.5">
               <WipChip f={f} />
@@ -203,7 +212,7 @@ export function FactoryPanel({ project }: { project: Project }) {
         </div>
         <div className="flex flex-wrap gap-2">
           <Meter
-            label="Spend today"
+            label={t("project.factoryPanel.meters.spendToday")}
             value={budgetUsd ? f.spendToday.usd : f.spendToday.tokens}
             max={budgetUsd ?? budgetTokens ?? 0}
             display={
@@ -213,14 +222,14 @@ export function FactoryPanel({ project }: { project: Project }) {
             }
           />
           <Meter
-            label="Agents working"
+            label={t("project.factoryPanel.meters.agentsWorking")}
             value={f.activeSessions}
             max={f.limits.maxConcurrentSessions}
             display={`${f.activeSessions} / ${f.limits.maxConcurrentSessions}`}
             warn={false}
           />
           <Meter
-            label="PRs in progress"
+            label={t("project.factoryPanel.meters.prsInProgress")}
             value={f.wip.openPrs}
             max={f.wip.limit}
             display={`${f.wip.openPrs} / ${f.wip.limit}`}
@@ -228,7 +237,7 @@ export function FactoryPanel({ project }: { project: Project }) {
           />
           {f.limits.autoMerge ? (
             <Meter
-              label="Merges today"
+              label={t("project.factoryPanel.meters.mergesToday")}
               value={f.mergesToday}
               max={f.limits.maxMergesPerDay}
               display={`${f.mergesToday} / ${f.limits.maxMergesPerDay}`}
@@ -236,15 +245,15 @@ export function FactoryPanel({ project }: { project: Project }) {
             />
           ) : (
             <Meter
-              label="Ready for you"
+              label={t("project.factoryPanel.meters.readyForYou")}
               value={readyCount}
               max={Math.max(readyCount, 1)}
-              display={`${readyCount} PR${readyCount === 1 ? "" : "s"}`}
+              display={t("project.factoryPanel.meters.readyPrs", { count: readyCount })}
               warn={false}
             />
           )}
           <Meter
-            label="Failures in a row"
+            label={t("project.factoryPanel.meters.failuresInARow")}
             value={f.consecutiveFailures}
             max={f.limits.pauseAfterConsecutiveFailures}
             display={`${f.consecutiveFailures} / ${f.limits.pauseAfterConsecutiveFailures}`}
@@ -270,8 +279,12 @@ export function FactoryPanel({ project }: { project: Project }) {
         {f.lastDigest && (
           <details className="rounded-lg border border-border bg-surface px-3 py-2 text-2xs">
             <summary className="cursor-pointer text-muted-foreground">
-              Digest {f.lastDigest.day}: {f.lastDigest.shipped.length} shipped,{" "}
-              {f.lastDigest.rejected.length} rejected, {f.lastDigest.waiting.length} waiting on you
+              {t("project.factoryPanel.lastDigest", {
+                day: f.lastDigest.day,
+                shipped: f.lastDigest.shipped.length,
+                rejected: f.lastDigest.rejected.length,
+                waiting: f.lastDigest.waiting.length,
+              })}
             </summary>
             <pre className="mt-2 font-sans text-2xs leading-relaxed whitespace-pre-wrap text-foreground/85">
               {f.lastDigest.text}
@@ -279,21 +292,35 @@ export function FactoryPanel({ project }: { project: Project }) {
           </details>
         )}
         <p className="text-3xs text-muted-foreground/80">
-          {compact(f.spendToday.tokens)} tokens today · trusted:{" "}
+          {t("project.factoryPanel.footer.tokensToday", { tokens: compact(f.spendToday.tokens) })} ·{" "}
+          {t("project.factoryPanel.footer.trusted")}{" "}
           {[f.githubLogin, ...f.limits.trustedAuthors]
             .filter(Boolean)
             .map((l) => `@${l}`)
-            .join(", ") || "the GitHub account"}{" "}
-          · auto-merge {f.limits.autoMerge ? "on" : "off"} · protected:{" "}
-          {f.limits.protectedPaths.join(", ") || "from the vision"} · deploys{" "}
-          {f.limits.allowDeploys ? "allowed" : "off"} · CI{" "}
-          {f.tuning.requireCi ? "required" : "optional"} ·{" "}
+            .join(", ") || t("project.factoryPanel.footer.githubAccount")}{" "}
+          ·{" "}
+          {f.limits.autoMerge
+            ? t("project.factoryPanel.footer.autoMergeOn")
+            : t("project.factoryPanel.footer.autoMergeOff")}{" "}
+          · {t("project.factoryPanel.footer.protected")}{" "}
+          {f.limits.protectedPaths.join(", ") || t("project.factoryPanel.footer.fromVision")} ·{" "}
+          {f.limits.allowDeploys
+            ? t("project.factoryPanel.footer.deploysAllowed")
+            : t("project.factoryPanel.footer.deploysOff")}{" "}
+          ·{" "}
+          {f.tuning.requireCi
+            ? t("project.factoryPanel.footer.ciRequired")
+            : t("project.factoryPanel.footer.ciOptional")}{" "}
+          ·{" "}
           {f.tuning.maxChangedLines !== null
-            ? `up to ${f.tuning.maxChangedLines.toLocaleString()} changed lines`
-            : "no size limit"}
+            ? t("project.factoryPanel.footer.maxChangedLines", {
+                n: f.tuning.maxChangedLines.toLocaleString(),
+              })
+            : t("project.factoryPanel.footer.noSizeLimit")}
           {/* As of the panel's last refresh: on factory events, every 30 s while work is in
               flight, every 5 min while idle (`useFactoryStatus`). */}
-          {f.lastTickAt && ` · last check ${ago(f.lastTickAt)}`}
+          {f.lastTickAt &&
+            ` · ${t("project.factoryPanel.footer.lastCheck", { ago: ago(f.lastTickAt) })}`}
         </p>
       </div>
       <AutonomyDialog project={project} open={limitsOpen} onOpenChange={setLimitsOpen} />

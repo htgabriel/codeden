@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useClient } from "@/lib/api";
 import type { GithubState } from "@/lib/api/feature-apis";
 import { ago } from "@/lib/format";
+import { useTranslation } from "@/lib/i18n";
 import { platform } from "@/lib/platform";
 import { cn } from "@/lib/utils";
 import { ChecksBadge, GithubUnavailable, LabelChip, ReviewDecisionBadge } from "./github-bits";
@@ -20,6 +21,7 @@ import { CheckRemoteButton, RemoteWarningBanner } from "./remote-check";
 const STATES: GithubState[] = ["open", "closed", "all"];
 
 function PrRow({ pr, onOpen }: { pr: GithubPr; onOpen: () => void }) {
+  const { t } = useTranslation();
   return (
     <button
       type="button"
@@ -31,14 +33,15 @@ function PrRow({ pr, onOpen }: { pr: GithubPr; onOpen: () => void }) {
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[13px] font-medium">{pr.title}</span>
         <span className="block truncate text-3xs text-muted-foreground">
-          {pr.author ?? "unknown"} · {pr.headBranch} · updated {ago(pr.updatedAt)}
+          {pr.author ?? t("project.github.unknownAuthor")} · {pr.headBranch} ·{" "}
+          {t("project.github.updated", { ago: ago(pr.updatedAt) })}
         </span>
       </span>
       <ReviewDecisionBadge decision={pr.reviewDecision} />
       <ChecksBadge checks={pr.checks} />
       {pr.sessionId && (
         <span className="rounded-full border border-primary/30 px-1.5 py-px text-3xs text-primary">
-          session
+          {t("project.github.sessionChip")}
         </span>
       )}
     </button>
@@ -46,6 +49,7 @@ function PrRow({ pr, onOpen }: { pr: GithubPr; onOpen: () => void }) {
 }
 
 function IssueRow({ issue }: { issue: GithubIssue }) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center gap-3 px-3 py-2" data-testid="github-issue-row">
       <CircleDot
@@ -63,7 +67,8 @@ function IssueRow({ issue }: { issue: GithubIssue }) {
           {issue.title} <span className="text-muted-foreground">#{issue.number}</span>
         </span>
         <span className="flex items-center gap-1.5 text-3xs text-muted-foreground">
-          {issue.author ?? "unknown"} · updated {ago(issue.updatedAt)}
+          {issue.author ?? t("project.github.unknownAuthor")} ·{" "}
+          {t("project.github.updated", { ago: ago(issue.updatedAt) })}
           {issue.comments > 0 && (
             <span className="inline-flex items-center gap-0.5">
               · <MessageSquare className="size-2.5" /> {issue.comments}
@@ -82,7 +87,7 @@ function IssueRow({ issue }: { issue: GithubIssue }) {
           params={{ sessionId: issue.sessionIds[0] }}
           className="inline-flex items-center gap-0.5 text-3xs text-primary hover:underline"
         >
-          Session <ArrowUpRight className="size-3" />
+          {t("project.github.sessionLink")} <ArrowUpRight className="size-3" />
         </Link>
       )}
     </div>
@@ -103,6 +108,7 @@ function ListBox({ children, empty }: { children: React.ReactNode[]; empty: stri
 
 /** Project GitHub tab (§9): pull requests and issues with labels, status and checks. */
 export function ProjectGithub({ project }: { project: Project }) {
+  const { t } = useTranslation();
   const client = useClient();
   const queryClient = useQueryClient();
   const [state, setState] = useState<GithubState>("open");
@@ -121,7 +127,7 @@ export function ProjectGithub({ project }: { project: Project }) {
   const sync = useMutation({
     mutationFn: () => client.github.sync(project.id),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["github"] }),
-    onError: (e) => toast.error("Sync failed", { description: e.message }),
+    onError: (e) => toast.error(t("project.github.syncFailed"), { description: e.message }),
   });
 
   if (!github) {
@@ -146,27 +152,29 @@ export function ProjectGithub({ project }: { project: Project }) {
                 state === s && "bg-accent text-foreground",
               )}
             >
-              {s}
+              {t(`project.github.states.${s}`)}
             </button>
           ))}
         </div>
         <span className="ml-auto text-3xs text-muted-foreground">
           {syncStatus?.lastError
-            ? `Sync error: ${syncStatus.lastError}`
+            ? t("project.github.syncError", { error: syncStatus.lastError })
             : syncStatus?.lastSyncAt
-              ? `Synced ${ago(syncStatus.lastSyncAt)}`
-              : "Not synced yet"}
+              ? t("project.github.synced", { ago: ago(syncStatus.lastSyncAt) })
+              : t("project.github.notSynced")}
         </span>
         <Button size="xs" variant="outline" onClick={() => sync.mutate()} disabled={sync.isPending}>
-          <RefreshCw className={cn(sync.isPending && "animate-spin")} /> Sync
+          <RefreshCw className={cn(sync.isPending && "animate-spin")} /> {t("project.github.sync")}
         </Button>
       </div>
       <section>
-        <SectionLabel className="mb-2">Pull requests · {prs.data?.prs.length ?? 0}</SectionLabel>
+        <SectionLabel className="mb-2">
+          {t("project.github.pullRequests")} · {prs.data?.prs.length ?? 0}
+        </SectionLabel>
         {prs.isLoading ? (
           <Skeleton className="h-24 rounded-xl" />
         ) : (
-          <ListBox empty="No pull requests.">
+          <ListBox empty={t("project.github.noPullRequests")}>
             {(prs.data?.prs ?? []).map((pr) => (
               <PrRow key={pr.id} pr={pr} onOpen={() => setOpenPr(pr)} />
             ))}
@@ -174,11 +182,13 @@ export function ProjectGithub({ project }: { project: Project }) {
         )}
       </section>
       <section>
-        <SectionLabel className="mb-2">Issues · {issues.data?.issues.length ?? 0}</SectionLabel>
+        <SectionLabel className="mb-2">
+          {t("project.github.issues")} · {issues.data?.issues.length ?? 0}
+        </SectionLabel>
         {issues.isLoading ? (
           <Skeleton className="h-24 rounded-xl" />
         ) : (
-          <ListBox empty="No issues.">
+          <ListBox empty={t("project.github.noIssues")}>
             {(issues.data?.issues ?? []).map((issue) => (
               <IssueRow key={issue.number} issue={issue} />
             ))}
@@ -188,7 +198,9 @@ export function ProjectGithub({ project }: { project: Project }) {
       <Dialog open={Boolean(openPr)} onOpenChange={(o) => !o && setOpenPr(null)}>
         <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Pull request #{openPr?.number}</DialogTitle>
+            <DialogTitle>
+              {t("project.github.prTitle", { number: openPr?.number ?? "" })}
+            </DialogTitle>
           </DialogHeader>
           {openPr && <PrDetailsView prId={openPr.id} />}
         </DialogContent>

@@ -2,6 +2,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { ArrowDown, ArrowUp, Loader2 } from "lucide-react";
 import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "@/lib/i18n";
 import type { EarlierTurns } from "@/lib/queries";
 import type { TranscriptState } from "@/lib/transcript/reducer";
 import { buildTimeline, rowIndexOfItem, type TimelineRow } from "@/lib/transcript/timeline";
@@ -51,6 +52,7 @@ export function Transcript({
   className?: string;
   contentClassName?: string;
 }) {
+  const { t } = useTranslation();
   const rows = useMemo(() => buildTimeline(transcript, threadId), [transcript, threadId]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [atBottom, setAtBottom] = useState(true);
@@ -91,8 +93,8 @@ export function Transcript({
     if (focusItemId && rowIndexOfItem(rows, focusItemId) !== -1) return;
     stick.current = true;
     requestAnimationFrame(() => scrollToEnd());
-    const t = setTimeout(() => scrollToEnd(), 120);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => scrollToEnd(), 120);
+    return () => clearTimeout(timer);
   }, [threadId]);
 
   // Open at the search hit once its row exists: stop following the end, then centre it.
@@ -172,11 +174,13 @@ export function Transcript({
                 >
                   {earlier.loading ? <Loader2 className="animate-spin" /> : <ArrowUp />}
                   {earlier.loading
-                    ? "Loading earlier turns…"
-                    : `${earlier.count} earlier ${earlier.count === 1 ? "turn" : "turns"}`}
+                    ? t("orchestrator.transcript.loadingEarlier")
+                    : t("orchestrator.transcript.earlierTurns", { count: earlier.count })}
                 </Button>
               ) : (
-                <span className="pt-1 text-3xs text-muted-foreground">Start of the session</span>
+                <span className="pt-1 text-3xs text-muted-foreground">
+                  {t("orchestrator.transcript.sessionStart")}
+                </span>
               )}
             </div>
           )}
@@ -226,7 +230,7 @@ export function Transcript({
             scrollToEnd(true);
           }}
         >
-          <ArrowDown /> Latest
+          <ArrowDown /> {t("orchestrator.transcript.latest")}
         </Button>
       )}
     </div>

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useClient } from "@/lib/api";
 import { factoryKeys } from "@/lib/factory";
+import { useTranslation } from "@/lib/i18n";
 import { checkNowHelp, LOOP_LABEL } from "./meta";
 
 /**
@@ -47,6 +48,7 @@ function HintButton({
  * the fresh status, which replaces the cached one.
  */
 export function FactoryRunButtons({ f, stopped }: { f: FactoryStatus; stopped: boolean }) {
+  const { t } = useTranslation();
   const client = useClient();
   const queryClient = useQueryClient();
   const show = (s: FactoryStatus) => queryClient.setQueryData(factoryKeys.status(f.projectId), s);
@@ -54,20 +56,25 @@ export function FactoryRunButtons({ f, stopped }: { f: FactoryStatus; stopped: b
     mutationFn: () => client.factory.tick(f.projectId),
     onSuccess: (s) => {
       show(s);
-      toast.success(`Checked: loop ${LOOP_LABEL[s.loopState].label.toLowerCase()}`);
+      toast.success(
+        t("project.factoryActions.checked", {
+          state: LOOP_LABEL[s.loopState].label.toLowerCase(),
+        }),
+      );
     },
-    onError: (e) => toast.error("Couldn't check the factory", { description: e.message }),
+    onError: (e) =>
+      toast.error(t("project.factoryActions.checkFailed"), { description: e.message }),
   });
   const scout = useMutation({
     mutationFn: () => client.factory.runScout(f.projectId),
     onSuccess: (s) => {
       show(s);
-      toast.success("Scout round started", {
-        description: "It plans what to review, then its area reviewers look at the app.",
+      toast.success(t("project.factoryActions.scoutStarted"), {
+        description: t("project.factoryActions.scoutStartedHint"),
       });
     },
     onError: (e) => {
-      toast.error("Couldn't start the scout", { description: e.message });
+      toast.error(t("project.factoryActions.scoutFailed"), { description: e.message });
       void queryClient.invalidateQueries({ queryKey: factoryKeys.status(f.projectId) });
     },
   });
@@ -77,26 +84,23 @@ export function FactoryRunButtons({ f, stopped }: { f: FactoryStatus; stopped: b
       <HintButton
         hint={
           stopped
-            ? "The kill switch is on: the factory doesn't run."
+            ? t("project.factoryActions.killSwitchOn")
             : checkNowHelp(f.mode === "dark_factory")
         }
         disabled={check.isPending || stopped}
         onClick={() => check.mutate()}
         testId="factory-check-now"
       >
-        <RefreshCw /> Check now
+        <RefreshCw /> {t("project.factoryActions.checkNow")}
       </HintButton>
       {f.mode === "dark_factory" && f.scout && (
         <HintButton
-          hint={
-            blocked ??
-            "Start a scout round now, without waiting for the schedule or for the queue to run low."
-          }
+          hint={blocked ?? t("project.factoryActions.runScoutHint")}
           disabled={scout.isPending || blocked !== null}
           onClick={() => scout.mutate()}
           testId="factory-run-scout"
         >
-          <Radar /> Run scout now
+          <Radar /> {t("project.factoryActions.runScout")}
         </HintButton>
       )}
     </>
@@ -114,6 +118,7 @@ export function OpenFactoryViewButton({
   projectId: string;
   variant?: "ghost" | "outline";
 }) {
+  const { t } = useTranslation();
   return (
     <Button size="sm" variant={variant} asChild>
       <Link
@@ -121,7 +126,7 @@ export function OpenFactoryViewButton({
         params={{ projectId }}
         data-testid="open-factory-view"
       >
-        <MonitorPlay /> Factory view
+        <MonitorPlay /> {t("project.factoryActions.factoryView")}
       </Link>
     </Button>
   );

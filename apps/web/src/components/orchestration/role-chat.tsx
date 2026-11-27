@@ -15,6 +15,7 @@ import { ThreadView } from "@/components/thread/thread-view";
 import { Button } from "@/components/ui/button";
 import { useClient } from "@/lib/api";
 import type { OrchestrationRole } from "@/lib/api/feature-apis";
+import { useTranslation } from "@/lib/i18n";
 import { useProject, useSnapshotData } from "@/lib/queries";
 import { getDraft, useComposerStore } from "@/stores/composer";
 import { ReadOnlyBadge, RoleBadge } from "./role-badge";
@@ -61,6 +62,7 @@ export function StartComposer({
   projectId: string | null;
 }) {
   const client = useClient();
+  const { t } = useTranslation();
   const key = roleDraftKey(role, projectId);
   const draft = useComposerStore((s) => getDraft(s, key));
   const { setText, clear } = useComposerStore.getState();
@@ -70,7 +72,7 @@ export function StartComposer({
     onMutate: () => clear(key),
     onError: (e, input) => {
       setText(key, input.text);
-      toast.error("Message not sent", { description: e.message });
+      toast.error(t("orchestrator.composer.notSent"), { description: e.message });
     },
   });
   const canSend = canSendDraft(draft);
@@ -81,7 +83,7 @@ export function StartComposer({
   return (
     <ComposerBox
       draftKey={key}
-      placeholder={composerPlaceholders[role]}
+      placeholder={t(composerPlaceholders[role])}
       onKeyDown={(e) => {
         if (!isSendKey(e)) return;
         e.preventDefault();
@@ -89,7 +91,9 @@ export function StartComposer({
       }}
       options={
         <span className="px-2 text-2xs text-muted-foreground">
-          The first message starts the {role === "orchestrator" ? "orchestrator" : "PM"}.
+          {role === "orchestrator"
+            ? t("orchestrator.roleChat.firstMessageOrchestrator")
+            : t("orchestrator.roleChat.firstMessagePm")}
         </span>
       }
     >
@@ -98,7 +102,7 @@ export function StartComposer({
         className="rounded-full transition-transform hover:scale-105"
         onClick={submit}
         disabled={!canSend || send.isPending}
-        aria-label="Send"
+        aria-label={t("orchestrator.composer.send")}
       >
         <ArrowUp />
       </Button>
@@ -123,6 +127,7 @@ export function RoleChat({
 }) {
   const session = useRoleSession(role, projectId);
   const project = useProject(projectId);
+  const { t } = useTranslation();
   if (session) return <ThreadView sessionId={session.id} empty={empty(session.id)} />;
   return (
     <div className="flex min-h-0 flex-1 flex-col" data-testid="role-chat-start">
@@ -131,10 +136,14 @@ export function RoleChat({
         <RoleBadge role={role} />
         <h1 className="truncate text-[14px] font-medium">
           {role === "orchestrator"
-            ? "Orchestrator"
-            : `${project?.name ?? "Project"} · Project manager`}
+            ? t("orchestrator.roleBadge.orchestrator")
+            : t("orchestrator.roleChat.pmTitle", {
+                project: project?.name ?? t("orchestrator.roleChat.project"),
+              })}
         </h1>
-        <span className="text-2xs text-muted-foreground">Not started</span>
+        <span className="text-2xs text-muted-foreground">
+          {t("orchestrator.roleChat.notStarted")}
+        </span>
         <ReadOnlyBadge className="ml-auto" />
       </header>
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">

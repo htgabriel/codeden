@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useTranslation } from "@/lib/i18n";
 
 /**
  * Top bar of the New session draft, laid out like a session's: the project, "New session", and
@@ -22,6 +23,7 @@ export function NewSessionHeader({
   workKey: string;
   onWorkKey: (key: string) => void;
 }) {
+  const { t } = useTranslation();
   const key = workKey.trim();
   return (
     <header className="@container flex h-12 shrink-0 items-center gap-2.5 border-b border-border px-4">
@@ -35,12 +37,16 @@ export function NewSessionHeader({
         >
           {project.name} <span className="text-muted-foreground/50">/</span>
         </Link>
-        <h1 className="min-w-0 truncate text-[14px] font-medium">New session</h1>
-        <span className="shrink-0 text-2xs text-muted-foreground">Not started</span>
+        <h1 className="min-w-0 truncate text-[14px] font-medium">
+          {t("project.newSessionHeader.title")}
+        </h1>
+        <span className="shrink-0 text-2xs text-muted-foreground">
+          {t("project.newSessionHeader.notStarted")}
+        </span>
       </div>
       {key && (
         <span
-          title="Work key: sessions with the same key are flagged as duplicates"
+          title={t("project.newSessionHeader.workKeyTitle")}
           className="ml-1 inline-flex h-6 max-w-44 items-center gap-1.5 rounded-md border border-border/80 px-2 text-2xs text-muted-foreground [&_svg]:size-3"
           data-testid="work-key-chip"
         >
@@ -55,14 +61,17 @@ export function NewSessionHeader({
               variant="ghost"
               size="icon-sm"
               className="text-muted-foreground"
-              aria-label="Session options"
+              aria-label={t("project.newSessionHeader.options")}
             >
               <MoreHorizontal />
             </Button>
           </PopoverTrigger>
           <PopoverContent align="end" className="w-80 space-y-2">
             <Label htmlFor="new-session-work-key" className="text-[13px]">
-              Work key <span className="font-normal text-muted-foreground">(optional)</span>
+              {t("project.newSessionHeader.workKey")}{" "}
+              <span className="font-normal text-muted-foreground">
+                {t("project.newSessionHeader.optional")}
+              </span>
             </Label>
             <div className="flex items-center gap-1">
               <Input
@@ -78,15 +87,14 @@ export function NewSessionHeader({
                   size="icon-sm"
                   className="text-muted-foreground"
                   onClick={() => onWorkKey("")}
-                  aria-label="Clear the work key"
+                  aria-label={t("project.newSessionHeader.clearWorkKey")}
                 >
                   <X />
                 </Button>
               )}
             </div>
             <p className="text-2xs text-muted-foreground">
-              Sessions with the same key are flagged as duplicates before anything starts. Without
-              one, CodeDen derives it from the task.
+              {t("project.newSessionHeader.workKeyHelp")}
             </p>
           </PopoverContent>
         </Popover>

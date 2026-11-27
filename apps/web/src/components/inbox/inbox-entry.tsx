@@ -7,6 +7,7 @@ import { QuestionCard } from "@/components/thread/cards/question-card";
 import { Markdown } from "@/components/thread/markdown";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ago } from "@/lib/format";
+import { useTranslation } from "@/lib/i18n";
 import { platform } from "@/lib/platform";
 import { useProject, useTranscript } from "@/lib/queries";
 import type { TranscriptState } from "@/lib/transcript/reducer";
@@ -73,6 +74,7 @@ export const FOCUSED_ENTRY =
  * highlights the item a toast's Open went to.
  */
 export function InboxEntry({ item, focused = false }: { item: InboxItem; focused?: boolean }) {
+  const { t } = useTranslation();
   const project = useProject(item.projectId);
   const resolved = item.status !== "open";
   const mirrors = item.kind === "approval" || item.kind === "question";
@@ -85,12 +87,12 @@ export function InboxEntry({ item, focused = false }: { item: InboxItem; focused
     >
       <div className="mb-1.5 flex items-center gap-2 text-2xs text-muted-foreground">
         {project && <ProjectTile project={project} />}
-        <span>{project?.name ?? "Global"}</span>
+        <span>{project?.name ?? t("inbox.entry.global")}</span>
         <span className="text-muted-foreground/40">·</span>
         <span>{ago(item.createdAt)}</span>
         {item.priority === "high" && (
           <span className="rounded-full bg-status-failed/12 px-1.5 text-3xs font-medium text-status-failed">
-            high
+            {t("inbox.entry.high")}
           </span>
         )}
         <span className="ml-auto flex items-center gap-2">
@@ -118,7 +120,7 @@ export function InboxEntry({ item, focused = false }: { item: InboxItem; focused
               params={{ sessionId: item.sessionId }}
               className="flex items-center gap-0.5 hover:text-foreground"
             >
-              Session <ArrowUpRight className="size-3" />
+              {t("inbox.entry.session")} <ArrowUpRight className="size-3" />
             </Link>
           )}
         </span>
@@ -152,7 +154,7 @@ export function InboxEntry({ item, focused = false }: { item: InboxItem; focused
           )}
           {resolved && (
             <p className="mt-2 text-2xs text-status-done">
-              Resolved {item.resolvedAt ? ago(item.resolvedAt) : ""}
+              {t("inbox.entry.resolved", { ago: item.resolvedAt ? ago(item.resolvedAt) : "" })}
               {settledNote(item) && ` · ${settledNote(item)}`}
             </p>
           )}

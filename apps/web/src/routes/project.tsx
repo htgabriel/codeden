@@ -22,6 +22,7 @@ import { ProjectSettings } from "@/components/project/project-settings";
 import { ProjectTile } from "@/components/shell/sidebar/project-group";
 import { Button } from "@/components/ui/button";
 import { ProjectSpendCard } from "@/components/usage/project-spend-card";
+import { useTranslation } from "@/lib/i18n";
 import { useProjectStatus } from "@/lib/orchestration";
 import { useSnapshot } from "@/lib/queries";
 import { activeSessions, type SessionView, sessionCounts } from "@/lib/session-filter";
@@ -30,11 +31,11 @@ import { PageHeader } from "./page-header";
 
 export type ProjectTab = "overview" | "github" | "settings";
 
-const TAB_LABELS: Record<ProjectTab, string> = {
-  overview: "Overview",
-  github: "GitHub",
-  settings: "Settings",
-};
+const TAB_LABELS = {
+  overview: "project.page.tabs.overview",
+  github: "project.page.tabs.github",
+  settings: "project.page.tabs.settings",
+} as const satisfies Record<ProjectTab, string>;
 
 type ProjectSearch = { tab?: ProjectTab; archived?: boolean };
 
@@ -49,6 +50,7 @@ export function ProjectPage({
   /** Active sessions, or the archived ones (the sidebar's "N archived" row opens these). */
   sessionView?: SessionView;
 }) {
+  const { t } = useTranslation();
   const { data } = useSnapshot();
   const navigate = useNavigate();
   const { work } = useProjectStatus(projectId);
@@ -84,8 +86,8 @@ export function ProjectPage({
                   <button
                     type="button"
                     onClick={() => go({ tab: "github" })}
-                    title="The folder no longer has this GitHub remote on origin"
-                    aria-label="GitHub remote missing"
+                    title={t("project.page.remoteWarningTitle")}
+                    aria-label={t("project.page.remoteMissing")}
                     className="text-status-waiting"
                   >
                     <AlertTriangle className="size-3" />
@@ -94,7 +96,7 @@ export function ProjectPage({
               </span>
             ) : (
               <span className="flex items-center gap-1">
-                <FolderGit2 className="size-3" /> Local folder
+                <FolderGit2 className="size-3" /> {t("project.page.localFolder")}
               </span>
             )}
             <AutonomyModeButton project={project} />
@@ -105,17 +107,17 @@ export function ProjectPage({
             {factory && <OpenFactoryViewButton projectId={projectId} />}
             <Button size="sm" variant="ghost" asChild>
               <Link to="/projects/$projectId/vision" params={{ projectId }}>
-                <FileText /> Vision
+                <FileText /> {t("project.page.vision")}
               </Link>
             </Button>
             <Button size="sm" variant="outline" asChild>
               <Link to="/projects/$projectId/pm" params={{ projectId }}>
-                <Bot /> Talk to the PM
+                <Bot /> {t("project.page.talkToPm")}
               </Link>
             </Button>
             <Button size="sm" asChild>
               <Link to="/projects/$projectId/new" params={{ projectId }}>
-                <MessageSquarePlus /> New session
+                <MessageSquarePlus /> {t("project.page.newSession")}
               </Link>
             </Button>
           </>
@@ -125,19 +127,19 @@ export function ProjectPage({
         className="flex h-10 shrink-0 items-end gap-4 border-b border-border px-6"
         role="tablist"
       >
-        {(["overview", "github", "settings"] as const).map((t) => (
+        {(["overview", "github", "settings"] as const).map((key) => (
           <button
-            key={t}
+            key={key}
             type="button"
             role="tab"
-            aria-selected={tab === t}
-            onClick={() => go(t === "overview" ? {} : { tab: t })}
+            aria-selected={tab === key}
+            onClick={() => go(key === "overview" ? {} : { tab: key })}
             className={cn(
               "-mb-px border-b-2 border-transparent pb-2 text-[13px] text-muted-foreground hover:text-foreground",
-              tab === t && "border-primary text-foreground",
+              tab === key && "border-primary text-foreground",
             )}
           >
-            {TAB_LABELS[t]}
+            {t(TAB_LABELS[key])}
           </button>
         ))}
       </div>
@@ -155,10 +157,18 @@ export function ProjectPage({
               <NowNext work={work} projectId={projectId} titleOf={titleOf} />
               {factory && <FactoryPanel project={project} />}
               <ProjectSpendCard projectId={projectId} />
-              <section ref={sessionsRef} className="scroll-mt-6" aria-label="Sessions">
+              <section
+                ref={sessionsRef}
+                className="scroll-mt-6"
+                aria-label={t("project.page.sessions")}
+              >
                 <div className="mb-2 flex items-center gap-3">
-                  <SectionLabel>Sessions</SectionLabel>
-                  <div className="flex items-center gap-1" role="tablist" aria-label="Show">
+                  <SectionLabel>{t("project.page.sessions")}</SectionLabel>
+                  <div
+                    className="flex items-center gap-1"
+                    role="tablist"
+                    aria-label={t("project.page.show")}
+                  >
                     {(["active", "archived"] as const).map((view) => (
                       <button
                         key={view}
@@ -174,7 +184,8 @@ export function ProjectPage({
                           sessionView === view && "bg-accent text-foreground",
                         )}
                       >
-                        {view === "active" ? "Active" : "Archived"} · {counts[view]}
+                        {view === "active" ? t("project.page.active") : t("project.page.archived")}{" "}
+                        · {counts[view]}
                       </button>
                     ))}
                   </div>
@@ -188,13 +199,10 @@ export function ProjectPage({
                     className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border px-4 py-6 text-center text-xs text-muted-foreground"
                     data-testid="sessions-empty"
                   >
-                    <p>
-                      No active sessions. A session is one agent working on one task, in its own
-                      worktree and branch.
-                    </p>
+                    <p>{t("project.page.noActiveSessions")}</p>
                     <Button size="sm" asChild>
                       <Link to="/projects/$projectId/new" params={{ projectId }}>
-                        <MessageSquarePlus /> Start a session
+                        <MessageSquarePlus /> {t("project.page.startSession")}
                       </Link>
                     </Button>
                   </div>
@@ -202,13 +210,13 @@ export function ProjectPage({
               </section>
               <section id="automations">
                 <div className="mb-2 flex items-center gap-2">
-                  <SectionLabel>Automations</SectionLabel>
+                  <SectionLabel>{t("project.page.automations")}</SectionLabel>
                   <Link
                     to="/projects/$projectId/automations"
                     params={{ projectId }}
                     className="ml-auto text-2xs text-muted-foreground hover:text-foreground"
                   >
-                    Manage, runs and templates →
+                    {t("project.page.manageAutomations")}
                   </Link>
                 </div>
                 <AutomationsPanel projectId={projectId} compact />

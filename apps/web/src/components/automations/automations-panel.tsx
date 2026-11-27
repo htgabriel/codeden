@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useClient } from "@/lib/api";
 import { automationKeys, useAutomations, useProjectAutomationSettings } from "@/lib/automations";
+import { useTranslation } from "@/lib/i18n";
 import { useSnapshotData } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 import { AutomationRow } from "./automation-row";
@@ -15,6 +16,7 @@ import { useAutomationActions } from "./use-automation-actions";
 
 /** The global switch, this project's switch and a reload of automation files. */
 export function AutomationSwitches({ projectId }: { projectId: string }) {
+  const { t } = useTranslation();
   const client = useClient();
   const queryClient = useQueryClient();
   const globalOn = useSnapshotData((s) => s.settings.automations.enabled, false);
@@ -22,7 +24,8 @@ export function AutomationSwitches({ projectId }: { projectId: string }) {
   const refresh = () => void queryClient.invalidateQueries({ queryKey: automationKeys.all });
   const setGlobal = useMutation({
     mutationFn: (enabled: boolean) => client.updateSettings({ automations: { enabled } }),
-    onSuccess: (_d, on) => toast.success(on ? "Automations on" : "All automations paused"),
+    onSuccess: (_d, on) =>
+      toast.success(on ? t("project.automations.on") : t("project.automations.allPaused")),
   });
   const setProject = useMutation({
     mutationFn: (enabled: boolean) => client.automations.setProjectEnabled(projectId, enabled),
@@ -31,8 +34,10 @@ export function AutomationSwitches({ projectId }: { projectId: string }) {
   const reload = useMutation({
     mutationFn: () => client.automations.reload(),
     onSuccess: (res) => {
-      toast.success("Automation files re-read", {
-        description: res.errors.length ? `${res.errors.length} file(s) have errors` : undefined,
+      toast.success(t("project.automations.reloaded"), {
+        description: res.errors.length
+          ? t("project.automations.fileErrors", { n: res.errors.length })
+          : undefined,
       });
       refresh();
     },
@@ -43,17 +48,17 @@ export function AutomationSwitches({ projectId }: { projectId: string }) {
         <Switch
           checked={globalOn}
           onCheckedChange={(v) => setGlobal.mutate(v)}
-          aria-label="Automations on globally"
+          aria-label={t("project.automations.globalAria")}
         />
-        <span>All projects</span>
+        <span>{t("project.automations.allProjects")}</span>
       </div>
       <div className={cn("flex items-center gap-2", !globalOn && "opacity-60")}>
         <Switch
           checked={settings.data?.enabled ?? true}
           onCheckedChange={(v) => setProject.mutate(v)}
-          aria-label="Automations on for this project"
+          aria-label={t("project.automations.projectAria")}
         />
-        <span>This project</span>
+        <span>{t("project.automations.thisProject")}</span>
       </div>
       <Button
         size="xs"
@@ -62,7 +67,8 @@ export function AutomationSwitches({ projectId }: { projectId: string }) {
         onClick={() => reload.mutate()}
         disabled={reload.isPending}
       >
-        <RefreshCw className={cn(reload.isPending && "animate-spin")} /> Reload files
+        <RefreshCw className={cn(reload.isPending && "animate-spin")} />{" "}
+        {t("project.automations.reloadFiles")}
       </Button>
     </div>
   );
@@ -79,6 +85,7 @@ export function AutomationsPanel({
   projectId: string;
   compact?: boolean;
 }) {
+  const { t } = useTranslation();
   const client = useClient();
   const queryClient = useQueryClient();
   const { data, isLoading } = useAutomations(projectId);
@@ -120,12 +127,12 @@ export function AutomationsPanel({
         <div className="rounded-xl border border-dashed border-border">
           <EmptyState
             icon={<Workflow />}
-            title="No automations yet"
+            title={t("project.automations.emptyTitle")}
             action={
               <div className="flex flex-wrap justify-center gap-2">
                 <Button size="sm" asChild>
                   <Link to="/projects/$projectId/automations/new" params={{ projectId }}>
-                    <Plus /> New automation
+                    <Plus /> {t("project.automations.newAutomation")}
                   </Link>
                 </Button>
                 <Button
@@ -134,7 +141,7 @@ export function AutomationsPanel({
                   onClick={() => starter.mutate()}
                   disabled={starter.isPending}
                 >
-                  <Sparkles /> Add the starter set
+                  <Sparkles /> {t("project.automations.addStarterSet")}
                 </Button>
                 <Button size="sm" variant="outline" asChild>
                   <Link
@@ -142,13 +149,13 @@ export function AutomationsPanel({
                     params={{ projectId }}
                     search={{ tab: "templates" }}
                   >
-                    Browse templates
+                    {t("project.automations.browseTemplates")}
                   </Link>
                 </Button>
               </div>
             }
           >
-            Scheduled audits, dependency updates, triage and more. Everything starts off.
+            {t("project.automations.emptyBody")}
           </EmptyState>
         </div>
       ) : (

@@ -1,5 +1,6 @@
 import { Loader2 } from "lucide-react";
 import { useSyncExternalStore } from "react";
+import { useTranslation } from "@/lib/i18n";
 import type { Dictation, LevelStore } from "./use-dictation";
 
 /** An RMS level as 0..1 for the meter: about -55 dBFS (a quiet room) to -10 dBFS (loud speech). */
@@ -46,13 +47,10 @@ function LevelMeter({ store }: { store: LevelStore }) {
  * normal text in the draft once settled), and "Transcribing…" while segments are on their way.
  */
 export function DictationStrip({ dictation }: { dictation: Dictation }) {
+  const { t } = useTranslation();
   const { phase, draft, pending, heard, engine, level } = dictation;
   if (phase === "idle") return null;
-  const status = draft
-    ? null
-    : phase === "finishing" || pending > 0
-      ? "Transcribing…"
-      : "Listening…";
+  const status = draft ? null : phase === "finishing" || pending > 0 ? "transcribing" : "listening";
   return (
     <div
       data-testid="dictation-strip"
@@ -70,9 +68,12 @@ export function DictationStrip({ dictation }: { dictation: Dictation }) {
       )}
       {status && (
         <span role="status">
-          {status}
-          {status === "Listening…" && !heard && engine.live === "segments" && (
-            <span className="text-muted-foreground/60"> Text appears after each pause.</span>
+          {t(`orchestrator.dictation.${status}`)}
+          {status === "listening" && !heard && engine.live === "segments" && (
+            <span className="text-muted-foreground/60">
+              {" "}
+              {t("orchestrator.dictation.afterPause")}
+            </span>
           )}
         </span>
       )}

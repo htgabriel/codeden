@@ -1,6 +1,7 @@
 import { Loader2, Mic, MicOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useTranslation } from "@/lib/i18n";
 import { formatCombo } from "@/lib/shortcuts";
 import { cn } from "@/lib/utils";
 import type { Dictation } from "./use-dictation";
@@ -11,17 +12,23 @@ import type { Dictation } from "./use-dictation";
  * it shows a spinner until the text is in.
  */
 export function VoiceButton({ dictation }: { dictation: Dictation }) {
+  const { t } = useTranslation();
   const { engine, phase, combo, pushToTalk, toggle } = dictation;
   const recording = phase === "listening";
   const finishing = phase === "finishing";
 
   const label = !engine.supported
-    ? "Dictation isn't available in this browser. Choose Local (Whisper) in Settings > Voice."
+    ? t("orchestrator.dictation.unavailable")
     : finishing
-      ? "Transcribing…"
+      ? t("orchestrator.dictation.transcribing")
       : recording
-        ? "Stop dictation"
-        : `Dictate · ${formatCombo(combo)}${pushToTalk ? ` · hold ${formatCombo(pushToTalk)}` : ""}`;
+        ? t("orchestrator.dictation.stop")
+        : pushToTalk
+          ? t("orchestrator.dictation.dictateHold", {
+              combo: formatCombo(combo),
+              hold: formatCombo(pushToTalk),
+            })
+          : t("orchestrator.dictation.dictate", { combo: formatCombo(combo) });
 
   return (
     <Tooltip>

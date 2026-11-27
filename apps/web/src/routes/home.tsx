@@ -2,16 +2,17 @@ import { Link } from "@tanstack/react-router";
 import { Bot, FolderPlus, GitPullRequest, ListChecks, ShieldAlert, Sparkles } from "lucide-react";
 import { RoleChat } from "@/components/orchestration/role-chat";
 import { ProjectTile } from "@/components/shell/sidebar/project-group";
+import { useTranslation } from "@/lib/i18n";
 import { useSnapshotData } from "@/lib/queries";
 import { useComposerStore } from "@/stores/composer";
 import { useUiStore } from "@/stores/ui";
 
 const suggestions = [
-  { icon: Sparkles, text: "What's going on across my projects?" },
-  { icon: ListChecks, text: "Triage the open issues in my main project" },
-  { icon: ShieldAlert, text: "Run a security audit across all projects" },
-  { icon: GitPullRequest, text: "Which pull requests are waiting on me?" },
-];
+  { icon: Sparkles, key: "orchestrator.home.suggestions.overview" },
+  { icon: ListChecks, key: "orchestrator.home.suggestions.triage" },
+  { icon: ShieldAlert, key: "orchestrator.home.suggestions.security" },
+  { icon: GitPullRequest, key: "orchestrator.home.suggestions.pullRequests" },
+] as const;
 
 /** Suggestions that fill the composer; shared by the orchestrator and PM empty states. */
 export function SuggestionGrid({
@@ -46,6 +47,7 @@ export function SuggestionGrid({
 function ProjectsStrip() {
   const projects = useSnapshotData((s) => s.projects, []);
   const setAddProject = useUiStore((s) => s.setAddProjectOpen);
+  const { t } = useTranslation();
   return (
     <div className="relative mt-6 flex max-w-2xl flex-wrap items-center justify-center gap-1.5">
       {projects.map((p) => (
@@ -63,13 +65,15 @@ function ProjectsStrip() {
         onClick={() => setAddProject(true)}
         className="inline-flex h-7 items-center gap-1.5 rounded-full border border-dashed border-border px-2.5 text-xs text-muted-foreground hover:text-foreground"
       >
-        <FolderPlus className="size-3.5" /> Add project
+        <FolderPlus className="size-3.5" /> {t("orchestrator.home.addProject")}
       </button>
     </div>
   );
 }
 
 function OrchestratorEmpty({ draftKey }: { draftKey: string }) {
+  const { t } = useTranslation();
+  const items = suggestions.map((s) => ({ icon: s.icon, text: t(s.key) }));
   return (
     <div className="relative flex flex-1 flex-col items-center justify-center px-6 py-10">
       <div
@@ -79,12 +83,13 @@ function OrchestratorEmpty({ draftKey }: { draftKey: string }) {
       <div className="relative mb-5 flex size-12 items-center justify-center rounded-2xl border border-border bg-card shadow-sm">
         <Bot className="size-6 text-primary" />
       </div>
-      <h2 className="relative text-2xl font-semibold tracking-tight">What should we build?</h2>
+      <h2 className="relative text-2xl font-semibold tracking-tight">
+        {t("orchestrator.home.title")}
+      </h2>
       <p className="relative mt-2 max-w-md text-center text-sm text-muted-foreground">
-        Talk to the orchestrator. It knows what's running in every project, hands work to project
-        managers and keeps every step visible in GitHub.
+        {t("orchestrator.home.intro")}
       </p>
-      <SuggestionGrid draftKey={draftKey} items={suggestions} />
+      <SuggestionGrid draftKey={draftKey} items={items} />
       <ProjectsStrip />
     </div>
   );

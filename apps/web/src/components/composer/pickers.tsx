@@ -1,4 +1,5 @@
 import type { AutonomyLevel } from "@codeden/contracts";
+import type { TFunction } from "i18next";
 import { Check, ClipboardList } from "lucide-react";
 import { useId } from "react";
 import { useTapTooltip } from "@/components/common/tap-tooltip";
@@ -12,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { TRIGGER_CLASS } from "./model-picker/trigger";
 
@@ -26,14 +28,17 @@ export interface PlanUnavailable {
 }
 
 /** The reason a disabled Plan gives, naming the provider. */
-function planUnavailableReason({ provider, wasOn, canSwitch }: PlanUnavailable): string {
-  const cant = `${provider} can't plan first.`;
+function planUnavailableReason(
+  { provider, wasOn, canSwitch }: PlanUnavailable,
+  t: TFunction,
+): string {
+  const reason = t("orchestrator.pickers.cantPlan", { provider });
   if (wasOn) {
     return canSwitch
-      ? `Plan mode is off: ${cant} It turns back on when you pick a provider that can plan.`
-      : `Plan mode is off: ${cant}`;
+      ? t("orchestrator.pickers.planOffSwitch", { reason })
+      : t("orchestrator.pickers.planOff", { reason });
   }
-  return canSwitch ? `${cant} Pick a provider that can plan to use it.` : cant;
+  return canSwitch ? t("orchestrator.pickers.pickPlanner", { reason }) : reason;
 }
 
 /**
@@ -52,6 +57,7 @@ export function PlanToggle({
   disabled?: boolean;
   unavailable?: PlanUnavailable;
 }) {
+  const { t } = useTranslation();
   if (unavailable) return <PlanUnavailableToggle {...unavailable} />;
   return (
     <Tooltip>
@@ -60,19 +66,17 @@ export function PlanToggle({
           variant="ghost"
           size="sm"
           className={cn(TRIGGER_CLASS, value && "bg-primary/10 text-primary hover:text-primary")}
-          aria-label="Plan mode"
+          aria-label={t("orchestrator.pickers.planMode")}
           aria-pressed={value}
           disabled={disabled}
           onClick={() => onChange(!value)}
         >
           <ClipboardList className="size-3.5" />
-          Plan
+          {t("orchestrator.pickers.plan")}
         </Button>
       </TooltipTrigger>
       <TooltipContent className="max-w-64">
-        {value
-          ? "Plan mode is on: the agent plans without editing, and starts once you approve the plan."
-          : "Plan first: the agent explores and proposes a plan before it changes anything."}
+        {value ? t("orchestrator.pickers.planOnHint") : t("orchestrator.pickers.planOffHint")}
       </TooltipContent>
     </Tooltip>
   );
@@ -84,9 +88,10 @@ export function PlanToggle({
  * Plan chosen before shows struck through: it is off for this provider.
  */
 function PlanUnavailableToggle(unavailable: PlanUnavailable) {
+  const { t } = useTranslation();
   const tip = useTapTooltip();
   const reasonId = useId();
-  const reason = planUnavailableReason(unavailable);
+  const reason = planUnavailableReason(unavailable, t);
   return (
     <>
       <Tooltip {...tip.root}>
@@ -98,14 +103,16 @@ function PlanUnavailableToggle(unavailable: PlanUnavailable) {
               TRIGGER_CLASS,
               "cursor-not-allowed opacity-50 hover:text-muted-foreground",
             )}
-            aria-label="Plan mode"
+            aria-label={t("orchestrator.pickers.planMode")}
             aria-pressed={false}
             aria-disabled
             aria-describedby={reasonId}
             {...tip.trigger}
           >
             <ClipboardList className="size-3.5" />
-            <span className={cn(unavailable.wasOn && "line-through")}>Plan</span>
+            <span className={cn(unavailable.wasOn && "line-through")}>
+              {t("orchestrator.pickers.plan")}
+            </span>
           </Button>
         </TooltipTrigger>
         <TooltipContent className="max-w-64">{reason}</TooltipContent>
@@ -126,7 +133,7 @@ export function AutonomyPicker({
   value,
   onChange,
   readOnlySupported = true,
-  heading = "Permissions for this session",
+  heading,
   disabled,
 }: {
   value: AutonomyLevel;
@@ -136,6 +143,7 @@ export function AutonomyPicker({
   heading?: string;
   disabled?: boolean;
 }) {
+  const { t } = useTranslation();
   const a = AUTONOMY[value];
   return (
     <DropdownMenu>
@@ -144,7 +152,7 @@ export function AutonomyPicker({
           variant="ghost"
           size="sm"
           className={TRIGGER_CLASS}
-          aria-label="Permissions"
+          aria-label={t("orchestrator.pickers.permissions")}
           disabled={disabled}
         >
           <a.icon className={cn("size-3.5", a.tone)} />
@@ -152,7 +160,9 @@ export function AutonomyPicker({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-80" data-testid="permissions-menu">
-        <DropdownMenuLabel className="text-2xs">{heading}</DropdownMenuLabel>
+        <DropdownMenuLabel className="text-2xs">
+          {heading ?? t("orchestrator.pickers.permissionsHeading")}
+        </DropdownMenuLabel>
         {AUTONOMY_LEVELS.map((level) => {
           const o = AUTONOMY[level];
           const unavailable = level === "read_only" && !readOnlySupported;
@@ -167,7 +177,7 @@ export function AutonomyPicker({
               <span className="min-w-0 flex-1">
                 <span className="block text-[13px]">{o.label}</span>
                 <span className="block text-2xs text-muted-foreground">
-                  {unavailable ? "This provider can't enforce read-only." : o.description}
+                  {unavailable ? t("orchestrator.pickers.noReadOnly") : o.description}
                 </span>
               </span>
               {level === value && <Check className="mt-0.5 size-3.5" />}

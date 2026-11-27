@@ -1,6 +1,7 @@
 import type { Session } from "@codeden/contracts";
 import { useMutation } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
+import type { TFunction } from "i18next";
 import { Archive } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -15,13 +16,17 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useClient } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n";
 import { useProjectArchived, useSnapshotData } from "@/lib/queries";
 
 type RoleSession = Session & { role: "orchestrator" | "pm" };
 
 const isRole = (session: Session): session is RoleSession => session.role !== "agent";
 
-const roleName = (session: Session) => (session.role === "pm" ? "PM" : "orchestrator");
+const roleName = (session: Pick<Session, "role">, t: TFunction) =>
+  session.role === "pm"
+    ? t("orchestrator.startFresh.namePm")
+    : t("orchestrator.startFresh.nameOrchestrator");
 
 /**
  * Why "Start fresh" can't run now, or null when it can. The server refuses the same: archiving
@@ -31,14 +36,17 @@ export function startFreshBlocked(
   session: Pick<Session, "role" | "status">,
   running: boolean,
   openRequests: number,
+  t: TFunction,
 ): string | null {
-  const name = session.role === "pm" ? "PM" : "orchestrator";
+  const name = roleName(session, t);
   if (session.status === "waiting" || openRequests > 0) {
-    return `Answer the ${name}'s open question or approval first`;
+    return t("orchestrator.startFresh.answerFirst", { name });
   }
-  if (running || session.status === "running") return `Wait for the ${name}'s turn to finish`;
+  if (running || session.status === "running") {
+    return t("orchestrator.startFresh.waitForTurn", { name });
+  }
   if (session.status === "created" || session.status === "queued" || session.status === "starting")
-    return `The ${name} is still starting`;
+    return t("orchestrator.startFresh.stillStarting", { name });
   return null;
 }
 
@@ -57,6 +65,7 @@ function useOpenRoleChat() {
  */
 export function useStartFresh(session: Session, running: boolean) {
   const client = useClient();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const openRoleChat = useOpenRoleChat();
   const [confirming, setConfirming] = useState(false);
@@ -80,17 +89,17 @@ export function useStartFresh(session: Session, running: boolean) {
     onSuccess: ({ archivedSessionId }) => {
       setConfirming(false);
       void openRoleChat(session);
-      toast.success(`Started a fresh ${roleName(session)} conversation`, {
-        description: "The earlier one is archived and read-only.",
+      toast.success(t("orchestrator.startFresh.started", { name: roleName(session, t) }), {
+        description: t("orchestrator.startFresh.startedHint"),
         action: {
-          label: "Open earlier",
+          label: t("orchestrator.startFresh.openEarlier"),
           onClick: () =>
             void navigate({ to: "/sessions/$sessionId", params: { sessionId: archivedSessionId } }),
         },
       });
     },
     onError: (error) =>
-      toast.error("Couldn't start fresh", {
+      toast.error(t("orchestrator.startFresh.failed"), {
         description: error instanceof Error ? error.message : String(error),
       }),
   });
@@ -102,10 +111,10 @@ export function useStartFresh(session: Session, running: boolean) {
     /** Why it can't run right now (null when it can). */
     blocked: available
       ? mutation.isPending
-        ? "Starting fresh…"
+        ? t("orchestrator.startFresh.starting")
         : projectArchived
-          ? "The project is archived"
-          : startFreshBlocked(session, running, openRequests)
+          ? t("orchestrator.startFresh.projectArchived")
+          : startFreshBlocked(session, running, openRequests, t)
       : null,
     open: () => setConfirming(true),
     dialog: (
@@ -133,20 +142,19 @@ function StartFreshDialog({
   pending: boolean;
   onConfirm: () => void;
 }) {
-  const name = roleName(session);
+  const { t } = useTranslation();
+  const name = roleName(session, t);
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Start a fresh {name} conversation?</AlertDialogTitle>
+          <AlertDialogTitle>{t("orchestrator.startFresh.dialogTitle", { name })}</AlertDialogTitle>
           <AlertDialogDescription>
-            This conversation is archived and stays readable, but can't be continued. The new one
-            starts empty, on the provider and model chosen in settings. Project notes, scheduled
-            wake-ups, inbox items and the work the {name} follows carry over.
+            {t("orchestrator.startFresh.dialogBody", { name })}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={pending}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel disabled={pending}>{t("common.cancel")}</AlertDialogCancel>
           <AlertDialogAction
             disabled={pending}
             onClick={(e) => {
@@ -155,7 +163,7 @@ function StartFreshDialog({
               onConfirm();
             }}
           >
-            Start fresh
+            {t("orchestrator.startFresh.confirm")}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -168,24 +176,28 @@ function StartFreshDialog({
  * (a newer session holds the role), with a link to the current one.
  */
 export function ArchivedRoleNotice({ session }: { session: Session }) {
-  const name = session.role === "pm" ? "project manager" : "orchestrator";
+  const { t } = useTranslation();
+  const name =
+    session.role === "pm"
+      ? t("orchestrator.startFresh.archivedNamePm")
+      : t("orchestrator.startFresh.archivedNameOrchestrator");
   return (
     <div className="mx-auto flex w-full max-w-[46rem] items-center gap-2.5 px-6 pb-4">
       <p className="flex flex-1 items-center gap-2 rounded-xl border border-dashed border-border px-3.5 py-2.5 text-xs text-muted-foreground">
         <Archive className="size-3.5 shrink-0" />
         <span className="min-w-0 flex-1">
-          An earlier {name} conversation, archived and read-only.{" "}
+          {t("orchestrator.startFresh.archivedNotice", { name })}{" "}
           {session.role === "pm" && session.projectId ? (
             <Link
               to="/projects/$projectId/pm"
               params={{ projectId: session.projectId }}
               className="text-foreground underline-offset-2 hover:underline"
             >
-              Open the current one
+              {t("orchestrator.startFresh.openCurrent")}
             </Link>
           ) : (
             <Link to="/" className="text-foreground underline-offset-2 hover:underline">
-              Open the current one
+              {t("orchestrator.startFresh.openCurrent")}
             </Link>
           )}
         </span>

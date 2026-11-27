@@ -7,6 +7,7 @@ import { SPOT_CHECKS_ANCHOR } from "@/components/factory/spot-checks";
 import { ChecksBadge, ReviewDecisionBadge } from "@/components/github/github-bits";
 import { Button } from "@/components/ui/button";
 import { useClient } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n";
 import { platform } from "@/lib/platform";
 import { useLayoutStore } from "@/stores/layout";
 import { RunFailedActions } from "./run-failed-actions";
@@ -16,6 +17,7 @@ const prIdOf = (item: InboxItem) =>
 
 /** Live checks and review state of a `pr_review` item's PR. */
 export function PrReviewStatus({ item }: { item: InboxItem }) {
+  const { t } = useTranslation();
   const client = useClient();
   const prId = prIdOf(item);
   const { data } = useQuery({
@@ -30,9 +32,9 @@ export function PrReviewStatus({ item }: { item: InboxItem }) {
       <ReviewDecisionBadge decision={data.reviewDecision} />
       <span className="text-diff-add">+{data.additions}</span>
       <span className="text-diff-del">−{data.deletions}</span>
-      <span>{data.files.length} files</span>
+      <span>{t("inbox.actions.files", { count: data.files.length })}</span>
       {data.mergeable === "conflicting" && (
-        <span className="text-status-failed">Merge conflicts</span>
+        <span className="text-status-failed">{t("inbox.actions.mergeConflicts")}</span>
       )}
     </div>
   );
@@ -40,33 +42,35 @@ export function PrReviewStatus({ item }: { item: InboxItem }) {
 
 /** The in-place answer for non-mirrored inbox items (§11.1); triage has its own card. */
 export function InboxActions({ item }: { item: InboxItem }) {
+  const { t } = useTranslation();
   const client = useClient();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const openTab = useLayoutStore((s) => s.openRightTab);
-  const fail = (e: Error) => toast.error("Couldn't update the item", { description: e.message });
+  const fail = (e: Error) =>
+    toast.error(t("inbox.actions.updateFailed"), { description: e.message });
   const dismiss = useMutation({
     mutationFn: () => client.resolveInbox(item.id, { status: "dismissed" }),
     onError: fail,
-    onSuccess: () => toast.success("Dismissed"),
+    onSuccess: () => toast.success(t("inbox.actions.dismissed")),
   });
   // Changed setup commands (#390): resolving allows them in new worktrees from then on.
   const allowSetup = useMutation({
     mutationFn: () => client.resolveInbox(item.id, { status: "resolved" }),
     onError: fail,
-    onSuccess: () => toast.success("New worktrees run these setup commands from now on"),
+    onSuccess: () => toast.success(t("inbox.actions.setupAllowed")),
   });
   const merge = useMutation({
     mutationFn: async () => {
       const prId = prIdOf(item);
-      if (!prId) throw new Error("This item has no pull request");
+      if (!prId) throw new Error(t("inbox.actions.noPr"));
       const res = await client.github.merge(prId, { method: "squash" });
-      if (!res.merged) throw new Error("GitHub did not merge the pull request");
+      if (!res.merged) throw new Error(t("inbox.actions.notMerged"));
       return res;
     },
-    onError: (e) => toast.error("Couldn't merge", { description: e.message }),
+    onError: (e) => toast.error(t("inbox.actions.mergeFailed"), { description: e.message }),
     onSuccess: () => {
-      toast.success(`Merged #${item.pr?.number}`);
+      toast.success(t("inbox.actions.merged", { number: item.pr?.number ?? "" }));
       void queryClient.invalidateQueries({ queryKey: ["github"] });
     },
   });
@@ -74,26 +78,30 @@ export function InboxActions({ item }: { item: InboxItem }) {
   // A container kept for work it hasn't pushed (#337) can be deleted anyway from here.
   const removeAgain = useMutation({
     mutationFn: async (force: boolean) => {
-      if (!item.sessionId) throw new Error("This item has no session");
+      if (!item.sessionId) throw new Error(t("inbox.actions.noSession"));
       return client.archiveSession(item.sessionId, { force });
     },
     onError: fail,
     onSuccess: (res) => {
       const { status, message, unpushed } = res.worktree;
       if (status === "removed") {
-        toast.success(unpushed ? "Container deleted" : "Worktree removed", {
-          description: message ?? undefined,
-        });
+        toast.success(
+          unpushed ? t("inbox.actions.containerDeleted") : t("inbox.actions.worktreeRemoved"),
+          {
+            description: message ?? undefined,
+          },
+        );
       } else if (status === "kept_changes" && unpushed) {
-        toast.warning("The container was kept: it holds work that isn't pushed", {
-          description: [message, "Delete anyway deletes this work for good."]
-            .filter(Boolean)
-            .join(". "),
-          action: { label: "Delete anyway", onClick: () => removeAgain.mutate(true) },
+        toast.warning(t("inbox.actions.containerKept"), {
+          description: [message, t("inbox.actions.deleteAnywayHint")].filter(Boolean).join(". "),
+          action: {
+            label: t("inbox.actions.deleteAnyway"),
+            onClick: () => removeAgain.mutate(true),
+          },
           duration: 20_000,
         });
       } else {
-        toast.error("Couldn't remove the worktree", { description: message ?? undefined });
+        toast.error(t("inbox.actions.removeFailed"), { description: message ?? undefined });
       }
     },
   });
@@ -107,7 +115,7 @@ export function InboxActions({ item }: { item: InboxItem }) {
       onClick={() => dismiss.mutate()}
       disabled={busy}
     >
-      Dismiss
+      {t("inbox.actions.dismiss")}
     </Button>
   );
 
@@ -122,10 +130,10 @@ export function InboxActions({ item }: { item: InboxItem }) {
       return (
         <>
           <Button size="sm" onClick={() => merge.mutate()} disabled={busy || !prIdOf(item)}>
-            <GitMerge /> {merge.isPending ? "Merging…" : "Merge"}
+            <GitMerge /> {merge.isPending ? t("inbox.actions.merging") : t("inbox.actions.merge")}
           </Button>
           <Button size="sm" variant="outline" onClick={openPr}>
-            <GitPullRequest /> Open PR
+            <GitPullRequest /> {t("inbox.actions.openPr")}
           </Button>
           {item.pr && (
             <Button
@@ -145,7 +153,8 @@ export function InboxActions({ item }: { item: InboxItem }) {
       return (
         <>
           <Button size="sm" onClick={() => removeAgain.mutate(false)} disabled={busy}>
-            <RotateCcw /> {removeAgain.isPending ? "Removing…" : "Try again"}
+            <RotateCcw />{" "}
+            {removeAgain.isPending ? t("inbox.actions.removing") : t("inbox.actions.tryAgain")}
           </Button>
           {dismissButton}
         </>
@@ -166,7 +175,7 @@ export function InboxActions({ item }: { item: InboxItem }) {
                 })
               }
             >
-              <Eye /> Open spot-checks
+              <Eye /> {t("inbox.actions.openSpotChecks")}
             </Button>
           )}
           {dismissButton}
@@ -176,10 +185,11 @@ export function InboxActions({ item }: { item: InboxItem }) {
       return (
         <>
           <Button size="sm" onClick={() => allowSetup.mutate()} disabled={busy}>
-            <Play /> {allowSetup.isPending ? "Allowing…" : "Run them"}
+            <Play />{" "}
+            {allowSetup.isPending ? t("inbox.actions.allowing") : t("inbox.actions.runThem")}
           </Button>
           <Button size="sm" variant="ghost" onClick={() => dismiss.mutate()} disabled={busy}>
-            Don't run
+            {t("inbox.actions.dontRun")}
           </Button>
         </>
       );

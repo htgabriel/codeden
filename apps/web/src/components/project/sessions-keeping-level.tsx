@@ -1,6 +1,7 @@
 import type { AutonomyLevel, Session, Snapshot } from "@codeden/contracts";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
+import type { TFunction } from "i18next";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AUTONOMY } from "@/components/thread/autonomy";
@@ -16,6 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { useClient } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n";
 import {
   appliedNote,
   type LevelChange,
@@ -27,11 +29,12 @@ import { snapshotKey, useSnapshotData } from "@/lib/queries";
 /** How many sessions on another permission level are named before "and N more". */
 const SHOWN = 3;
 
-const sessionName = (s: Session) => s.title ?? s.purpose ?? "Untitled session";
-const sessions = (n: number) => `${n} ${n === 1 ? "session" : "sessions"}`;
+const sessionName = (s: Session, t: TFunction) =>
+  s.title ?? s.purpose ?? t("project.keepingLevel.untitled");
+const sessions = (n: number, t: TFunction) => t("project.keepingLevel.sessions", { count: n });
 const WHEN = {
-  next_tool_call: "from its next tool call",
-  next_turn: "from its next turn",
+  next_tool_call: "project.keepingLevel.when.nextToolCall",
+  next_turn: "project.keepingLevel.when.nextTurn",
 } as const;
 
 interface Outcome {
@@ -52,6 +55,7 @@ interface Failures {
  * instead of failing the rest.
  */
 function useApplyLevel(onFailed: (failed: Failures) => void) {
+  const { t } = useTranslation();
   const client = useClient();
   const queryClient = useQueryClient();
   return useMutation({
@@ -81,15 +85,21 @@ function useApplyLevel(onFailed: (failed: Failures) => void) {
       const applied = outcomes.filter((o) => o.updated).map((o) => o.change);
       const level = AUTONOMY[to].label;
       if (applied.length === 0) {
-        toast.error("Couldn't change the sessions' permissions", {
-          description: "The project's Settings tab lists them with the reason.",
+        toast.error(t("project.keepingLevel.allFailed"), {
+          description: t("project.keepingLevel.allFailedHint"),
         });
         return;
       }
-      const rest = failed.length > 0 ? ` Couldn't change ${sessions(failed.length)}.` : "";
-      toast.success(`Permissions: ${level} in ${sessions(applied.length)}`, {
-        description: `${appliedNote(applied)}${rest}`,
-      });
+      const rest =
+        failed.length > 0
+          ? ` ${t("project.keepingLevel.someFailed", { sessions: sessions(failed.length, t) })}`
+          : "";
+      toast.success(
+        t("project.keepingLevel.appliedToast", { level, sessions: sessions(applied.length, t) }),
+        {
+          description: `${appliedNote(applied)}${rest}`,
+        },
+      );
     },
   });
 }
@@ -108,6 +118,7 @@ export function SessionsKeepingLevel({
   projectId: string;
   level: AutonomyLevel;
 }) {
+  const { t } = useTranslation();
   const keeping = useSnapshotData((s) => sessionsKeepingLevel(s.sessions, projectId, level), []);
   const providers = useSnapshotData((s) => s.runner.providers, []);
   const [confirming, setConfirming] = useState<LevelChange[] | null>(null);
@@ -132,9 +143,7 @@ export function SessionsKeepingLevel({
   return (
     <div className="mt-2 space-y-2 text-2xs leading-relaxed text-muted-foreground">
       <p data-testid="sessions-keeping-level">
-        {keeping.length === 1
-          ? "1 open session is on another level and keeps it: "
-          : `${keeping.length} open sessions are on another level and keep it: `}
+        {t("project.keepingLevel.intro", { count: keeping.length })}
         {keeping.slice(0, SHOWN).map((s, i) => (
           <span key={s.id}>
             {i > 0 && ", "}
@@ -143,30 +152,35 @@ export function SessionsKeepingLevel({
               params={{ sessionId: s.id }}
               className="underline underline-offset-2 hover:text-foreground"
             >
-              {sessionName(s)}
+              {sessionName(s, t)}
             </Link>{" "}
             ({AUTONOMY[s.autonomy].short})
           </span>
         ))}
-        {keeping.length > SHOWN && ` and ${keeping.length - SHOWN} more`}. Apply {short} to{" "}
-        {keeping.length === 1 ? "it" : "them"} here, or open a session and use the Permissions
-        picker under its message box: either applies while the session runs.
+        {keeping.length > SHOWN &&
+          ` ${t("project.keepingLevel.andMore", { n: keeping.length - SHOWN })}`}
+        . {t("project.keepingLevel.applyHint", { count: keeping.length, level: short })}
       </p>
       <Button
         size="xs"
         variant="outline"
         onClick={start}
         disabled={apply.isPending}
-        title={`Set ${keeping.length === 1 ? "this session" : `these ${keeping.length} sessions`} to ${short}, as each one's Permissions picker would`}
+        title={t("project.keepingLevel.applyTitle", { count: keeping.length, level: short })}
         data-testid="apply-level"
       >
-        {apply.isPending ? "Applying…" : `Apply ${short} to open sessions`}
+        {apply.isPending
+          ? t("project.keepingLevel.applying")
+          : t("project.keepingLevel.apply", { level: short })}
       </Button>
       {notChanged.length > 0 && (
         <ul className="space-y-0.5 text-status-failed" data-testid="apply-level-failed">
           {notChanged.map((s) => (
             <li key={s.id}>
-              Couldn't change {sessionName(s)}: {reasons.get(s.id)}
+              {t("project.keepingLevel.failedRow", {
+                name: sessionName(s, t),
+                reason: reasons.get(s.id) ?? "",
+              })}
             </li>
           ))}
         </ul>
@@ -193,6 +207,7 @@ function ConfirmRaise({
   onCancel: () => void;
   onConfirm: (changes: LevelChange[]) => void;
 }) {
+  const { t } = useTranslation();
   const raised = changes?.filter((c) => c.raises) ?? [];
   const lowered = (changes?.length ?? 0) - raised.length;
   const to = changes?.[0] ? AUTONOMY[changes[0].to].label : "";
@@ -201,12 +216,12 @@ function ConfirmRaise({
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>
-            Raise {raised.length === 1 ? "1 session's" : `${raised.length} sessions'`} permissions
-            to {to}?
+            {t("project.keepingLevel.raiseTitle", { count: raised.length, level: to })}
           </AlertDialogTitle>
           <AlertDialogDescription>
-            {raised.length === 1 ? "Its agent" : "Their agents"} will ask you less before acting.
-            {lowered > 0 && ` It also lowers ${sessions(lowered)}.`}
+            {t("project.keepingLevel.raiseDescription", { count: raised.length })}
+            {lowered > 0 &&
+              ` ${t("project.keepingLevel.alsoLowers", { sessions: sessions(lowered, t) })}`}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <ul
@@ -215,17 +230,17 @@ function ConfirmRaise({
         >
           {raised.map((c) => (
             <li key={c.session.id} className="min-w-0">
-              <div className="truncate">{sessionName(c.session)}</div>
+              <div className="truncate">{sessionName(c.session, t)}</div>
               <div className="text-2xs text-muted-foreground">
-                {AUTONOMY[c.from].short} → {AUTONOMY[c.to].short}, {WHEN[c.appliesFrom]}
+                {AUTONOMY[c.from].short} → {AUTONOMY[c.to].short}, {t(WHEN[c.appliesFrom])}
               </div>
             </li>
           ))}
         </ul>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
           <AlertDialogAction onClick={() => changes && onConfirm(changes)}>
-            Apply to {sessions(changes?.length ?? 0)}
+            {t("project.keepingLevel.applyTo", { sessions: sessions(changes?.length ?? 0, t) })}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

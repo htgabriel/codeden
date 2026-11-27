@@ -21,11 +21,13 @@ import {
 } from "@/components/ui/dialog";
 import { useClient } from "@/lib/api";
 import { factoryKeys, modeErrorText, useFactoryStatus, useVision } from "@/lib/factory";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { hasBudget, LimitsEditor, type TuningDraft, tuningDraft } from "./limits-editor";
 import { MODE_LABEL, MODES } from "./meta";
 
 export function ExperimentalBadge({ className }: { className?: string }) {
+  const { t } = useTranslation();
   return (
     <span
       className={cn(
@@ -33,7 +35,7 @@ export function ExperimentalBadge({ className }: { className?: string }) {
         className,
       )}
     >
-      experimental
+      {t("project.autonomy.experimental")}
     </span>
   );
 }
@@ -70,6 +72,7 @@ export function AutonomyDialog({
   onOpenChange: (open: boolean) => void;
   initialMode?: AutonomyMode;
 }) {
+  const { t } = useTranslation();
   const client = useClient();
   const queryClient = useQueryClient();
   const vision = useVision(project.id);
@@ -104,22 +107,27 @@ export function AutonomyDialog({
       }),
     onSuccess: (res) => {
       toast.success(
-        same ? "Settings saved" : `${project.name} is now a ${MODE_LABEL[res.mode].toLowerCase()}`,
+        same
+          ? t("project.autonomy.saved")
+          : t("project.autonomy.switched", {
+              name: project.name,
+              mode: MODE_LABEL[res.mode].toLowerCase(),
+            }),
       );
       void queryClient.invalidateQueries({ queryKey: factoryKeys.all });
       onOpenChange(false);
     },
-    onError: (e) => toast.error("Couldn't change the mode", { description: modeErrorText(e) }),
+    onError: (e) =>
+      toast.error(t("project.autonomy.saveFailed"), { description: modeErrorText(e) }),
   });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Autonomy mode</DialogTitle>
+          <DialogTitle>{t("project.autonomy.title")}</DialogTitle>
           <DialogDescription>
-            How much {project.name} runs on its own. Climb one step at a time; protected areas
-            always come back to you.
+            {t("project.autonomy.description", { name: project.name })}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-2 sm:grid-cols-2" data-testid="autonomy-modes">
@@ -139,13 +147,13 @@ export function AutonomyDialog({
                 {m.experimental && <ExperimentalBadge />}
                 {project.autonomyMode === m.id && (
                   <span className="ml-auto text-3xs font-normal text-muted-foreground">
-                    Current
+                    {t("project.autonomy.current")}
                   </span>
                 )}
               </span>
               <span className="text-2xs leading-relaxed text-muted-foreground">{m.summary}</span>
               <span className="mt-1 text-3xs text-muted-foreground/80">
-                Finds work: {m.finds} · Merges: {m.merges}
+                {t("project.autonomy.findsMerges", { finds: m.finds, merges: m.merges })}
               </span>
             </button>
           ))}
@@ -154,22 +162,22 @@ export function AutonomyDialog({
           <div className="space-y-4 rounded-xl border border-border bg-surface p-4">
             <div>
               <p className="text-[13px] font-medium">
-                Before {MODE_LABEL[mode].toLowerCase()} can run
+                {t("project.autonomy.before", { mode: MODE_LABEL[mode].toLowerCase() })}
               </p>
               <ul className="mt-2 space-y-1.5" data-testid="mode-requirements">
                 <Requirement ok={github}>
-                  A GitHub project{" "}
+                  {t("project.autonomy.reqGithub")}{" "}
                   <span className="text-muted-foreground">
                     {project.kind === "github"
                       ? `(${project.github.owner}/${project.github.repo})`
-                      : "— this folder has no GitHub remote, so there are no issues or PRs to merge"}
+                      : t("project.autonomy.reqGithubMissing")}
                   </span>
                   {project.kind !== "github" && (
                     <CheckRemoteButton projectId={project.id} layout="inline" className="mt-1.5" />
                   )}
                 </Requirement>
                 <Requirement ok={visionOk}>
-                  A vision file{" "}
+                  {t("project.autonomy.reqVision")}{" "}
                   <code className="font-mono text-3xs text-muted-foreground">
                     {project.visionPath}
                   </code>{" "}
@@ -179,19 +187,17 @@ export function AutonomyDialog({
                       params={{ projectId: project.id }}
                       className="text-primary hover:underline"
                     >
-                      Write the vision →
+                      {t("project.autonomy.writeVision")}
                     </Link>
                   )}
                 </Requirement>
                 <Requirement ok={budgetOk}>
-                  A daily budget <span className="text-muted-foreground">(set below)</span>
+                  {t("project.autonomy.reqBudget")}{" "}
+                  <span className="text-muted-foreground">{t("project.autonomy.setBelow")}</span>
                 </Requirement>
               </ul>
               <p className="mt-3 text-3xs leading-relaxed text-muted-foreground">
-                Issues are classified as a bug, a feature or a docs change and each runs its own
-                pipeline: reproduce, fix and review a bug; analyze, implement and review a feature;
-                change the docs. Every pull request carries its test results, and screenshots for UI
-                changes.
+                {t("project.autonomy.pipelinesHelp")}
               </p>
             </div>
             <LimitsEditor
@@ -206,19 +212,22 @@ export function AutonomyDialog({
         )}
         {!factory && isFactoryMode(project.autonomyMode) && (
           <p className="text-2xs text-muted-foreground">
-            Leaving the {MODE_LABEL[project.autonomyMode].toLowerCase()} stops the factory loop; its
-            open pull requests stay open for you.
+            {t("project.autonomy.leaving", {
+              mode: MODE_LABEL[project.autonomyMode].toLowerCase(),
+            })}
           </p>
         )}
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button
             disabled={!ready || save.isPending || (same && !factory)}
             onClick={() => save.mutate()}
           >
-            {same ? "Save settings" : `Switch to ${MODE_LABEL[mode]}`}
+            {same
+              ? t("project.autonomy.saveSettings")
+              : t("project.autonomy.switchTo", { mode: MODE_LABEL[mode] })}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -228,6 +237,7 @@ export function AutonomyDialog({
 
 /** The project's mode as a button that opens the autonomy dialog. */
 export function AutonomyModeButton({ project }: { project: Project }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -235,11 +245,13 @@ export function AutonomyModeButton({ project }: { project: Project }) {
         type="button"
         onClick={() => setOpen(true)}
         className="flex items-center gap-1 rounded-full border border-border px-1.5 py-px hover:border-primary/40 hover:text-foreground pointer-coarse:min-h-10 pointer-coarse:px-3"
-        aria-label={`Autonomy mode: ${MODE_LABEL[project.autonomyMode]}`}
+        aria-label={t("project.autonomy.buttonAria", { mode: MODE_LABEL[project.autonomyMode] })}
         data-testid="autonomy-mode-button"
       >
         {MODE_LABEL[project.autonomyMode]}
-        {isFactoryMode(project.autonomyMode) && <span className="text-primary">· exp</span>}
+        {isFactoryMode(project.autonomyMode) && (
+          <span className="text-primary">{t("project.autonomy.expShort")}</span>
+        )}
         <ChevronDown className="size-3 opacity-60" />
       </button>
       <AutonomyDialog project={project} open={open} onOpenChange={setOpen} />

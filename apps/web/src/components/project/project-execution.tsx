@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ExperimentalBadge } from "@/components/factory/autonomy-dialog";
 import { Segmented, SettingsSection } from "@/components/settings/settings-ui";
 import { useClient } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n";
 import { useProjectActions } from "@/lib/project-actions";
 
 /**
@@ -12,6 +13,7 @@ import { useProjectActions } from "@/lib/project-actions";
  * GitHub, and the reason is shown.
  */
 export function ProjectExecution({ project }: { project: Project }) {
+  const { t } = useTranslation();
   const client = useClient();
   const { setExecutionBackend } = useProjectActions();
   const backends = useQuery({
@@ -27,30 +29,24 @@ export function ProjectExecution({ project }: { project: Project }) {
   const reason = docker
     ? [docker.reason, docker.fix].filter(Boolean).join(". ")
     : backends.isPending
-      ? "Checking Docker…"
-      : "Docker couldn't be checked";
+      ? t("project.execution.checkingDocker")
+      : t("project.execution.dockerUncheckable");
 
   return (
     <SettingsSection
-      title="Where sessions run"
-      description="Where new agent sessions in this project run. Sessions that already started stay where they are."
+      title={t("project.execution.title")}
+      description={t("project.execution.description")}
     >
       <div className="space-y-3 px-4 py-3.5">
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-[13.5px] font-medium">
-            Agent sessions
+            {t("project.execution.agentSessions")}
             {current === "docker" && <ExperimentalBadge />}
           </div>
           <div className="mt-0.5 text-2xs leading-relaxed text-muted-foreground">
-            {current === "docker" ? (
-              <>
-                Each new agent session gets a Docker container of its own, which clones the
-                repository from GitHub. Archiving the session removes the container. For now only
-                providers that need no sign-in run there.
-              </>
-            ) : (
-              <>Each new agent session works in a worktree on this machine.</>
-            )}
+            {current === "docker"
+              ? t("project.execution.dockerHelp")
+              : t("project.execution.localHelp")}
           </div>
         </div>
         <Segmented<ProjectExecutionBackend>
@@ -59,10 +55,10 @@ export function ProjectExecution({ project }: { project: Project }) {
             if (backend !== current) void setExecutionBackend(project, backend);
           }}
           options={[
-            { value: "local", label: "This machine" },
+            { value: "local", label: t("project.execution.thisMachine") },
             {
               value: "docker",
-              label: "Docker (experimental)",
+              label: t("project.execution.dockerExperimental"),
               disabled: blocked && current !== "docker",
               title: blocked ? reason : undefined,
             },

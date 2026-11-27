@@ -1,5 +1,7 @@
+import type { TFunction } from "i18next";
 import { File, Folder, Sparkles, SquareSlash } from "lucide-react";
 import { useEffect, useRef } from "react";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import type { Trigger } from "./trigger";
 
@@ -14,7 +16,12 @@ export interface Suggestion {
 
 const icons = { file: File, dir: Folder, command: SquareSlash, skill: Sparkles };
 /** What a screen reader hears after an option's label. */
-const kinds = { file: "file", dir: "folder", command: "command", skill: "skill" };
+const kinds = {
+  file: "orchestrator.suggestionMenu.kinds.file",
+  dir: "orchestrator.suggestionMenu.kinds.dir",
+  command: "orchestrator.suggestionMenu.kinds.command",
+  skill: "orchestrator.suggestionMenu.kinds.skill",
+} as const;
 
 /**
  * The DOM id of an option in the list `listId`, which the composer box names as its active
@@ -37,11 +44,18 @@ export function suggestionStatus(
   loading: boolean,
   count: number,
   trigger: Trigger | null,
+  t: TFunction,
 ): string {
   if (!open || loading) return "";
-  const results = count === 0 ? "No matches" : count === 1 ? "1 result" : `${count} results`;
+  const results =
+    count === 0
+      ? t("orchestrator.suggestionMenu.noMatches")
+      : t("orchestrator.suggestionMenu.results", { count });
   if (!trigger?.query) return results;
-  return `${results} for ${trigger.kind === "command" ? "/" : "@"}${trigger.query}`;
+  return t("orchestrator.suggestionMenu.resultsFor", {
+    results,
+    filter: `${trigger.kind === "command" ? "/" : "@"}${trigger.query}`,
+  });
 }
 
 /**
@@ -64,6 +78,7 @@ export function SuggestionMenu({
   onHover: (i: number) => void;
   onPick: (s: Suggestion) => void;
 }) {
+  const { t } = useTranslation();
   const listRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     listRef.current
@@ -87,7 +102,9 @@ export function SuggestionMenu({
         className="max-h-64 overflow-y-auto p-1 scroll-thin"
       >
         {items.length === 0 && (
-          <div className="px-2.5 py-2 text-xs text-muted-foreground">No matches</div>
+          <div className="px-2.5 py-2 text-xs text-muted-foreground">
+            {t("orchestrator.suggestionMenu.noMatches")}
+          </div>
         )}
         {items.map((s, i) => {
           const Icon = icons[s.icon];
@@ -99,7 +116,7 @@ export function SuggestionMenu({
               role="option"
               tabIndex={-1}
               aria-selected={i === active}
-              aria-label={`${s.label}, ${kinds[s.icon]}`}
+              aria-label={`${s.label}, ${t(kinds[s.icon])}`}
               aria-describedby={s.description ? `${optionId}-description` : undefined}
               data-index={i}
               onMouseEnter={() => onHover(i)}

@@ -5,6 +5,7 @@ import { type KeyboardEvent, type ReactNode, useId, useRef, useState } from "rea
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { type SendMode, useClient } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n";
 import { useProjectArchived, useSnapshotData } from "@/lib/queries";
 import { sendToSession } from "@/lib/send-to-session";
 import { matchesCombo, shortcut } from "@/lib/shortcuts";
@@ -60,6 +61,7 @@ export function Composer({
   onSend: (input: UserInputInit, mode: SendMode) => void;
   onStop?: () => void;
 }) {
+  const { t } = useTranslation();
   const draft = useComposerStore((s) => getDraft(s, draftKey));
   const { setText } = useComposerStore.getState();
   const ref = useRef<HTMLTextAreaElement>(null);
@@ -152,6 +154,7 @@ export function Composer({
               suggestions.loading,
               suggestions.items.length,
               suggestions.trigger,
+              t,
             )}
           </span>
         </>
@@ -162,7 +165,7 @@ export function Composer({
         canSteer && (
           <div
             className="mr-1 flex h-7 items-center rounded-lg border border-border p-0.5 text-2xs pointer-coarse:h-10"
-            title="While a turn runs"
+            title={t("orchestrator.composer.whileRunning")}
           >
             {(["queue", "steer"] as const).map((m) => (
               <button
@@ -176,7 +179,7 @@ export function Composer({
                 )}
               >
                 {m === "queue" ? <ListPlus className="size-3" /> : <Zap className="size-3" />}
-                {m}
+                {t(`orchestrator.composer.modes.${m}`)}
               </button>
             ))}
           </div>
@@ -189,7 +192,7 @@ export function Composer({
           variant="secondary"
           className="rounded-full"
           onClick={onStop}
-          aria-label="Stop"
+          aria-label={t("orchestrator.composer.stop")}
         >
           <Square className="size-3 fill-current" />
         </Button>
@@ -199,7 +202,13 @@ export function Composer({
           className="rounded-full transition-transform hover:scale-105"
           onClick={() => submit()}
           disabled={!canSend || sending}
-          aria-label={running ? (canSteer ? `${mode} message` : "Queue message") : "Send"}
+          aria-label={
+            running
+              ? canSteer
+                ? t(`orchestrator.composer.modeMessage.${mode}`)
+                : t("orchestrator.composer.queueMessage")
+              : t("orchestrator.composer.send")
+          }
         >
           {running ? mode === "steer" && canSteer ? <Zap /> : <ListPlus /> : <ArrowUp />}
         </Button>
@@ -220,6 +229,7 @@ export function SessionComposer({
   checking?: boolean;
 }) {
   const client = useClient();
+  const { t } = useTranslation();
   const providers = useSnapshotData((s) => s.runner.providers, []);
   const archived = useProjectArchived(session.projectId);
   const { setText, clear } = useComposerStore.getState();
@@ -232,11 +242,11 @@ export function SessionComposer({
     onMutate: () => clear(session.id),
     onSuccess: (_d, { sendMode }) => {
       // Queued messages show in the tray above the composer.
-      if (sendMode === "steer") toast("Sent to the running turn");
+      if (sendMode === "steer") toast(t("orchestrator.composer.sentToTurn"));
     },
     onError: (e, { input }) => {
       setText(session.id, input.text);
-      toast.error("Message not sent", { description: e.message });
+      toast.error(t("orchestrator.composer.notSent"), { description: e.message });
     },
   });
   const stop = useMutation({ mutationFn: () => client.interrupt(session.id) });
@@ -250,10 +260,7 @@ export function SessionComposer({
           className="flex items-center gap-2 rounded-2xl border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground"
         >
           <Archive className="size-4 shrink-0" />
-          <span>
-            This project is archived, so its sessions are read-only. Add its folder again to restore
-            it.
-          </span>
+          <span>{t("orchestrator.composer.projectArchived")}</span>
         </div>
       </div>
     );
@@ -265,8 +272,8 @@ export function SessionComposer({
       source={{ kind: "session", sessionId: session.id }}
       placeholder={
         running
-          ? "Queue a follow-up, or steer the running turn…"
-          : composerPlaceholders[session.role]
+          ? t("orchestrator.composer.runningPlaceholder")
+          : t(composerPlaceholders[session.role])
       }
       options={<SessionOptions session={session} running={running} />}
       running={running}

@@ -1,5 +1,4 @@
 import {
-  answerFormatName,
   type ItemOf,
   type ItemStatus,
   parseNumberAnswer,
@@ -13,6 +12,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useClient } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 type Answers = Record<string, string[]>;
@@ -30,6 +30,7 @@ export function QuestionCard({
   item: ItemOf<"user_question">;
   sessionId: string;
 }) {
+  const { t } = useTranslation();
   const client = useClient();
   const errorId = useId();
   const [answers, setAnswers] = useState<Answers>({});
@@ -37,7 +38,7 @@ export function QuestionCard({
   const pending = item.status === "in_progress";
   const submit = useMutation({
     mutationFn: (response: RuntimeResponse) => client.respond(sessionId, item.requestId, response),
-    onError: (e) => toast.error("Couldn't send your answer", { description: e.message }),
+    onError: (e) => toast.error(t("inbox.question.sendFailed"), { description: e.message }),
   });
 
   if (!pending) {
@@ -52,16 +53,20 @@ export function QuestionCard({
           />
         ))}
         {item.decidedBy === "pm" && (
-          <p className="text-2xs text-muted-foreground">Answered by the project manager</p>
+          <p className="text-2xs text-muted-foreground">{t("inbox.question.answeredByPm")}</p>
         )}
         {item.status === "cancelled" && (
           <p className="text-2xs text-muted-foreground">
-            {item.mcpServer ? `Dismissed: nothing was sent to ${item.mcpServer}` : "Dismissed"}
+            {item.mcpServer
+              ? t("inbox.question.dismissedServer", { server: item.mcpServer })
+              : t("inbox.question.dismissed")}
           </p>
         )}
         {item.status === "declined" && (
           <p className="text-2xs text-muted-foreground">
-            {item.mcpServer ? `Declined: ${item.mcpServer} got no data` : "Declined"}
+            {item.mcpServer
+              ? t("inbox.question.declinedServer", { server: item.mcpServer })
+              : t("inbox.question.declined")}
           </p>
         )}
       </div>
@@ -91,7 +96,9 @@ export function QuestionCard({
   const problem = (q: UserQuestion): string | undefined => {
     const text = freeText[q.id]?.trim();
     if (!q.format || !text || parseNumberAnswer(text, q.format) !== undefined) return undefined;
-    return `Enter ${answerFormatName(q.format)}, like ${q.format === "integer" ? "3 or 1,000" : "2.5 or 1,000"}`;
+    return q.format === "integer"
+      ? t("inbox.question.enterInteger")
+      : t("inbox.question.enterNumber");
   };
   const invalid = item.questions.some((q) => problem(q) !== undefined);
 
@@ -100,7 +107,9 @@ export function QuestionCard({
       <div className="flex items-center gap-2 border-b border-chart-2/15 bg-chart-2/[0.07] px-3.5 py-2">
         <MessageCircleQuestion className="size-4 text-chart-2" />
         <span className="text-2xs font-semibold tracking-wider text-chart-2 uppercase">
-          {item.questions.length > 1 ? `${item.questions.length} questions` : "Question"}
+          {item.questions.length > 1
+            ? t("inbox.question.questions", { count: item.questions.length })
+            : t("inbox.question.question")}
         </span>
       </div>
       <div className="divide-y divide-border">
@@ -158,7 +167,11 @@ export function QuestionCard({
             {q.allowFreeText && (
               <Input
                 placeholder={
-                  q.format ? `Type ${answerFormatName(q.format)}…` : "Or type your own answer…"
+                  q.format === "integer"
+                    ? t("inbox.question.typeInteger")
+                    : q.format
+                      ? t("inbox.question.typeNumber")
+                      : t("inbox.question.typeOwn")
                 }
                 value={freeText[q.id] ?? ""}
                 onChange={(e) => setFreeText((p) => ({ ...p, [q.id]: e.target.value }))}
@@ -178,8 +191,8 @@ export function QuestionCard({
       <div className="flex items-center justify-end gap-2 border-t border-border bg-muted/30 px-3.5 py-2">
         <span className="mr-auto text-2xs text-muted-foreground">
           {item.mcpServer
-            ? `Your answers go to ${item.mcpServer}. The agent waits until you answer or dismiss.`
-            : "The agent is paused until you answer."}
+            ? t("inbox.question.goesToServer", { server: item.mcpServer })
+            : t("inbox.question.agentPaused")}
         </span>
         {item.mcpServer && (
           <Button
@@ -189,7 +202,7 @@ export function QuestionCard({
             className="text-muted-foreground"
             onClick={() => submit.mutate({ kind: "cancel" })}
           >
-            Dismiss
+            {t("inbox.question.dismiss")}
           </Button>
         )}
         <Button
@@ -197,7 +210,7 @@ export function QuestionCard({
           disabled={!complete || invalid || submit.isPending || submit.isSuccess}
           onClick={() => submit.mutate({ kind: "answer", answers: final() })}
         >
-          Send answer
+          {t("inbox.question.sendAnswer")}
         </Button>
       </div>
     </div>
@@ -220,6 +233,7 @@ function AnsweredQuestion({
   answers: string[];
   status: ItemStatus;
 }) {
+  const { t } = useTranslation();
   const questionRef = useRef<HTMLParagraphElement>(null);
   const answerRef = useRef<HTMLParagraphElement>(null);
   const [expanded, setExpanded] = useState(false);
@@ -296,7 +310,7 @@ function AnsweredQuestion({
             onClick={() => setExpanded((v) => !v)}
             className="mt-0.5 text-2xs text-muted-foreground transition-colors hover:text-foreground"
           >
-            {expanded ? "Show less" : "Show more"}
+            {expanded ? t("inbox.question.showLess") : t("inbox.question.showMore")}
           </button>
         )}
       </div>

@@ -5,6 +5,7 @@ import { ModelPicker } from "@/components/composer/model-picker/model-picker";
 import { Segmented, SettingRow, SettingsSection } from "@/components/settings/settings-ui";
 import { ProjectTokenSaverRow } from "@/components/settings/token-saver";
 import { AUTONOMY, AUTONOMY_LEVELS } from "@/components/thread/autonomy";
+import { Trans, useTranslation } from "@/lib/i18n";
 import { useProjectActions } from "@/lib/project-actions";
 import { useSnapshotData } from "@/lib/queries";
 import { SessionsKeepingLevel } from "./sessions-keeping-level";
@@ -19,6 +20,7 @@ const SETTINGS_DEFAULT = "default";
  * applies the project's level to them (`SessionsKeepingLevel`).
  */
 export function ProjectSettings({ project }: { project: Project }) {
+  const { t } = useTranslation();
   const providers = useSnapshotData((s) => s.runner.providers, []);
   const globalAutonomy = useSnapshotData<AutonomyLevel>((s) => s.settings.autonomy.default, "auto");
   const { setSessionDefaults } = useProjectActions();
@@ -29,23 +31,21 @@ export function ProjectSettings({ project }: { project: Project }) {
       to="/settings/$section"
       params={{ section: "providers" }}
       className="underline underline-offset-2 hover:text-foreground"
-    >
-      Settings → Providers → Agent sessions
-    </Link>
+    />
   );
 
   return (
     <SettingsSection
-      title="New sessions"
-      description="What sessions you start in this project begin with. You can still pick something else in each new session."
+      title={t("project.settings.title")}
+      description={t("project.settings.description")}
     >
       <SettingRow
-        label="Default agent"
+        label={t("project.settings.defaultAgent")}
         help={
           inherits ? (
-            <>Not set: new sessions use {toSettings}.</>
+            <Trans i18nKey="project.settings.agentNotSet" components={{ link: toSettings }} />
           ) : (
-            <>Used instead of {toSettings} for this project.</>
+            <Trans i18nKey="project.settings.agentOverride" components={{ link: toSettings }} />
           )
         }
       >
@@ -54,7 +54,7 @@ export function ProjectSettings({ project }: { project: Project }) {
             providers={providers}
             projectId={project.id}
             align="end"
-            placeholder="Settings default"
+            placeholder={t("project.settings.settingsDefault")}
             value={
               inherits
                 ? null
@@ -83,15 +83,15 @@ export function ProjectSettings({ project }: { project: Project }) {
                   close();
                 }}
               >
-                Settings default: Agent sessions in Settings
+                {t("project.settings.settingsDefaultChoice")}
               </PickerFooterChoice>
             )}
           />
         </div>
       </SettingRow>
       <SettingRow
-        label="Permissions"
-        help={`What new sessions start with. Default: ${AUTONOMY[globalAutonomy].short}, from Settings → Autonomy.`}
+        label={t("project.settings.permissions")}
+        help={t("project.settings.permissionsHelp", { level: AUTONOMY[globalAutonomy].short })}
         stacked
       >
         <Segmented<AutonomyLevel | typeof SETTINGS_DEFAULT>
@@ -100,7 +100,7 @@ export function ProjectSettings({ project }: { project: Project }) {
             void setSessionDefaults(project, { autonomy: v === SETTINGS_DEFAULT ? null : v })
           }
           options={[
-            { value: SETTINGS_DEFAULT, label: "Default" },
+            { value: SETTINGS_DEFAULT, label: t("project.settings.default") },
             ...AUTONOMY_LEVELS.map((level) => ({ value: level, label: AUTONOMY[level].short })),
           ]}
         />

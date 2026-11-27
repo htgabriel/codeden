@@ -1,5 +1,6 @@
 import { type InboxItem, inboxAttempts } from "@codeden/contracts";
 import { useMutation } from "@tanstack/react-query";
+import type { TFunction } from "i18next";
 import { ArrowRightLeft, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -10,17 +11,22 @@ import {
 import { Button } from "@/components/ui/button";
 import { useClient } from "@/lib/api";
 import { ApiRequestError } from "@/lib/api/http";
+import { useTranslation } from "@/lib/i18n";
 import { useSession, useSetupStatus, useSnapshotData } from "@/lib/queries";
 import { useUiStore } from "@/stores/ui";
 
 /** Why Retry would only fail again, from the session's provider's setup check; null when it can run. */
 function retryBlocked(
+  t: TFunction,
   name: string,
   availability: Availability | null,
 ): { text: string; detail: string | null; command: string | null } | null {
   if (!availability || availability.ready) return null;
   return {
-    text: `${name} is ${lowerFirst(availability.reason ?? "Not ready")}`,
+    text: t("inbox.runFailed.blocked", {
+      name,
+      reason: lowerFirst(availability.reason ?? t("inbox.runFailed.notReady")),
+    }),
     detail: availability.detail,
     command: availability.command,
   };
@@ -41,6 +47,7 @@ export function RunFailedActions({
   busy: boolean;
   dismissButton: React.ReactNode;
 }) {
+  const { t } = useTranslation();
   const client = useClient();
   // By id: a run's session may be archived and out of the snapshot (§6).
   const session = useSession(item.sessionId ?? undefined) ?? null;
@@ -48,7 +55,8 @@ export function RunFailedActions({
   const checks = useSetupStatus({ staleTime: 60_000 }).data?.checks;
   const name = providers.find((p) => p.id === session?.provider)?.displayName ?? session?.provider;
   const blocked = retryBlocked(
-    name ?? "Its provider",
+    t,
+    name ?? t("inbox.runFailed.itsProvider"),
     session ? providerAvailability(session.provider, checks) : null,
   );
   const handOff = () =>
@@ -58,13 +66,13 @@ export function RunFailedActions({
     // Refused because the provider can't run (e.g. its usage limit, which the setup checks don't
     // know): the work can still continue elsewhere.
     onError: (e: Error) =>
-      toast.error("Retry failed", {
+      toast.error(t("inbox.runFailed.retryFailed"), {
         description: e.message,
         ...(e instanceof ApiRequestError && e.code === "provider_unavailable" && session
-          ? { action: { label: "Continue on another provider", onClick: handOff } }
+          ? { action: { label: t("inbox.runFailed.continueElsewhere"), onClick: handOff } }
           : {}),
       }),
-    onSuccess: () => toast.success("Retrying"),
+    onSuccess: () => toast.success(t("inbox.runFailed.retryingToast")),
   });
   const attempts = inboxAttempts(item);
   return (
@@ -75,16 +83,18 @@ export function RunFailedActions({
         disabled={busy || retry.isPending || blocked !== null}
         title={blocked?.text}
       >
-        <RotateCcw /> {retry.isPending ? "Retrying…" : "Retry"}
+        <RotateCcw /> {retry.isPending ? t("inbox.runFailed.retrying") : t("inbox.runFailed.retry")}
       </Button>
       {blocked && session && (
         <Button size="sm" variant="outline" onClick={handOff}>
-          <ArrowRightLeft /> Continue on another provider
+          <ArrowRightLeft /> {t("inbox.runFailed.continueElsewhere")}
         </Button>
       )}
       {dismissButton}
       {attempts > 1 && (
-        <span className="text-2xs text-muted-foreground">Failed {attempts} times</span>
+        <span className="text-2xs text-muted-foreground">
+          {t("inbox.runFailed.failedTimes", { count: attempts })}
+        </span>
       )}
       {blocked && (
         <p
@@ -92,11 +102,11 @@ export function RunFailedActions({
           data-testid="retry-blocked"
           title={blocked.detail ?? undefined}
         >
-          Retry is off: {blocked.text}.
+          {t("inbox.runFailed.retryOff", { reason: blocked.text })}
           {blocked.command && (
             <>
               {" "}
-              Fix it with <code className="font-mono">{blocked.command}</code>.
+              {t("inbox.runFailed.fixWith")} <code className="font-mono">{blocked.command}</code>.
             </>
           )}
         </p>

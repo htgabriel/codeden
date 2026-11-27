@@ -7,12 +7,19 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useArchivedSessions } from "@/lib/archived-sessions";
 import { ageShort, statusLabel } from "@/lib/format";
+import { useTranslation } from "@/lib/i18n";
 import { useSessionActions } from "@/lib/session-actions";
 
-const startedBy = { user: "You", orchestrator: "Orchestrator", pm: "PM", automation: "Automation" };
+const startedBy = {
+  user: "project.lists.startedBy.user",
+  orchestrator: "project.lists.startedBy.orchestrator",
+  pm: "project.lists.startedBy.pm",
+  automation: "project.lists.startedBy.automation",
+} as const;
 
 /** Unarchive from the list; sits above the row's stretched link. */
 function UnarchiveButton({ session }: { session: Session }) {
+  const { t } = useTranslation();
   const actions = useSessionActions(session);
   return (
     <Button
@@ -20,9 +27,9 @@ function UnarchiveButton({ session }: { session: Session }) {
       variant="outline"
       className="relative z-10"
       onClick={actions.unarchive}
-      aria-label={`Unarchive ${session.title ?? session.purpose}`}
+      aria-label={t("project.lists.unarchiveAria", { title: session.title ?? session.purpose })}
     >
-      <ArchiveRestore /> Unarchive
+      <ArchiveRestore /> {t("project.lists.unarchive")}
     </Button>
   );
 }
@@ -35,19 +42,20 @@ const emptyBox =
  * archived first, paged from the server (the snapshot carries only the recent ones).
  */
 export function ArchivedSessionsList({ projectId }: { projectId: string }) {
+  const { t } = useTranslation();
   const { data, error, isPending, hasNextPage, isFetchingNextPage, fetchNextPage } =
     useArchivedSessions(projectId);
   const sessions = data?.pages.flatMap((p) => p.sessions) ?? [];
   if (isPending) return <Skeleton className="h-24 rounded-xl" />;
   if (error && sessions.length === 0) {
-    return <p className={emptyBox}>Couldn't load the archived sessions: {error.message}</p>;
-  }
-  if (sessions.length === 0) {
     return (
       <p className={emptyBox}>
-        No archived sessions. Archive one from its menu to tidy the sidebar.
+        {t("project.lists.loadArchivedFailed", { message: error.message })}
       </p>
     );
+  }
+  if (sessions.length === 0) {
+    return <p className={emptyBox}>{t("project.lists.noArchived")}</p>;
   }
   return (
     <>
@@ -61,7 +69,7 @@ export function ArchivedSessionsList({ projectId }: { projectId: string }) {
             disabled={isFetchingNextPage}
           >
             {isFetchingNextPage && <Loader2 className="animate-spin" />}
-            Load more
+            {t("project.lists.loadMore")}
           </Button>
         </div>
       )}
@@ -71,6 +79,7 @@ export function ArchivedSessionsList({ projectId }: { projectId: string }) {
 
 /** A project's agent sessions; archived ones get an Unarchive action. */
 export function SessionsList({ sessions }: { sessions: Session[] }) {
+  const { t } = useTranslation();
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">
       {sessions.map((s) => (
@@ -100,11 +109,13 @@ export function SessionsList({ sessions }: { sessions: Session[] }) {
           </span>
           <span className="text-2xs text-muted-foreground">{statusLabel[s.status]}</span>
           <span className="flex items-center gap-1.5 text-2xs text-muted-foreground">
-            <ProviderMark provider={s.provider} /> {startedBy[s.startedBy.kind]}
+            <ProviderMark provider={s.provider} /> {t(startedBy[s.startedBy.kind])}
           </span>
           {s.archivedAt && s.role !== "agent" ? (
             // An earlier PM conversation stays archived: a newer one holds the role (§8.1).
-            <span className="text-right text-2xs text-muted-foreground">Read-only</span>
+            <span className="text-right text-2xs text-muted-foreground">
+              {t("project.lists.readOnly")}
+            </span>
           ) : s.archivedAt ? (
             <UnarchiveButton session={s} />
           ) : (

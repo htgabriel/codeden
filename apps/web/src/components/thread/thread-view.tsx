@@ -7,6 +7,7 @@ import { SessionComposer } from "@/components/composer/composer";
 import { ArchivedRoleNotice, isArchivedRole } from "@/components/orchestration/start-fresh";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useClient } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n";
 import {
   useEarlierTurns,
   useProjectArchived,
@@ -88,6 +89,7 @@ export function ThreadView({
   empty?: React.ReactNode;
   focusItemId?: string;
 }) {
+  const { t } = useTranslation();
   // An older archived session isn't in the snapshot: it is fetched by id.
   const { session, loading } = useSessionLookup(sessionId);
   // The latest turns, reaching back to the item it opens at; earlier ones load on scroll.
@@ -127,8 +129,12 @@ export function ThreadView({
       );
     }
     return (
-      <EmptyState icon={<Sparkles />} title="Session not found" className="flex-1">
-        It may have been archived.
+      <EmptyState
+        icon={<Sparkles />}
+        title={t("orchestrator.threadView.notFound")}
+        className="flex-1"
+      >
+        {t("orchestrator.threadView.notFoundHint")}
       </EmptyState>
     );
   }
@@ -138,7 +144,11 @@ export function ThreadView({
       <ThreadHeader session={session} running={running} />
       <McpNotice session={session} />
       {error ? (
-        <EmptyState icon={<Sparkles />} title="Couldn't load this session" className="flex-1">
+        <EmptyState
+          icon={<Sparkles />}
+          title={t("orchestrator.threadView.loadFailed")}
+          className="flex-1"
+        >
           {error.message}
         </EmptyState>
       ) : hasItems && transcript && threadId ? (

@@ -1,19 +1,21 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, Coins } from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { useProjectSpend } from "./api";
 import { isApiEquivalent, localToday, longDay, money, shiftDay } from "./format";
 
 /** Project home spend card: today, 7 days and month to date, a 14-day trend and budgets. */
 export function ProjectSpendCard({ projectId }: { projectId: string }) {
+  const { t } = useTranslation();
   const { data } = useProjectSpend(projectId);
   if (!data) return null;
   const max = Math.max(...data.dailyUsd, 0.01);
   const first = shiftDay(localToday(), -13);
   const stats = [
-    { label: "Today", value: data.todayUsd },
-    { label: "7 days", value: data.last7Usd },
-    { label: "This month", value: data.monthUsd },
+    { label: t("project.spend.today"), value: data.todayUsd },
+    { label: t("project.spend.last7"), value: data.last7Usd },
+    { label: t("project.spend.thisMonth"), value: data.monthUsd },
   ];
   return (
     <section
@@ -23,11 +25,13 @@ export function ProjectSpendCard({ projectId }: { projectId: string }) {
       <div className="flex items-center gap-2">
         <Coins className="size-4 text-muted-foreground" />
         <h2 className="text-sm font-medium">
-          {isApiEquivalent(data.billing) ? "API-equivalent spend" : "Spend"}
+          {isApiEquivalent(data.billing)
+            ? t("project.spend.apiEquivalent")
+            : t("project.spend.title")}
         </h2>
         {data.topModel && (
           <span className="text-2xs text-muted-foreground">
-            mostly <span className="font-mono">{data.topModel}</span>
+            {t("project.spend.mostly")} <span className="font-mono">{data.topModel}</span>
           </span>
         )}
         <Link
@@ -35,7 +39,7 @@ export function ProjectSpendCard({ projectId }: { projectId: string }) {
           search={{ project: projectId }}
           className="ml-auto inline-flex items-center gap-1 text-2xs text-muted-foreground hover:text-foreground"
         >
-          Full report <ArrowRight className="size-3" />
+          {t("project.spend.fullReport")} <ArrowRight className="size-3" />
         </Link>
       </div>
       <div className="mt-3 flex flex-wrap items-end gap-x-8 gap-y-3">
@@ -50,7 +54,7 @@ export function ProjectSpendCard({ projectId }: { projectId: string }) {
         <div
           className="ml-auto flex h-10 min-w-40 flex-1 items-end gap-0.5 sm:max-w-72"
           role="img"
-          aria-label="Daily spend over the last 14 days"
+          aria-label={t("project.spend.trendAria")}
         >
           {data.dailyUsd.map((v, i) => {
             const day = shiftDay(first, i);
@@ -72,7 +76,11 @@ export function ProjectSpendCard({ projectId }: { projectId: string }) {
         <div className="mt-3 space-y-1 border-t border-border pt-2 text-2xs text-muted-foreground">
           {data.budgets.map((b) => (
             <div key={b.budget.id} className="flex items-center gap-2 tabular-nums">
-              <span>{b.budget.period === "daily" ? "Daily" : "Monthly"} budget</span>
+              <span>
+                {b.budget.period === "daily"
+                  ? t("project.spend.dailyBudget")
+                  : t("project.spend.monthlyBudget")}
+              </span>
               <span className="h-1 flex-1 overflow-hidden rounded-full bg-muted">
                 <span
                   className={cn(

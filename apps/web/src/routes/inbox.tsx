@@ -9,7 +9,15 @@ import { ConflictCard } from "@/components/project/conflict-card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useClient } from "@/lib/api";
-import { groupInbox, type InboxFilter, inboxCounts, splitForDismiss } from "@/lib/inbox";
+import { useTranslation } from "@/lib/i18n";
+import type { inbox } from "@/lib/i18n/locales/en/inbox";
+import {
+  groupInbox,
+  type InboxFilter,
+  type InboxGroup,
+  inboxCounts,
+  splitForDismiss,
+} from "@/lib/inbox";
 import { useSnapshot } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "./page-header";
@@ -19,21 +27,18 @@ const NO_ITEMS: InboxItem[] = [];
 /** The filters conflicts are listed and counted under (`inboxCounts`). */
 const conflictFilters: ReadonlySet<InboxFilter> = new Set(["all", "asks"]);
 
-const FILTERS: { id: InboxFilter; label: string }[] = [
-  { id: "all", label: "All" },
-  { id: "asks", label: "Needs an answer" },
-  { id: "reviews", label: "Reviews" },
-  { id: "problems", label: "Problems" },
-];
+/** The group kinds the catalog names; any other keeps the title `groupInbox` gives it. */
+type GroupKind = keyof (typeof inbox)["page"]["groups"];
 
-const failedRuns = (n: number) => `${n} failed run${n === 1 ? "" : "s"}`;
+const FILTERS: InboxFilter[] = ["all", "asks", "reviews", "problems"];
 
 /**
  * Bulk clean-up of the failed runs group (§11.1): dismiss the ones that don't wait on you at
  * once, with Undo. Shown while at least two would go.
  */
 function DismissFailedRuns({ items }: { items: InboxItem[] }) {
-  const dismiss = useBulkDismiss(failedRuns);
+  const { t } = useTranslation();
+  const dismiss = useBulkDismiss((count) => t("inbox.page.failedRuns", { count }));
   const notices = splitForDismiss(items).dismiss;
   if (notices.length < 2) return null;
   return (
@@ -44,15 +49,16 @@ function DismissFailedRuns({ items }: { items: InboxItem[] }) {
       onClick={() => dismiss.mutate(notices)}
       disabled={dismiss.isPending}
     >
-      Dismiss all
+      {t("inbox.page.dismissAll")}
     </Button>
   );
 }
 
 /** Placeholder rows while the inbox loads: never a count or "all caught up" before it has. */
 function InboxLoading() {
+  const { t } = useTranslation();
   return (
-    <div role="status" aria-label="Loading the inbox" aria-busy className="space-y-5">
+    <div role="status" aria-label={t("inbox.page.loadingInbox")} aria-busy className="space-y-5">
       <Skeleton className="h-3 w-28" />
       <Skeleton className="h-24 w-full rounded-xl" />
       <Skeleton className="h-24 w-full rounded-xl" />
@@ -66,6 +72,9 @@ function InboxLoading() {
  * scrolls that item into view and highlights it.
  */
 export function InboxPage({ focusItemId }: { focusItemId?: string }) {
+  const { t } = useTranslation();
+  const groupTitle = (g: InboxGroup) =>
+    t(`inbox.page.groups.${g.id as GroupKind}`, { defaultValue: g.title });
   const client = useClient();
   // Not `useSnapshotData`: its empty fallback would read as "nothing waiting" until the snapshot
   // arrives (a direct load, a deep link, a slow connection), so loading is told apart (#400).
@@ -121,15 +130,22 @@ export function InboxPage({ focusItemId }: { focusItemId?: string }) {
   const viewItems = body === "list" ? groups.flatMap((g) => g.items) : NO_ITEMS;
   const viewConflicts =
     body === "list" && showConflicts
-      ? conflictList.map((c) => ({ id: c.id, title: `Already running: ${c.request.purpose}` }))
+      ? conflictList.map((c) => ({
+          id: c.id,
+          title: t("inbox.page.alreadyRunning", { purpose: c.request.purpose }),
+        }))
       : [];
 
   return (
     <>
       <PageHeader
         icon={<Inbox />}
-        title="Inbox"
-        meta={countKnown("all") ? `${counts.all} waiting on you` : "Loading…"}
+        title={t("inbox.page.title")}
+        meta={
+          countKnown("all")
+            ? t("inbox.page.waitingOnYou", { count: counts.all })
+            : t("inbox.page.loading")
+        }
         actions={<DismissView items={viewItems} alsoStaying={viewConflicts} />}
       />
       <div className="min-h-0 flex-1 overflow-y-auto scroll-thin">
@@ -137,17 +153,17 @@ export function InboxPage({ focusItemId }: { focusItemId?: string }) {
           <div className="mb-6 flex w-fit max-w-full flex-wrap items-center gap-1 rounded-lg border border-border bg-card/50 p-0.5 text-xs">
             {FILTERS.map((f) => (
               <button
-                key={f.id}
+                key={f}
                 type="button"
-                onClick={() => setFilter(f.id)}
+                onClick={() => setFilter(f)}
                 className={cn(
                   "flex h-7 items-center gap-1.5 rounded-md px-2.5 whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground pointer-coarse:h-10",
-                  filter === f.id && "bg-accent text-foreground",
+                  filter === f && "bg-accent text-foreground",
                 )}
               >
-                {f.label}
-                {countKnown(f.id) && (
-                  <span className="text-3xs tabular-nums opacity-70">{counts[f.id]}</span>
+                {t(`inbox.page.filters.${f}`)}
+                {countKnown(f) && (
+                  <span className="text-3xs tabular-nums opacity-70">{counts[f]}</span>
                 )}
               </button>
             ))}
@@ -158,7 +174,7 @@ export function InboxPage({ focusItemId }: { focusItemId?: string }) {
           ) : body === "conflicts-error" ? (
             <EmptyState
               icon={<AlertTriangle />}
-              title="Couldn't check for merge conflicts"
+              title={t("inbox.page.conflictsError")}
               className="py-24"
               action={
                 <Button
@@ -167,21 +183,23 @@ export function InboxPage({ focusItemId }: { focusItemId?: string }) {
                   onClick={() => void conflicts.refetch()}
                   disabled={conflicts.isFetching}
                 >
-                  Try again
+                  {t("inbox.page.tryAgain")}
                 </Button>
               }
             >
               {conflicts.error?.message}
             </EmptyState>
           ) : body === "empty" ? (
-            <EmptyState icon={<CheckCheck />} title="You're all caught up" className="py-24">
-              Questions, approvals, PRs ready for review and failed runs show up here.
+            <EmptyState icon={<CheckCheck />} title={t("inbox.page.caughtUp")} className="py-24">
+              {t("inbox.page.caughtUpHint")}
             </EmptyState>
           ) : (
             <div className="space-y-9">
               {showConflicts && (
                 <section>
-                  <SectionLabel className="mb-3">Conflicts · {conflictList.length}</SectionLabel>
+                  <SectionLabel className="mb-3">
+                    {t("inbox.page.conflicts", { count: conflictList.length })}
+                  </SectionLabel>
                   <div className="space-y-4">
                     {conflictList.map((c) => (
                       <div
@@ -200,7 +218,7 @@ export function InboxPage({ focusItemId }: { focusItemId?: string }) {
                 <section key={g.id}>
                   <div className="mb-3 flex items-center gap-2">
                     <SectionLabel>
-                      {g.title} · {g.items.length}
+                      {groupTitle(g)} · {g.items.length}
                     </SectionLabel>
                     {g.id === "run_failed" && <DismissFailedRuns items={g.items} />}
                   </div>
@@ -216,7 +234,7 @@ export function InboxPage({ focusItemId }: { focusItemId?: string }) {
 
           {resolved.length > 0 && (
             <section className="mt-12">
-              <SectionLabel className="mb-3">Recently resolved</SectionLabel>
+              <SectionLabel className="mb-3">{t("inbox.page.recentlyResolved")}</SectionLabel>
               <div className="space-y-3">
                 {resolved.map((item) => (
                   <InboxEntry key={item.id} item={item} focused={item.id === focusItemId} />

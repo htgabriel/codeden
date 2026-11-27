@@ -1,5 +1,6 @@
 import type { ProjectCheck, ProviderInfo } from "@codeden/contracts";
 import { supportsReadOnly } from "@/components/thread/autonomy";
+import { useTranslation } from "@/lib/i18n";
 import { type DraftChoice, pickModel, type ResolvedDraft } from "@/lib/new-session";
 import { ChecksToggle } from "./checks-toggle";
 import { ModelPicker } from "./model-picker/model-picker";
@@ -36,13 +37,16 @@ export function DraftOptions({
   projectPath: string;
   onChange: (next: DraftChoice) => void;
 }) {
+  const { t } = useTranslation();
   const { provider } = resolved;
   const workspace = resolved.workspace === "repo_root" && <WorkspacePicker path={projectPath} />;
   if (!provider) {
     return (
       <>
         {workspace}
-        <span className="px-2 text-xs text-muted-foreground">No agent provider ready</span>
+        <span className="px-2 text-xs text-muted-foreground">
+          {t("orchestrator.draftOptions.noProvider")}
+        </span>
       </>
     );
   }
@@ -59,7 +63,7 @@ export function DraftOptions({
       />
       <AutonomyPicker
         value={resolved.autonomy}
-        heading="Permissions for the new session"
+        heading={t("orchestrator.draftOptions.permissionsHeading")}
         readOnlySupported={supportsReadOnly(provider)}
         onChange={(autonomy) => onChange({ ...choice, autonomy })}
       />

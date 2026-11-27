@@ -11,6 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { TRIGGER_CLASS } from "./model-picker/trigger";
 
@@ -39,6 +40,7 @@ export function ChecksToggle({
   onChange: (next: ChecksLoopValue) => void;
   disabled?: boolean;
 }) {
+  const { t } = useTranslation();
   const on = value.untilPass;
   return (
     <DropdownMenu>
@@ -47,12 +49,12 @@ export function ChecksToggle({
           variant="ghost"
           size="sm"
           className={cn(TRIGGER_CLASS, on && "bg-primary/10 text-primary hover:text-primary")}
-          aria-label="Keep going until checks pass"
+          aria-label={t("orchestrator.checks.label")}
           aria-pressed={on}
           disabled={disabled}
         >
           <ListChecks className="size-3.5" />
-          Checks
+          {t("orchestrator.checks.button")}
           {on && <span className="tabular-nums opacity-80">×{value.maxRounds}</span>}
         </Button>
       </DropdownMenuTrigger>
@@ -64,14 +66,16 @@ export function ChecksToggle({
           className="items-start py-1.5"
         >
           <span className="min-w-0 flex-1">
-            <span className="block text-[13px]">Keep going until checks pass</span>
+            <span className="block text-[13px]">{t("orchestrator.checks.label")}</span>
             <span className="block text-2xs text-muted-foreground">
-              After each turn CodeDen runs the checks and sends failures back to the agent.
+              {t("orchestrator.checks.hint")}
             </span>
           </span>
         </DropdownMenuCheckboxItem>
         <DropdownMenuSeparator />
-        <DropdownMenuLabel className="text-2xs">At most this many rounds</DropdownMenuLabel>
+        <DropdownMenuLabel className="text-2xs">
+          {t("orchestrator.checks.maxRounds")}
+        </DropdownMenuLabel>
         <DropdownMenuRadioGroup
           value={String(value.maxRounds)}
           onValueChange={(v) => onChange({ ...value, maxRounds: Number(v) })}
@@ -83,15 +87,19 @@ export function ChecksToggle({
               onSelect={(e) => e.preventDefault()}
               className="text-[13px]"
             >
-              {n} {n === 1 ? "round" : "rounds"}
+              {t("orchestrator.checks.rounds", { count: n })}
               {n === DEFAULT_CHECK_ROUNDS && (
-                <span className="ml-auto text-2xs text-muted-foreground">default</span>
+                <span className="ml-auto text-2xs text-muted-foreground">
+                  {t("orchestrator.checks.default")}
+                </span>
               )}
             </DropdownMenuRadioItem>
           ))}
         </DropdownMenuRadioGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuLabel className="text-2xs">The project's checks</DropdownMenuLabel>
+        <DropdownMenuLabel className="text-2xs">
+          {t("orchestrator.checks.projectChecks")}
+        </DropdownMenuLabel>
         <ul className="space-y-0.5 px-2 pb-1.5">
           {checks.map((c) => (
             <li key={c.command} className="truncate font-mono text-[11.5px] text-muted-foreground">

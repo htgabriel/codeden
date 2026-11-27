@@ -1,12 +1,16 @@
 import type { Role } from "@codeden/contracts";
 import { Bot, Lock } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
-const roleText: Record<Exclude<Role, "agent">, { label: string; short: string }> = {
-  orchestrator: { label: "Orchestrator", short: "Orchestrator" },
-  pm: { label: "Project manager", short: "PM" },
-};
+const roleText = {
+  orchestrator: {
+    label: "orchestrator.roleBadge.orchestrator",
+    short: "orchestrator.roleBadge.orchestrator",
+  },
+  pm: { label: "orchestrator.roleBadge.pm", short: "orchestrator.roleBadge.pmShort" },
+} as const satisfies Record<Exclude<Role, "agent">, { label: string; short: string }>;
 
 /** The pill a role badge is drawn in (also used for the other message senders). */
 export const badgePill =
@@ -22,12 +26,13 @@ export function RoleBadge({
   short?: boolean;
   className?: string;
 }) {
+  const { t } = useTranslation();
   if (role === "agent") return null;
   const text = roleText[role];
   return (
     <span className={cn(badgePill, className)} data-role={role}>
       <Bot className="size-3" />
-      {short ? text.short : text.label}
+      {t(short ? text.short : text.label)}
     </span>
   );
 }
@@ -37,6 +42,7 @@ export function RoleBadge({
  * by starting and steering agent sessions.
  */
 export function ReadOnlyBadge({ className }: { className?: string }) {
+  const { t } = useTranslation();
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -47,11 +53,11 @@ export function ReadOnlyBadge({ className }: { className?: string }) {
           )}
           data-testid="read-only-badge"
         >
-          <Lock className="size-3" /> Read-only
+          <Lock className="size-3" /> {t("orchestrator.roleBadge.readOnly")}
         </span>
       </TooltipTrigger>
       <TooltipContent className="max-w-64">
-        Reads the repo and runs read-only commands. Changes happen in agent sessions it starts.
+        {t("orchestrator.roleBadge.readOnlyHint")}
       </TooltipContent>
     </Tooltip>
   );
