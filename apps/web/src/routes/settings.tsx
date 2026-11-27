@@ -59,15 +59,10 @@ function About() {
                 v{version}
               </span>
             </div>
-            <p className="mt-0.5 text-[13px] text-muted-foreground">
-              A local-first harness for coding agents. Open source under the MIT license. No
-              accounts, no telemetry.
-            </p>
+            <p className="mt-0.5 text-[13px] text-muted-foreground">{t("prefs.about.tagline")}</p>
             <UpdateCheck />
             {isMockMode && (
-              <p className="mt-1 text-2xs text-status-waiting">
-                Running against the built-in mock server.
-              </p>
+              <p className="mt-1 text-2xs text-status-waiting">{t("prefs.about.mockServer")}</p>
             )}
           </div>
         </div>

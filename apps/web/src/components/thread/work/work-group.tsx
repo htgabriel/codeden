@@ -2,7 +2,8 @@ import { ChevronRight, Layers } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ImageGallery, ImageThumbnail } from "@/components/common/image-viewer";
 import { useClient } from "@/lib/api";
-import { duration, plural } from "@/lib/format";
+import { duration } from "@/lib/format";
+import { useTranslation } from "@/lib/i18n";
 import {
   summarizeWork,
   type WorkEntry,
@@ -18,12 +19,16 @@ const isEntry = (s: WorkStep): s is WorkEntry => s.kind !== "hook_run";
 
 /** Images produced by `generate_image` calls stay visible even when the group is collapsed. */
 function GeneratedImages({ entries }: { entries: WorkStep[] }) {
+  const { t } = useTranslation();
   const client = useClient();
   const ids = entries.filter(isEntry).flatMap(imageArtifacts);
   if (ids.length === 0) return null;
   const images = ids.map((id, i) => ({
     src: client.artifactUrl(id),
-    name: ids.length > 1 ? `Generated image ${i + 1}` : "Generated image",
+    name:
+      ids.length > 1
+        ? t("workbench.work.generatedImageN", { n: i + 1 })
+        : t("workbench.work.generatedImage"),
   }));
   return (
     <ImageGallery images={images}>
@@ -36,7 +41,7 @@ function GeneratedImages({ entries }: { entries: WorkStep[] }) {
           >
             <img
               src={client.artifactUrl(id)}
-              alt="Generated"
+              alt={t("workbench.work.generated")}
               className="h-40 w-auto object-cover transition-transform duration-300 group-hover/img:scale-[1.02]"
             />
           </ImageThumbnail>
@@ -79,6 +84,7 @@ export function WorkGroup({
   live: boolean;
   focusItemId?: string;
 }) {
+  const { t } = useTranslation();
   const holdsFocus = Boolean(focusItemId && entries.some((e) => e.id === focusItemId));
   const [open, setOpen] = useState(holdsFocus);
   useEffect(() => {
@@ -99,8 +105,8 @@ export function WorkGroup({
   const failed = work.filter((e) => e.status === "failed").length;
   const total = work.reduce((ms, e) => ms + (e.kind === "tool_call" ? (e.durationMs ?? 0) : 0), 0);
   const meta = [
-    plural(work.length, "step"),
-    ...(hooks > 0 ? [plural(hooks, "hook")] : []),
+    t("workbench.work.steps", { count: work.length }),
+    ...(hooks > 0 ? [t("workbench.work.hooks", { count: hooks })] : []),
     ...(total > 0 ? [duration(total)] : []),
   ].join(" · ");
 
@@ -118,7 +124,7 @@ export function WorkGroup({
         <span className="min-w-0 truncate text-muted-foreground">{summarizeWork(entries)}</span>
         {failed > 0 && (
           <span className="shrink-0 rounded bg-status-failed/12 px-1.5 text-3xs font-medium text-status-failed">
-            {failed} failed
+            {t("workbench.work.failed", { count: failed })}
           </span>
         )}
         <span className="ml-auto flex shrink-0 items-center gap-1.5 pl-2">
@@ -141,7 +147,11 @@ export function WorkGroup({
           <div
             className="relative mt-0.5 ml-[13px] border-l border-border pl-2.5"
             title={
-              isEntry(current) ? `Now: ${entryLabel(current).verb}` : `Now: ${current.event} hook`
+              isEntry(current)
+                ? t("workbench.work.now", { what: entryLabel(current).verb })
+                : t("workbench.work.now", {
+                    what: t("workbench.hooks.event", { event: current.event }),
+                  })
             }
           >
             <StepRow sessionId={sessionId} step={current} />

@@ -1,6 +1,7 @@
 import type { McpServerState, Session } from "@codeden/contracts";
 import { Link } from "@tanstack/react-router";
 import { PlugZap, X } from "lucide-react";
+import { Trans, useTranslation } from "@/lib/i18n";
 import { dismissMcpProblems, useUndismissedMcpProblems } from "@/lib/mcp-dismissals";
 import {
   CODEDEN_MCP_SERVER,
@@ -28,6 +29,7 @@ function ServerName({ server }: { server: McpServerState }) {
  * server newly in trouble brings the notice back.
  */
 export function McpNotice({ session }: { session: Session }) {
+  const { t } = useTranslation();
   const provider = useSnapshotData(
     (s) => s.runner.providers.find((p) => p.id === session.provider),
     undefined,
@@ -41,7 +43,7 @@ export function McpNotice({ session }: { session: Session }) {
   const signIn = problems.some((s) => s.state === "needs_sign_in");
   const failed = problems.some((s) => s.state === "failed");
   const ownTools = problems.some((s) => s.name === CODEDEN_MCP_SERVER);
-  const providerName = provider?.displayName ?? "the agent";
+  const providerName = provider?.displayName ?? t("workbench.mcp.theAgent");
   const count = problems.length;
   return (
     <div
@@ -52,8 +54,7 @@ export function McpNotice({ session }: { session: Session }) {
       <PlugZap className="mt-px size-3.5 shrink-0" />
       <div className="min-w-0 flex-1 space-y-0.5">
         <p className="text-foreground/90">
-          {count === 1 ? "An MCP server isn't" : `${count} MCP servers aren't`} available to the
-          agent, so it can't use {count === 1 ? "its" : "their"} tools:{" "}
+          {t("workbench.mcp.unavailable", { count })}{" "}
           {problems.map((s, i) => (
             <span key={s.name}>
               {i > 0 && ", "}
@@ -65,36 +66,33 @@ export function McpNotice({ session }: { session: Session }) {
         <p className="text-muted-foreground">
           {failed && (
             <>
-              Check {count === 1 ? "it" : "them"} in{" "}
-              <Link
-                to="/agents"
-                search={{ tab: "mcp", project: session.projectId ?? "global" }}
-                className="underline underline-offset-2 hover:text-foreground"
-              >
-                Agents › MCP servers
-              </Link>
-              {signIn ? ". " : " (hover a server for its error)."}
+              <Trans
+                i18nKey="workbench.mcp.checkIn"
+                count={count}
+                components={{
+                  l: (
+                    <Link
+                      to="/agents"
+                      search={{ tab: "mcp", project: session.projectId ?? "global" }}
+                      className="underline underline-offset-2 hover:text-foreground"
+                    />
+                  ),
+                }}
+              />
+              {signIn ? ". " : t("workbench.mcp.hoverHint")}
             </>
           )}
-          {signIn && <>Sign in through {providerName}'s own login for that server.</>}
-          {ownTools && (
-            <>
-              {" "}
-              Without CodeDen's own server (codeden) the agent can't ask you questions or report
-              back here; fork the session to carry on with a fresh agent.
-            </>
-          )}
+          {signIn && t("workbench.mcp.signIn", { provider: providerName })}
+          {ownTools && <> {t("workbench.mcp.ownServer")}</>}
         </p>
       </div>
       <button
         type="button"
         onClick={() => dismissMcpProblems(session, problems)}
         className="-m-1 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-        aria-label="Dismiss"
+        aria-label={t("workbench.mcp.dismiss")}
         title={
-          ownTools && count === 1
-            ? "Hide for this session"
-            : "Hide for these servers in this project"
+          ownTools && count === 1 ? t("workbench.mcp.hideSession") : t("workbench.mcp.hideProject")
         }
       >
         <X className="size-3.5" />

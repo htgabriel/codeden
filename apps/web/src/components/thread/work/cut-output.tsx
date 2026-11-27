@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { useClient } from "@/lib/api";
 import { formatBytes } from "@/lib/format";
+import { i18n, useTranslation } from "@/lib/i18n";
 import type { WorkEntry } from "@/lib/transcript/timeline";
 import { cn } from "@/lib/utils";
 
@@ -20,19 +21,25 @@ export function cutNotice(
   full: ToolOutputResponse | undefined,
   running: boolean,
 ): string {
+  const t = i18n.t;
   if (!full) {
     return liveBytes === undefined
-      ? `Output cut · showing ${formatBytes(shownBytes)}`
-      : `Showing ${formatBytes(shownBytes)} of ${formatBytes(liveBytes)}`;
+      ? t("workbench.output.cutShowing", { shown: formatBytes(shownBytes) })
+      : t("workbench.output.showingOf", {
+          shown: formatBytes(shownBytes),
+          total: formatBytes(liveBytes),
+        });
   }
   const newer = liveBytes !== undefined && liveBytes > full.outputBytes;
   const loaded = formatBytes(full.totalBytes);
   const base = full.truncated
-    ? `${loaded} of ${formatBytes(full.outputBytes)} was kept · the rest wasn't stored`
+    ? t("workbench.output.kept", { loaded, total: formatBytes(full.outputBytes) })
     : newer
-      ? `Output when loaded · ${loaded}`
-      : `${running ? "Output so far" : "Full output"} · ${loaded}`;
-  return newer ? `${base} · more has arrived since` : base;
+      ? t("workbench.output.whenLoaded", { loaded })
+      : running
+        ? t("workbench.output.soFar", { loaded })
+        : t("workbench.output.full", { loaded });
+  return newer ? t("workbench.output.moreArrived", { base }) : base;
 }
 
 export interface ShownOutput {
@@ -54,9 +61,10 @@ interface Target {
  * shown. A load while the command still runs is a snapshot until "Back to live output".
  */
 export function useShownOutput(sessionId: string, entry: WorkEntry): ShownOutput {
+  const { t } = useTranslation();
   const client = useClient();
   const load = useMutation({
-    mutationFn: (t: Target) => client.getToolOutput(t.sessionId, t.itemId),
+    mutationFn: (target: Target) => client.getToolOutput(target.sessionId, target.itemId),
   });
   const output = entry.kind === "tool_call" ? entry.output : undefined;
   const text = output?.text ?? "";
@@ -68,12 +76,17 @@ export function useShownOutput(sessionId: string, entry: WorkEntry): ShownOutput
   const failed = mine && load.isError;
   const running = entry.status === "in_progress";
   const message = failed
-    ? `Couldn't load the full output: ${load.error?.message ?? "unknown error"}`
+    ? t("workbench.output.loadFailed", {
+        error: load.error?.message ?? t("workbench.output.unknownError"),
+      })
     : cutNotice(utf8ByteLength(text), output.totalBytes, full, running);
   const action = full
-    ? { label: running ? "Back to live output" : "Show less", run: () => load.reset() }
+    ? {
+        label: running ? t("workbench.output.backToLive") : t("workbench.sender.showLess"),
+        run: () => load.reset(),
+      }
     : {
-        label: failed ? "Try again" : "Show full output",
+        label: failed ? t("workbench.image.tryAgain") : t("workbench.output.showFull"),
         run: () => load.mutate({ sessionId, itemId: entry.id }),
       };
 
@@ -97,7 +110,7 @@ export function useShownOutput(sessionId: string, entry: WorkEntry): ShownOutput
         >
           {pending ? (
             <>
-              <Loader2 className="animate-spin" /> Loading…
+              <Loader2 className="animate-spin" /> {t("workbench.image.loading")}
             </>
           ) : (
             action.label

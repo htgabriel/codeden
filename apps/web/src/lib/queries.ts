@@ -2,6 +2,7 @@ import type { Project, ProjectCheck, Session, Snapshot } from "@codeden/contract
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
+import { i18n } from "@/lib/i18n";
 import { useTranscriptsStore } from "@/stores/transcripts";
 import { type CodeDenClient, useClient } from "./api";
 import { sessionLoader } from "./session-batch";
@@ -241,7 +242,8 @@ export function useEarlierTurns(sessionId: string): EarlierTurns {
       });
       useTranscriptsStore.getState().load(snap);
     },
-    onError: (error) => toast.error("Couldn't load earlier turns", { description: error.message }),
+    onError: (error) =>
+      toast.error(i18n.t("messages.earlierTurnsFailed"), { description: error.message }),
   });
   return {
     count,

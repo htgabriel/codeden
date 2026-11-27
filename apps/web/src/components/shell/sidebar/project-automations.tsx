@@ -4,6 +4,7 @@ import { useAutomationActions } from "@/components/automations/use-automation-ac
 import { StatusDot } from "@/components/common/status-dot";
 import { Switch } from "@/components/ui/switch";
 import { stateIn, switchValue, useAutomations } from "@/lib/automations";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { childRow, grandchildGroup, NavRow } from "./nav-row";
 
@@ -12,6 +13,7 @@ import { childRow, grandchildGroup, NavRow } from "./nav-row";
  * on, and expandable rows with their switches.
  */
 export function ProjectAutomations({ projectId }: { projectId: string }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const { data } = useAutomations(projectId);
   const actions = useAutomationActions(projectId);
@@ -27,16 +29,18 @@ export function ProjectAutomations({ projectId }: { projectId: string }) {
           exact={false}
         >
           <Workflow className="size-3.5 shrink-0" />
-          <span className="flex-1 truncate">Automations</span>
+          <span className="flex-1 truncate">{t("shell.projectGroup.automations")}</span>
           <span className="text-3xs tabular-nums" data-testid="sidebar-automations-on">
-            {on} on
+            {t("shell.projectGroup.automationsOn", { count: on })}
           </span>
         </NavRow>
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
           className="absolute right-1 flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-sidebar-border hover:text-foreground"
-          aria-label={open ? "Hide automations" : "Show automations"}
+          aria-label={
+            open ? t("shell.projectGroup.hideAutomations") : t("shell.projectGroup.showAutomations")
+          }
           aria-expanded={open}
         >
           <ChevronRight className={cn("size-3 transition-transform", open && "rotate-90")} />
@@ -65,7 +69,7 @@ export function ProjectAutomations({ projectId }: { projectId: string }) {
                   size="sm"
                   checked={switchValue(item, projectId)}
                   onCheckedChange={(enabled) => actions.toggle.mutate({ item, enabled })}
-                  aria-label={`Enable ${item.automation.name}`}
+                  aria-label={t("shell.projectGroup.enable", { name: item.automation.name })}
                 />
               </div>
             );

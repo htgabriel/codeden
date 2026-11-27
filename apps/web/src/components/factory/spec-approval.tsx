@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useClient } from "@/lib/api";
 import { factoryKeys } from "@/lib/factory";
 import { ago } from "@/lib/format";
+import { useTranslation } from "@/lib/i18n";
 
 /**
  * The optional spec approval (§10.1, "Approve specs before building"): a feature's spec waits for
@@ -38,6 +39,7 @@ export function SpecDecision({
   /** Smaller buttons, for an inbox card. */
   compact?: boolean;
 }) {
+  const { t } = useTranslation();
   const client = useClient();
   const queryClient = useQueryClient();
   const [asking, setAsking] = useState(false);
@@ -48,15 +50,15 @@ export function SpecDecision({
     onSuccess: (_item, req) => {
       toast.success(
         req.decision === "approve"
-          ? "Spec approved: the agent builds it next"
-          : "Changes requested: the agent revises the spec",
+          ? t("factory.spec.approved")
+          : t("factory.spec.changesRequested"),
       );
       setAsking(false);
       setFeedback("");
       void queryClient.invalidateQueries({ queryKey: factoryKeys.all });
     },
     onError: (e: Error) => {
-      toast.error("Couldn't record your decision", { description: e.message });
+      toast.error(t("factory.spec.recordFailed"), { description: e.message });
       // The spec changed or was decided meanwhile: show it as it is now.
       void queryClient.invalidateQueries({ queryKey: factoryKeys.all });
     },
@@ -71,7 +73,7 @@ export function SpecDecision({
           onClick={() => decide.mutate({ decision: "approve" })}
           disabled={decide.isPending}
         >
-          <Check /> Approve spec
+          <Check /> {t("factory.spec.approve")}
         </Button>
         <Button
           size={size}
@@ -80,7 +82,7 @@ export function SpecDecision({
           disabled={decide.isPending}
           aria-expanded={asking}
         >
-          <PencilLine /> Request changes
+          <PencilLine /> {t("factory.spec.requestChanges")}
         </Button>
       </div>
       {asking && (
@@ -89,8 +91,8 @@ export function SpecDecision({
             value={feedback}
             onChange={(e) => setFeedback(e.target.value)}
             maxLength={SPEC_FEEDBACK_MAX}
-            placeholder="What should change? The agent revises its analysis and asks you again."
-            aria-label="What to change in the spec"
+            placeholder={t("factory.spec.placeholder")}
+            aria-label={t("factory.spec.feedbackAria")}
             className="min-h-20 text-[13px]"
             autoFocus
           />
@@ -99,7 +101,7 @@ export function SpecDecision({
             onClick={() => decide.mutate({ decision: "request_changes", feedback: text })}
             disabled={decide.isPending || !text}
           >
-            Send to the agent
+            {t("factory.spec.send")}
           </Button>
         </div>
       )}
@@ -107,27 +109,33 @@ export function SpecDecision({
   );
 }
 
-/** Why a revised analysis decided not to build the feature after all. */
-const NOT_BUILT: Record<string, string> = {
-  already_done: "it is already possible",
-  needs_info: "it needs more information",
-  out_of_scope: "it is out of scope for the vision",
-};
+/** Why a revised analysis decided not to build the feature after all (`factory.spec.notBuilt`). */
+const NOT_BUILT = new Set(["already_done", "needs_info", "out_of_scope"]);
 
 /**
  * After a request for changes: the agent revises its analysis while the item is in building;
  * once it stopped, what the revision decided (or that it stopped before one was submitted).
  */
 function ChangesRequested({ item, spec }: { item: FactoryItem; spec: SpecApproval }) {
-  const asked = `Changes requested${spec.decidedAt ? ` ${ago(spec.decidedAt)}` : ""}`;
+  const { t } = useTranslation();
+  const asked = spec.decidedAt
+    ? t("factory.spec.askedAgo", { ago: ago(spec.decidedAt) })
+    : t("factory.spec.asked");
   const inv = item.investigation;
   const notBuilt = inv?.kind === "analysis" && inv.outcome !== "implement";
   const text =
     item.stage === "building"
-      ? `${asked}: the agent revises its analysis, then asks you again.`
+      ? t("factory.spec.revising", { asked })
       : notBuilt
-        ? `${asked}. The revised analysis decided not to build it: ${NOT_BUILT[inv.outcome] ?? inv.outcome}.`
-        : `${asked}. The item stopped before the agent submitted a revised spec.`;
+        ? t("factory.spec.notBuiltText", {
+            asked,
+            why: NOT_BUILT.has(inv.outcome)
+              ? t(
+                  `factory.spec.notBuilt.${inv.outcome as "already_done" | "needs_info" | "out_of_scope"}`,
+                )
+              : inv.outcome,
+          })
+        : t("factory.spec.stoppedBefore", { asked });
   return (
     <p className="flex items-start gap-2">
       <MessageSquareWarning className="mt-0.5 size-3.5 shrink-0 text-status-waiting" />
@@ -146,26 +154,26 @@ function ChangesRequested({ item, spec }: { item: FactoryItem; spec: SpecApprova
  * waits for you, then what was decided. Nothing for a spec that needed no approval.
  */
 export function SpecApprovalCard({ item, projectId }: { item: FactoryItem; projectId: string }) {
+  const { t } = useTranslation();
   const spec = item.specApproval;
   if (!spec) return null;
   const waiting = spec.state === "pending" && item.stage === "building";
   return (
     <section data-testid="spec-approval">
-      <SectionLabel className="mb-2">Spec approval</SectionLabel>
+      <SectionLabel className="mb-2">{t("factory.spec.title")}</SectionLabel>
       {waiting ? (
         <div className="space-y-3 rounded-xl border border-status-waiting/35 bg-status-waiting/[0.06] p-4 text-[13px]">
           <p className="leading-relaxed">
-            <span className="font-medium">The spec waits for you</span>
+            <span className="font-medium">{t("factory.spec.waits")}</span>
             <span className="text-muted-foreground">
               {" "}
-              (submitted {ago(spec.requestedAt)}). Read the analysis and the acceptance criteria
-              above. Approve it and the agent builds it; ask for changes and it revises the spec
-              first.
+              {t("factory.spec.waitsHint", { ago: ago(spec.requestedAt) })}
             </span>
           </p>
           {spec.feedback && (
             <p className="text-2xs text-muted-foreground">
-              You asked earlier: <span className="text-foreground">{spec.feedback}</span>
+              {t("factory.spec.askedEarlier")}{" "}
+              <span className="text-foreground">{spec.feedback}</span>
             </p>
           )}
           <SpecDecision projectId={projectId} itemId={item.id} version={spec.requestedAt} />
@@ -179,16 +187,15 @@ export function SpecApprovalCard({ item, projectId }: { item: FactoryItem; proje
               <Check className="mt-0.5 size-3.5 shrink-0 text-status-done" />
               <span>
                 {spec.by === "auto"
-                  ? "Approved automatically: spec approval was turned off while it waited."
-                  : `Approved by you${spec.decidedAt ? ` ${ago(spec.decidedAt)}` : ""}.`}
-                {spec.rounds > 0 &&
-                  ` After ${spec.rounds} round${spec.rounds === 1 ? "" : "s"} of changes.`}
+                  ? t("factory.spec.approvedAuto")
+                  : spec.decidedAt
+                    ? t("factory.spec.approvedByYouAgo", { ago: ago(spec.decidedAt) })
+                    : t("factory.spec.approvedByYou")}
+                {spec.rounds > 0 && ` ${t("factory.spec.afterRounds", { count: spec.rounds })}`}
               </span>
             </p>
           ) : (
-            <p className="text-muted-foreground">
-              It was waiting for approval when the item stopped.
-            </p>
+            <p className="text-muted-foreground">{t("factory.spec.waitingWhenStopped")}</p>
           )}
         </div>
       )}

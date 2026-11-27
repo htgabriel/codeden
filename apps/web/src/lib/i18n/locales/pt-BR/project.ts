@@ -86,9 +86,9 @@ export const projectBR: Catalog<typeof project> = {
       "Com o que começam as sessões que você inicia neste projeto. Você ainda pode escolher outra coisa em cada nova sessão.",
     defaultAgent: "Agente padrão",
     agentNotSet:
-      "Não definido: novas sessões usam <link>Configurações → Provedores → Sessões de agente</link>.",
+      "Não definido: novas sessões usam <l>Configurações → Provedores → Sessões de agente</l>.",
     agentOverride:
-      "Usado no lugar de <link>Configurações → Provedores → Sessões de agente</link> neste projeto.",
+      "Usado no lugar de <l>Configurações → Provedores → Sessões de agente</l> neste projeto.",
     settingsDefault: "Padrão das Configurações",
     settingsDefaultChoice: "Padrão das Configurações: Sessões de agente nas Configurações",
     permissions: "Permissões",

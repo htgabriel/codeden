@@ -24,6 +24,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useClient } from "@/lib/api";
 import { automationKeys, useAutomation } from "@/lib/automations";
 import { localTimezone } from "@/lib/cron";
+import { Trans, useTranslation } from "@/lib/i18n";
 import { useProject, useSnapshotData } from "@/lib/queries";
 import { PageHeader } from "./page-header";
 
@@ -39,6 +40,7 @@ export function AutomationPage({
   projectId: string;
   automationId: string;
 }) {
+  const { t } = useTranslation();
   const client = useClient();
   const queryClient = useQueryClient();
   const project = useProject(projectId);
@@ -59,10 +61,10 @@ export function AutomationPage({
     mutationFn: (d: AutomationDraft) =>
       client.automations.update(automationId, toUpdateRequest(d, projectId)),
     onSuccess: () => {
-      toast.success("Automation saved");
+      toast.success(t("automations.detailPage.saved"));
       void queryClient.invalidateQueries({ queryKey: automationKeys.all });
     },
-    onError: (e) => toast.error("Couldn't save", { description: e.message }),
+    onError: (e) => toast.error(t("automations.newPage.saveFailed"), { description: e.message }),
   });
 
   if (error) {
@@ -108,7 +110,7 @@ export function AutomationPage({
                     variant="ghost"
                     onClick={() => setDraft(draftFromAutomation(a))}
                   >
-                    Revert
+                    {t("automations.detailPage.revert")}
                   </Button>
                 )}
                 <Button
@@ -117,7 +119,8 @@ export function AutomationPage({
                   title={problems.join(" ")}
                   onClick={() => save.mutate(draft)}
                 >
-                  <Save /> {save.isPending ? "Saving…" : "Save"}
+                  <Save />{" "}
+                  {save.isPending ? t("automations.newPage.saving") : t("automations.newPage.save")}
                 </Button>
               </>
             )}
@@ -129,16 +132,19 @@ export function AutomationPage({
           <div className="min-w-0 space-y-3">
             {readOnly && (
               <p className="rounded-lg border border-border bg-surface px-3 py-2 text-2xs text-muted-foreground">
-                This automation comes from{" "}
-                <code className="font-mono">{item.path ?? "a built-in template"}</code>. Edit the
-                file, or use <span className="font-medium text-foreground">Duplicate to edit</span>{" "}
-                for a copy you can change here.
+                <Trans
+                  i18nKey="automations.detailPage.readOnly"
+                  values={{ path: item.path ?? t("automations.detailPage.builtInTemplate") }}
+                  components={{
+                    code: <code className="font-mono" />,
+                    b: <span className="font-medium text-foreground" />,
+                  }}
+                />
               </p>
             )}
             {a.createdBy === "pm" && (
               <p className="rounded-lg border border-primary/20 bg-primary/[0.04] px-3 py-2 text-2xs text-muted-foreground">
-                Created by the PM. It stays off until you switch it on; check the prompt and
-                permissions first.
+                {t("automations.detailPage.pmNote")}
               </p>
             )}
             <AutomationForm
@@ -161,7 +167,7 @@ export function AutomationPage({
               />
             )}
             <div>
-              <SectionLabel className="mb-2">Recent runs</SectionLabel>
+              <SectionLabel className="mb-2">{t("automations.detailPage.recentRuns")}</SectionLabel>
               <RunsTable projectId={projectId} automationId={a.id} limit={20} />
             </div>
           </aside>

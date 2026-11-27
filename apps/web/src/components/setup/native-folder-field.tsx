@@ -1,6 +1,7 @@
 import { FolderGit2, FolderOpen } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "@/lib/i18n";
 import { platform } from "@/lib/platform";
 import { FolderBrowser } from "./folder-browser";
 
@@ -15,13 +16,14 @@ export function NativeFolderField({
   value: string | null;
   onChange: (path: string) => void;
 }) {
+  const { t } = useTranslation();
   const [browse, setBrowse] = useState(false);
   const [picking, setPicking] = useState(false);
   const choose = async () => {
     setPicking(true);
     try {
       const path = await platform.pickFolder({
-        title: "Choose a project folder",
+        title: t("prefs.folders.pickerTitle"),
         defaultPath: value ?? undefined,
       });
       if (path) onChange(path);
@@ -35,7 +37,7 @@ export function NativeFolderField({
       <div className="space-y-2">
         <FolderBrowser value={value} onChange={onChange} />
         <Button variant="link" size="xs" className="px-0" onClick={() => setBrowse(false)}>
-          Use the system folder picker instead
+          {t("prefs.folders.useSystem")}
         </Button>
       </div>
     );
@@ -50,15 +52,15 @@ export function NativeFolderField({
               {value}
             </div>
           ) : (
-            <div className="text-[13px] text-muted-foreground">No folder chosen yet</div>
+            <div className="text-[13px] text-muted-foreground">{t("prefs.folders.noneChosen")}</div>
           )}
         </div>
         <Button size="sm" variant="outline" onClick={() => void choose()} disabled={picking}>
-          <FolderOpen /> {value ? "Change..." : "Choose folder..."}
+          <FolderOpen /> {value ? t("prefs.folders.change") : t("prefs.folders.choose")}
         </Button>
       </div>
       <Button variant="link" size="xs" className="px-0" onClick={() => setBrowse(true)}>
-        Browse folders in CodeDen instead
+        {t("prefs.folders.browseInstead")}
       </Button>
     </div>
   );

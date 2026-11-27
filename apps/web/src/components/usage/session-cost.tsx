@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Coins } from "lucide-react";
 import { useEffect } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { i18n, useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { useTranscriptsStore } from "@/stores/transcripts";
 import { usageKeys, useSessionUsage } from "./api";
@@ -20,27 +21,27 @@ function useLiveSessionUsage(sessionId: string) {
   return useSessionUsage(sessionId);
 }
 
-const NOT_PRICED = "Not priced";
-const NOT_PRICED_TITLE =
-  "This model has no price in the price table and the provider reported no cost";
-
 /** No turn has a reported cost or a price to estimate one from, so there is no figure. */
 function notPriced(u: SessionUsage): boolean {
   return u.totals.turns > 0 && u.totals.unpricedTurns === u.totals.turns;
 }
 
 function costLabel(u: SessionUsage): string {
-  if (notPriced(u)) return NOT_PRICED;
+  if (notPriced(u)) return i18n.t("shell.sessionCost.notPriced");
   return money(u.totals.costUsd, u.totals.estimatedCostUsd > 0);
 }
 
 /** "API-equivalent cost (estimated from list prices)": what kind of figure the cost is (§12.6). */
 function costHeading(u: SessionUsage): string {
-  if (notPriced(u)) return NOT_PRICED_TITLE;
-  const kind = u.billing === "subscription" ? "API-equivalent cost" : "Session cost";
-  const label = u.totals.estimatedCostUsd > 0 ? `${kind} (estimated from list prices)` : kind;
+  const t = i18n.t;
+  if (notPriced(u)) return t("shell.sessionCost.notPricedTitle");
+  const kind =
+    u.billing === "subscription"
+      ? t("shell.usageFormat.apiEquivalent")
+      : t("shell.sessionCost.sessionCost");
+  const label = u.totals.estimatedCostUsd > 0 ? t("shell.usageFormat.estimated", { kind }) : kind;
   return u.totals.unpricedTurns > 0
-    ? `${label} · ${u.totals.unpricedTurns} turns not priced`
+    ? t("shell.sessionCost.turnsNotPriced", { label, count: u.totals.unpricedTurns })
     : label;
 }
 
@@ -49,14 +50,15 @@ function costHeading(u: SessionUsage): string {
  * chip: "No usage yet" before the first turn, "Not priced" when no turn could be priced.
  */
 export function SessionCostText({ sessionId }: { sessionId: string }) {
+  const { t } = useTranslation();
   const { data } = useLiveSessionUsage(sessionId);
   if (!data) return null;
-  if (data.totals.turns === 0) return <span>No usage yet</span>;
+  if (data.totals.turns === 0) return <span>{t("shell.sessionCost.noUsage")}</span>;
   const kind = notPriced(data)
     ? ""
     : data.billing === "subscription"
-      ? " API-equivalent"
-      : " this session";
+      ? t("shell.sessionCost.apiEquivalentSuffix")
+      : t("shell.sessionCost.thisSessionSuffix");
   return (
     <span data-testid="details-cost" title={costHeading(data)}>
       {costLabel(data)}
@@ -73,9 +75,10 @@ export function SessionCostChip({
   sessionId: string;
   className?: string;
 }) {
+  const { t } = useTranslation();
   const { data } = useLiveSessionUsage(sessionId);
   if (!data || data.totals.turns === 0) return null;
-  const t = data.totals;
+  const totals = data.totals;
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -89,19 +92,24 @@ export function SessionCostChip({
           <Coins className="size-3" />
           <span className="text-foreground/90">{costLabel(data)}</span>
           <span className="text-muted-foreground/60">·</span>
-          {tokens(totalTokens(t))} tok
+          {t("shell.sessionCost.tok", { n: tokens(totalTokens(totals)) })}
         </span>
       </TooltipTrigger>
       <TooltipContent className="space-y-1 text-2xs">
         <div className="font-medium">{costHeading(data)}</div>
         <div className="tabular-nums">
-          {tokens(t.inputTokens)} input · {tokens(t.outputTokens)} output
+          {t("shell.usageFormat.input", { n: tokens(totals.inputTokens) })} ·{" "}
+          {t("shell.usageFormat.output", { n: tokens(totals.outputTokens) })}
         </div>
         <div className="tabular-nums">
-          {tokens(t.cacheReadTokens)} cache reads · {tokens(t.cacheWriteTokens)} cache writes
+          {t("shell.usageFormat.cacheReads", { n: tokens(totals.cacheReadTokens) })} ·{" "}
+          {t("shell.usageFormat.cacheWrites", { n: tokens(totals.cacheWriteTokens) })}
         </div>
         <div className="tabular-nums">
-          {t.turns} turns · cache hit rate {percent(t.cacheHitRate)}
+          {t("shell.sessionCost.turnsHitRate", {
+            count: totals.turns,
+            rate: percent(totals.cacheHitRate),
+          })}
         </div>
       </TooltipContent>
     </Tooltip>
@@ -113,13 +121,14 @@ export function SessionCostChip({
  * turn has no price); null until the turn has usage.
  */
 export function useTurnCostText(sessionId: string, turnId: string): string | null {
+  const { t } = useTranslation();
   const { data } = useSessionUsage(sessionId);
-  const turn = data?.turns.find((t) => t.turnId === turnId);
+  const turn = data?.turns.find((x) => x.turnId === turnId);
   if (!turn) return null;
   const total = turn.inputTokens + turn.outputTokens + turn.cacheReadTokens + turn.cacheWriteTokens;
   const cost =
     turn.costSource === "unpriced" && total > 0
-      ? NOT_PRICED
+      ? t("shell.sessionCost.notPriced")
       : money(turn.costUsd, turn.costSource === "estimated");
-  return `${cost} · ${tokens(total)} tokens`;
+  return t("shell.sessionCost.turnCost", { cost, n: tokens(total) });
 }

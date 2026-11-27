@@ -1,6 +1,7 @@
 import type { DiscoveryArea, FactoryStatus, ScoutStatus } from "@codeden/contracts";
 import { AREA_LABEL } from "@/components/factory/meta";
-import type { SessionInfo, ViewCard, ViewPipeline } from "../stages";
+import { i18n } from "@/lib/i18n";
+import { type SessionInfo, textMap, type ViewCard, type ViewPipeline } from "../stages";
 
 /**
  * The factory floor's agents (#264, #420), for Floor mode: who works on the floor
@@ -162,12 +163,10 @@ function cardsOnFloor(p: ViewPipeline): ViewCard[] {
   ].filter((c) => c.pr?.state !== "stuck");
 }
 
-const SCOUT_ACTIVITY: Record<ScoutStatus["phase"], string> = {
-  idle: "Between rounds",
-  planning: "Planning the round",
-  reviewing: "Reviewing the areas",
-  filing: "Filing issues",
-};
+const SCOUT_ACTIVITY: Record<ScoutStatus["phase"], string> = textMap(
+  ["idle", "planning", "reviewing", "filing"],
+  (k) => i18n.t(`factoryView.agents.scout.${k}`),
+);
 
 /** Area reviewers: one per review area, each at its pod on the Lookout. */
 export const AREA_SEATS = 8;
@@ -224,7 +223,9 @@ export function sceneAgents({ f, pipeline, sessions, pmSessionId }: AgentInputs)
     sessionId: pmSessionId,
     card: null,
     step: null,
-    activity: pmLive ? "Answering" : "Listening",
+    activity: pmLive
+      ? i18n.t("factoryView.agents.answering")
+      : i18n.t("factoryView.agents.listening"),
     status: pm.session?.status === "waiting" ? "approval" : pmLive ? "working" : "idle",
     blockedOn: null,
     failed: pm.session?.status === "failed",
@@ -247,7 +248,10 @@ export function sceneAgents({ f, pipeline, sessions, pmSessionId }: AgentInputs)
     sessionId: scout.sessionId,
     card: null,
     step: null,
-    activity: `${SCOUT_ACTIVITY[scout.phase]} (round ${scout.rounds})`,
+    activity: i18n.t("factoryView.agents.scoutRound", {
+      activity: SCOUT_ACTIVITY[scout.phase],
+      round: scout.rounds,
+    }),
     status: scout.phase === "idle" ? "idle" : (scoutLive ?? "working"),
     blockedOn: null,
     failed: false,
@@ -268,7 +272,7 @@ export function sceneAgents({ f, pipeline, sessions, pmSessionId }: AgentInputs)
       sessionId: lens.sessionId,
       card: null,
       step: null,
-      activity: `Reviewing ${AREA_LABEL[lens.area]}`,
+      activity: i18n.t("factoryView.agents.reviewingArea", { area: AREA_LABEL[lens.area] }),
       status: lens.reported ? "done" : lens.active ? (live ?? "working") : "blocked",
       blockedOn: lens.reported || lens.active ? null : "agent",
       failed: false,

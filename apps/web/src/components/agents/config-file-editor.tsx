@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ApiRequestError, useClient } from "@/lib/api";
 import { ageShort } from "@/lib/format";
+import { Trans, useTranslation } from "@/lib/i18n";
 import { PatchDialog } from "./patch-dialog";
 
 export const locatorOf = (f: AgentConfigLocator): AgentConfigLocator => ({
@@ -49,6 +50,7 @@ export function ConfigFileEditor({
   /** Adds a Back button that returns to the file list (phones). */
   onBack?: () => void;
 }) {
+  const { t } = useTranslation();
   const client = useClient();
   const queryClient = useQueryClient();
   const locator = locatorOf(file);
@@ -84,18 +86,20 @@ export function ConfigFileEditor({
       queryClient.setQueryData(key, res.file);
       setReview(false);
       onChanged();
-      toast.success(`Saved ${file.name}`, {
-        description: res.backupPath ? `Backup: ${res.backupPath}` : "New file created",
+      toast.success(t("shell.configEditor.saved", { name: file.name }), {
+        description: res.backupPath
+          ? t("shell.configEditor.backup", { path: res.backupPath })
+          : t("shell.configEditor.created"),
       });
     },
     onError: (e) => {
       if (e instanceof ApiRequestError && e.code === "file_changed") {
         setReview(false);
-        toast.error("The file changed on disk", {
-          description: "Reload it to see the latest version; your draft is kept until you do.",
-          action: { label: "Reload", onClick: () => void content.refetch() },
+        toast.error(t("shell.configEditor.changedOnDisk"), {
+          description: t("shell.configEditor.changedOnDiskHint"),
+          action: { label: t("shell.configEditor.reload"), onClick: () => void content.refetch() },
         });
-      } else toast.error("Not saved", { description: errorText(e) });
+      } else toast.error(t("shell.configEditor.notSaved"), { description: errorText(e) });
     },
   });
 
@@ -104,11 +108,13 @@ export function ConfigFileEditor({
     onSuccess: (res) => {
       void content.refetch();
       onChanged();
-      toast.success(`Deleted ${file.name}`, {
-        description: res.backupPath ? `Backup: ${res.backupPath}` : undefined,
+      toast.success(t("shell.configEditor.deleted", { name: file.name }), {
+        description: res.backupPath
+          ? t("shell.configEditor.backup", { path: res.backupPath })
+          : undefined,
       });
     },
-    onError: (e) => toast.error("Not deleted", { description: errorText(e) }),
+    onError: (e) => toast.error(t("shell.configEditor.notDeleted"), { description: errorText(e) }),
   });
 
   const exists = content.data?.exists ?? file.exists;
@@ -120,8 +126,8 @@ export function ConfigFileEditor({
             size="icon-sm"
             variant="ghost"
             onClick={onBack}
-            aria-label="Back to files"
-            title="Back to files"
+            aria-label={t("shell.configEditor.back")}
+            title={t("shell.configEditor.back")}
           >
             <ArrowLeft />
           </Button>
@@ -135,19 +141,21 @@ export function ConfigFileEditor({
         </code>
         {!exists && (
           <span className="shrink-0 rounded bg-muted px-1.5 text-3xs text-muted-foreground">
-            new file
+            {t("shell.configEditor.newFile")}
           </span>
         )}
         {dirty && (
           <span
             className="size-1.5 shrink-0 rounded-full bg-status-waiting"
-            title="Unsaved changes"
+            title={t("shell.configEditor.unsaved")}
           />
         )}
         {/* Phones: the actions start a second row. */}
         <span aria-hidden className="hidden max-md:block max-md:basis-full" />
         <span className="ml-auto shrink-0 text-3xs text-muted-foreground">
-          {file.modifiedAt ? `edited ${ageShort(file.modifiedAt)} ago` : ""}
+          {file.modifiedAt
+            ? t("shell.configEditor.edited", { age: ageShort(file.modifiedAt) })
+            : ""}
         </span>
         <Button
           size="xs"
@@ -155,7 +163,7 @@ export function ConfigFileEditor({
           disabled={!dirty}
           onClick={() => setDraft(content.data?.content ?? "")}
         >
-          <RotateCcw /> Revert
+          <RotateCcw /> {t("shell.configEditor.revert")}
         </Button>
         {exists && (
           <Button
@@ -163,13 +171,13 @@ export function ConfigFileEditor({
             variant="ghost"
             className="pointer-coarse:min-w-10"
             onClick={() => setConfirmDelete(true)}
-            aria-label={`Delete ${file.name}`}
+            aria-label={t("shell.configEditor.deleteLabel", { name: file.name })}
           >
             <Trash2 />
           </Button>
         )}
         <Button size="xs" disabled={!dirty} onClick={() => void openReview()}>
-          <Save /> Review & save
+          <Save /> {t("shell.configEditor.reviewSave")}
         </Button>
       </div>
       <div className="min-h-0 flex-1">
@@ -180,7 +188,7 @@ export function ConfigFileEditor({
             value={draft}
             onChange={setDraft}
             onSave={() => dirty && void openReview()}
-            placeholder={placeholder ?? "Write instructions every session should follow…"}
+            placeholder={placeholder ?? t("shell.configEditor.placeholder")}
           />
         ) : content.error ? (
           <p className="p-5 text-xs text-status-failed">{errorText(content.error)}</p>
@@ -195,7 +203,7 @@ export function ConfigFileEditor({
       <PatchDialog
         open={review}
         onOpenChange={setReview}
-        title={`Review changes to ${file.name}`}
+        title={t("shell.configEditor.reviewTitle", { name: file.name })}
         diff={diff}
         error={diffError}
         onConfirm={() => save.mutate()}
@@ -204,17 +212,25 @@ export function ConfigFileEditor({
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete {file.name}?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {t("shell.configEditor.deleteTitle", { name: file.name })}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              {file.kind === "skill" ? "The whole skill folder is removed" : "The file is removed"}{" "}
-              from <code className="font-mono text-2xs">{file.absolutePath}</code>. A backup copy is
-              kept in CodeDen's backups folder.
+              <Trans
+                i18nKey={
+                  file.kind === "skill"
+                    ? "shell.configEditor.deleteSkillBody"
+                    : "shell.configEditor.deleteFileBody"
+                }
+                values={{ path: file.absolutePath }}
+                components={{ code: <code className="font-mono text-2xs" /> }}
+              />
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction variant="destructive" onClick={() => remove.mutate()}>
-              Delete
+              {t("shell.configEditor.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

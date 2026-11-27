@@ -9,6 +9,7 @@ import {
 import { useCustomModels } from "@/components/composer/model-picker/use-model-settings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useTranslation } from "@/lib/i18n";
 import { useSnapshotData } from "@/lib/queries";
 import { SettingRow, SettingsSection } from "./settings-ui";
 
@@ -21,6 +22,7 @@ function ProviderCustomModels({
   custom: CustomModels;
   onChange: (providerId: string, list: CustomModels[string]) => void;
 }) {
+  const { t } = useTranslation();
   const list = custom[provider.id] ?? [];
   const [id, setId] = useState("");
   const [label, setLabel] = useState("");
@@ -40,7 +42,11 @@ function ProviderCustomModels({
   return (
     <SettingRow
       label={provider.displayName}
-      help={list.length ? `${list.length} custom` : "None yet"}
+      help={
+        list.length
+          ? t("prefs.customModels.count", { count: list.length })
+          : t("prefs.customModels.none")
+      }
       stacked
     >
       <div className="space-y-2" data-testid={`custom-models-${provider.id}`}>
@@ -57,7 +63,7 @@ function ProviderCustomModels({
                 )}
                 <button
                   type="button"
-                  aria-label={`Remove ${m.label ?? m.id}`}
+                  aria-label={t("prefs.customModels.remove", { name: m.label ?? m.id })}
                   onClick={() => onChange(provider.id, removeCustomModel(list, m.id))}
                   className="rounded text-muted-foreground hover:text-foreground"
                 >
@@ -74,21 +80,21 @@ function ProviderCustomModels({
               setId(e.target.value);
               setError(null);
             }}
-            placeholder="Model id"
-            aria-label={`${provider.displayName} custom model id`}
+            placeholder={t("prefs.customModels.idPlaceholder")}
+            aria-label={t("prefs.customModels.idLabel", { provider: provider.displayName })}
             aria-invalid={error ? true : undefined}
             className="h-7 w-56 font-mono text-xs"
           />
           <Input
             value={label}
             onChange={(e) => setLabel(e.target.value)}
-            placeholder="Label (optional)"
-            aria-label={`${provider.displayName} custom model label`}
+            placeholder={t("prefs.customModels.labelPlaceholder")}
+            aria-label={t("prefs.customModels.labelLabel", { provider: provider.displayName })}
             className="h-7 w-44 text-xs"
           />
           <Button type="submit" variant="outline" size="sm" className="h-7 gap-1 text-xs">
             <Plus className="size-3" aria-hidden />
-            Add
+            {t("prefs.customModels.add")}
           </Button>
         </form>
         {error && (
@@ -106,13 +112,14 @@ function ProviderCustomModels({
  * them, marked Custom, after the listed models; the id is sent to the provider unchanged.
  */
 export function CustomModelSettings() {
+  const { t } = useTranslation();
   const providers = useSnapshotData((s) => s.runner.providers, []);
   const { custom, set } = useCustomModels();
   if (providers.length === 0) return null;
   return (
     <SettingsSection
-      title="Custom models"
-      description="Add a model id a provider doesn't list yet, such as a new model. It is sent to the provider as is; if the provider doesn't know it, the turn fails with the provider's error. Its effort levels are those of the provider's default model."
+      title={t("prefs.customModels.title")}
+      description={t("prefs.customModels.description")}
     >
       {providers.map((p) => (
         <ProviderCustomModels key={p.id} provider={p} custom={custom} onChange={set} />

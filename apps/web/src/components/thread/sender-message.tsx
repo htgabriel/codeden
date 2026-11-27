@@ -2,6 +2,7 @@ import type { MessageSender } from "@codeden/contracts";
 import { Factory, Hexagon, type LucideIcon, Workflow } from "lucide-react";
 import { useMemo, useState } from "react";
 import { badgePill, RoleBadge } from "@/components/orchestration/role-badge";
+import { i18n, useTranslation } from "@/lib/i18n";
 import { separateTagLines } from "@/lib/markdown-tags";
 import { usePrefersReducedMotion } from "@/lib/motion";
 import { cn } from "@/lib/utils";
@@ -13,19 +14,19 @@ export type Sender = Exclude<MessageSender, "user">;
 /** Senders that are not a PM or the orchestrator: their header pill. */
 const others: Record<
   Exclude<Sender, "pm" | "orchestrator">,
-  { label: string; icon: LucideIcon }
+  { label: () => string; icon: LucideIcon }
 > = {
-  factory: { label: "Factory", icon: Factory },
-  automation: { label: "Automation", icon: Workflow },
-  codeden: { label: "CodeDen", icon: Hexagon },
+  factory: { label: () => i18n.t("workbench.sender.factory"), icon: Factory },
+  automation: { label: () => i18n.t("workbench.sender.automation"), icon: Workflow },
+  codeden: { label: () => "CodeDen", icon: Hexagon },
 };
 
-const senderName: Record<Sender, string> = {
-  pm: "the project manager",
-  orchestrator: "the orchestrator",
-  factory: "the factory",
-  automation: "an automation",
-  codeden: "CodeDen",
+const senderName: Record<Sender, () => string> = {
+  pm: () => i18n.t("workbench.sender.names.pm"),
+  orchestrator: () => i18n.t("workbench.sender.names.orchestrator"),
+  factory: () => i18n.t("workbench.sender.names.factory"),
+  automation: () => i18n.t("workbench.sender.names.automation"),
+  codeden: () => "CodeDen",
 };
 
 /** Messages longer than this many lines (or characters) are collapsed with "Show more". */
@@ -38,7 +39,7 @@ function SenderBadge({ from }: { from: Sender }) {
   return (
     <span className={badgePill} data-sender-badge={from}>
       <Icon className="size-3" />
-      {label}
+      {label()}
     </span>
   );
 }
@@ -50,6 +51,7 @@ function SenderBadge({ from }: { from: Sender }) {
  * about 12 lines, so the transcript leads with the agent's work.
  */
 export function SenderMessage({ from, text }: { from: Sender; text: string }) {
+  const { t } = useTranslation();
   const reducedMotion = usePrefersReducedMotion();
   const [expanded, setExpanded] = useState(false);
   const markdown = useMemo(() => separateTagLines(text), [text]);
@@ -57,7 +59,7 @@ export function SenderMessage({ from, text }: { from: Sender; text: string }) {
   const clipped = long && !expanded;
   return (
     <article
-      aria-label={`Message from ${senderName[from]}`}
+      aria-label={t("workbench.sender.messageFrom", { name: senderName[from]() })}
       data-testid="sender-message"
       data-sender={from}
       className={cn(
@@ -86,7 +88,7 @@ export function SenderMessage({ from, text }: { from: Sender; text: string }) {
           onClick={() => setExpanded((v) => !v)}
           className="mt-1 text-2xs text-muted-foreground transition-colors hover:text-foreground"
         >
-          {expanded ? "Show less" : "Show more"}
+          {expanded ? t("workbench.sender.showLess") : t("workbench.sender.showMore")}
         </button>
       )}
     </article>

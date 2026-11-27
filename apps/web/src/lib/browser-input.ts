@@ -1,4 +1,5 @@
 import type { BrowserInput } from "@codeden/contracts";
+import { i18n } from "@/lib/i18n";
 
 /** CDP modifier bitmask: Alt = 1, Ctrl = 2, Meta = 4, Shift = 8. */
 export function modifiersOf(e: {
@@ -149,8 +150,36 @@ export function keyInput(
  * a preset lays it out at a device size and fits the frame inside the panel.
  */
 export const VIEWPORTS = [
-  { id: "desktop", label: "Desktop", width: 1280, height: 800 },
-  { id: "laptop", label: "Laptop", width: 1440, height: 900 },
-  { id: "tablet", label: "Tablet", width: 768, height: 1024 },
-  { id: "mobile", label: "Mobile", width: 390, height: 844 },
+  {
+    id: "desktop",
+    get label() {
+      return i18n.t("messages.viewports.desktop");
+    },
+    width: 1280,
+    height: 800,
+  },
+  {
+    id: "laptop",
+    get label() {
+      return i18n.t("messages.viewports.laptop");
+    },
+    width: 1440,
+    height: 900,
+  },
+  {
+    id: "tablet",
+    get label() {
+      return i18n.t("messages.viewports.tablet");
+    },
+    width: 768,
+    height: 1024,
+  },
+  {
+    id: "mobile",
+    get label() {
+      return i18n.t("messages.viewports.mobile");
+    },
+    width: 390,
+    height: 844,
+  },
 ] as const;

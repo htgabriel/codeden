@@ -2,6 +2,7 @@ import { ChevronLeft, Users } from "lucide-react";
 import { type CSSProperties, useId, useState } from "react";
 import { ProviderMark } from "@/components/common/bits";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { agentCard } from "../scene/agent-card";
 import type { AgentStatus, SceneAgent } from "../scene/agents";
@@ -64,6 +65,7 @@ export function Roster({
   /** What the card's main button does for an agent, or null when it has none. */
   onOpenItem: (agent: SceneAgent) => (() => void) | null;
 }) {
+  const { t } = useTranslation();
   const hover = useHover();
   const [rect, setRect] = useState<DOMRect | null>(null);
   const ids = useId().replace(/:/g, "");
@@ -82,7 +84,7 @@ export function Roster({
   const head = (
     <>
       <Users className="size-3.5 text-primary" aria-hidden />
-      <span>Crew</span>
+      <span>{t("factoryView.floor.crew")}</span>
       <span className="rounded-full bg-muted px-1.5 text-2xs tabular-nums text-muted-foreground">
         {agents.length}
       </span>
@@ -111,7 +113,7 @@ export function Roster({
               {head}
             </SheetTitle>
             <SheetDescription className="sr-only">
-              Every agent on the factory floor, with its step and status
+              {t("factoryView.floor.rosterDescription")}
             </SheetDescription>
             {list(false)}
           </SheetContent>
@@ -121,7 +123,7 @@ export function Roster({
 
   return (
     <nav
-      aria-label="Crew roster"
+      aria-label={t("factoryView.floor.roster")}
       className={cn(
         "absolute top-2 bottom-2 left-2 z-10 flex flex-col overflow-hidden rounded-lg border border-border bg-background/95 shadow-md",
         open ? "w-64" : "w-auto self-start bottom-auto",
@@ -143,7 +145,9 @@ export function Roster({
           )}
           aria-hidden
         />
-        <span className="sr-only">{open ? "Fold the roster" : "Show the roster"}</span>
+        <span className="sr-only">
+          {open ? t("factoryView.floor.foldRoster") : t("factoryView.floor.showRoster")}
+        </span>
       </button>
       {open && list(true)}
     </nav>

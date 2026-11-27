@@ -1,3 +1,4 @@
+import { i18n } from "@/lib/i18n";
 /**
  * The tab title cue: while the tab is in the background and an agent waits on the user, the
  * title alternates between the usual "(N) CodeDen" and "(N) ⏳ Waiting on you · CodeDen". The
@@ -5,7 +6,8 @@
  */
 
 export const APP_TITLE = "CodeDen";
-export const WAITING_TITLE = "⏳ Waiting on you · CodeDen";
+/** The waiting title, in the UI language. */
+export const waitingTitle = () => i18n.t("messages.waitingTitle");
 export const TITLE_FLASH_MS = 1500;
 
 /** "(3) CodeDen", or the bare title with nothing open. */
@@ -39,7 +41,7 @@ export function createTitleFlasher(opts: TitleFlasherOptions = {}): TitleFlasher
   let count = 0;
 
   const render = () => {
-    doc.title = countedTitle(count, showWaiting ? WAITING_TITLE : APP_TITLE);
+    doc.title = countedTitle(count, showWaiting ? waitingTitle() : APP_TITLE);
   };
 
   const stop = () => {

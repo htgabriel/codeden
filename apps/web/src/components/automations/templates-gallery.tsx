@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useClient } from "@/lib/api";
 import { automationKeys, useAutomations, useAutomationTemplates } from "@/lib/automations";
+import { useTranslation } from "@/lib/i18n";
 import { useProject } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 import { triggerIcon } from "./automation-row";
@@ -27,6 +28,7 @@ function TemplateCard({
   busy: boolean;
   projectId: string;
 }) {
+  const { t } = useTranslation();
   const Icon = triggerIcon[template.trigger.type];
   return (
     <div
@@ -44,7 +46,7 @@ function TemplateCard({
         </div>
         {template.starter && (
           <span className="rounded-full bg-primary/10 px-1.5 py-px text-3xs font-medium text-primary">
-            Starter
+            {t("automations.templates.starter")}
           </span>
         )}
       </div>
@@ -69,7 +71,9 @@ function TemplateCard({
       </div>
       <div className="mt-3 flex items-center gap-1.5 border-t border-border pt-3">
         {unavailable ? (
-          <span className="text-2xs text-muted-foreground">Needs a GitHub project</span>
+          <span className="text-2xs text-muted-foreground">
+            {t("automations.templates.needsGithub")}
+          </span>
         ) : (
           <>
             <Button size="xs" asChild>
@@ -78,16 +82,16 @@ function TemplateCard({
                 params={{ projectId }}
                 search={{ template: template.id }}
               >
-                <Pencil /> Use template
+                <Pencil /> {t("automations.templates.use")}
               </Link>
             </Button>
             {added ? (
               <span className="flex items-center gap-1 text-2xs text-status-done">
-                <Check className="size-3.5" /> In this project
+                <Check className="size-3.5" /> {t("automations.templates.inProject")}
               </span>
             ) : (
               <Button size="xs" variant="ghost" onClick={() => onAdd(true)} disabled={busy}>
-                <Plus /> Add and enable
+                <Plus /> {t("automations.templates.addEnable")}
               </Button>
             )}
           </>
@@ -99,6 +103,7 @@ function TemplateCard({
 
 /** Built-in and global templates (§10): add one to the project, or the whole starter set. */
 export function TemplatesGallery({ projectId }: { projectId: string }) {
+  const { t } = useTranslation();
   const client = useClient();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -116,26 +121,32 @@ export function TemplatesGallery({ projectId }: { projectId: string }) {
       client.automations.create({ templateId: v.template.id, projectId, enabled: v.enable }),
     onSuccess: (item, v) => {
       refresh();
-      toast.success(`${v.template.name} added${v.enable ? " and on" : ""}`, {
-        action: {
-          label: "Edit",
-          onClick: () =>
-            void navigate({
-              to: "/projects/$projectId/automations/$automationId",
-              params: { projectId, automationId: item.automation.id },
-            }),
+      toast.success(
+        v.enable
+          ? t("automations.templates.addedOn", { name: v.template.name })
+          : t("automations.templates.added", { name: v.template.name }),
+        {
+          action: {
+            label: t("automations.templates.edit"),
+            onClick: () =>
+              void navigate({
+                to: "/projects/$projectId/automations/$automationId",
+                params: { projectId, automationId: item.automation.id },
+              }),
+          },
         },
-      });
+      );
     },
-    onError: (e) => toast.error("Couldn't add the automation", { description: e.message }),
+    onError: (e) => toast.error(t("automations.templates.addFailed"), { description: e.message }),
   });
   const starter = useMutation({
     mutationFn: () => client.automations.starterSet(projectId, true),
     onSuccess: (res) => {
       refresh();
-      toast.success(`Starter set on: ${res.automations.length} automations`);
+      toast.success(t("automations.templates.starterOn", { n: res.automations.length }));
     },
-    onError: (e) => toast.error("Couldn't enable the starter set", { description: e.message }),
+    onError: (e) =>
+      toast.error(t("automations.templates.starterFailed"), { description: e.message }),
   });
   const isGithub = project?.kind === "github";
 
@@ -144,14 +155,11 @@ export function TemplatesGallery({ projectId }: { projectId: string }) {
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-primary/20 bg-primary/[0.04] px-4 py-3">
         <Sparkles className="size-4 text-primary" />
         <div className="min-w-0 flex-1">
-          <p className="text-[13px] font-medium">Starter set</p>
-          <p className="text-2xs text-muted-foreground">
-            The templates marked Starter that fit this project, switched on together. You can turn
-            each one off again.
-          </p>
+          <p className="text-[13px] font-medium">{t("automations.templates.starterSet")}</p>
+          <p className="text-2xs text-muted-foreground">{t("automations.templates.starterBody")}</p>
         </div>
         <Button size="sm" onClick={() => starter.mutate()} disabled={starter.isPending}>
-          Enable starter set
+          {t("automations.templates.enableStarter")}
         </Button>
       </div>
       <div
@@ -163,15 +171,15 @@ export function TemplatesGallery({ projectId }: { projectId: string }) {
             // biome-ignore lint/suspicious/noArrayIndexKey: placeholders are positional.
             <Skeleton key={i} className="h-48 rounded-xl" />
           ))}
-        {templates.data?.map((t) => (
+        {templates.data?.map((tpl) => (
           <TemplateCard
-            key={t.id}
-            template={t}
-            added={added.has(t.id)}
-            unavailable={t.requiresGithub && !isGithub}
+            key={tpl.id}
+            template={tpl}
+            added={added.has(tpl.id)}
+            unavailable={tpl.requiresGithub && !isGithub}
             busy={add.isPending}
             projectId={projectId}
-            onAdd={(enable) => add.mutate({ template: t, enable })}
+            onAdd={(enable) => add.mutate({ template: tpl, enable })}
           />
         ))}
       </div>

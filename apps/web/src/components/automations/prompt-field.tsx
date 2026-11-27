@@ -12,6 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Trans, useTranslation } from "@/lib/i18n";
 import { placeholdersFor } from "./meta";
 
 /** The "Insert placeholder" menu: always-available fields plus the trigger event's. */
@@ -27,12 +28,14 @@ function PlaceholderMenu({
   onClosed: () => void;
   disabled?: boolean;
 }) {
+  const { t } = useTranslation();
   const groups = placeholdersFor(trigger);
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button size="xs" variant="outline" disabled={disabled}>
-          <Braces /> Insert placeholder <ChevronDown className="opacity-60" />
+          <Braces /> {t("automations.prompt.insertPlaceholder")}{" "}
+          <ChevronDown className="opacity-60" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
@@ -117,8 +120,11 @@ export function PromptField({
         )}
       </div>
       <p className="text-3xs text-muted-foreground">
-        Markdown. Placeholders like <code className="font-mono">{"{{project.name}}"}</code> are
-        filled in when it runs.
+        <Trans
+          i18nKey="automations.prompt.help"
+          values={{ token: "{{project.name}}" }}
+          components={{ code: <code className="font-mono" /> }}
+        />
       </p>
     </div>
   );

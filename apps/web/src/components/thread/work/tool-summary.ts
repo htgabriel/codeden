@@ -1,4 +1,4 @@
-import { plural } from "@/lib/format";
+import { i18n } from "@/lib/i18n";
 
 /** Longest summary a collapsed tool row shows; CSS truncates it further in narrow columns. */
 export const SUMMARY_MAX = 80;
@@ -48,7 +48,7 @@ function summarize(text: string): string | undefined {
 function describeValue(value: unknown, depth: number): string | undefined {
   if (typeof value === "string") return firstLine(value);
   if (typeof value === "number" || typeof value === "boolean") return String(value);
-  if (Array.isArray(value)) return plural(value.length, "item");
+  if (Array.isArray(value)) return i18n.t("workbench.tools.items", { count: value.length });
   if (!value || typeof value !== "object") return undefined;
   const record = value as Record<string, unknown>;
   for (const key of SUMMARY_KEYS) {

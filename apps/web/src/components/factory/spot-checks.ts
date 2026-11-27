@@ -5,6 +5,7 @@ import {
   type SpotCheckState,
   spotCheckProblemPercent,
 } from "@codeden/contracts";
+import { i18n } from "@/lib/i18n";
 
 /**
  * Spot-checks as the factory panel and the item page word them (§10.1): why a merge was set aside,
@@ -18,40 +19,49 @@ import {
 export const SPOT_CHECKS_ANCHOR = "spot-checks";
 
 /** Why a merge was set aside, in a few words. */
-export const SPOT_CHECK_REASON: Record<SpotCheckReason, { label: string; title: string }> = {
-  sampled: {
-    label: "Sampled",
-    title: "Picked by the share of automatic merges set aside for a person's look",
-  },
-  untrusted_author: {
-    label: "Untrusted author",
-    title: "Its issue came from an untrusted author and was let in by hand: always checked",
-  },
-  large_change: {
-    label: "Large change",
-    title: "It was allowed past the size limit: always checked",
-  },
-};
+export const SPOT_CHECK_REASON: Record<SpotCheckReason, { label: string; title: string }> = (() => {
+  const out = {} as Record<SpotCheckReason, { label: string; title: string }>;
+  for (const key of ["sampled", "untrusted_author", "large_change"] as const) {
+    out[key] = {
+      get label() {
+        return i18n.t(`factory.spotReason.${key}.label`);
+      },
+      get title() {
+        return i18n.t(`factory.spotReason.${key}.title`);
+      },
+    };
+  }
+  return out;
+})();
 
 /** What a person found. */
-export const SPOT_CHECK_STATE: Record<SpotCheckState, string> = {
-  pending: "Waiting for a look",
-  looks_good: "Looks good",
-  problem: "Found a problem",
-};
+export const SPOT_CHECK_STATE: Record<SpotCheckState, string> = Object.defineProperties(
+  {} as Record<SpotCheckState, string>,
+  Object.fromEntries(
+    (["pending", "looks_good", "problem"] as const).map((key) => [
+      key,
+      { get: () => i18n.t(`factory.spotState.${key}`), enumerable: true },
+    ]),
+  ),
+);
 
 /** "10% of automatic merges, plus untrusted-author work and large changes", or that it is off. */
 export function spotCheckShareText(percent: number): string {
-  if (percent === 0) return "Off: no merge is set aside";
-  return `${percent}% of automatic merges, plus untrusted-author work and large changes`;
+  if (percent === 0) return i18n.t("factory.spotText.shareOff");
+  return i18n.t("factory.spotText.share", { percent });
 }
 
 /** "A person found a problem in 1 of 7 checked merges (14%) over 30 days". */
 export function spotCheckProblemText(s: Pick<FactorySpotChecks, "checked30d" | "problems30d">) {
   const share = spotCheckProblemPercent(s.checked30d, s.problems30d);
-  if (share === null) return `None checked in the last ${SPOT_CHECK_WINDOW_DAYS} days`;
-  const merges = `${s.checked30d} checked merge${s.checked30d === 1 ? "" : "s"}`;
-  return `A person found a problem in ${s.problems30d} of ${merges} (${share}%) over ${SPOT_CHECK_WINDOW_DAYS} days`;
+  if (share === null)
+    return i18n.t("factory.spotText.noneChecked", { days: SPOT_CHECK_WINDOW_DAYS });
+  return i18n.t("factory.spotText.problems", {
+    count: s.checked30d,
+    problems: s.problems30d,
+    share,
+    days: SPOT_CHECK_WINDOW_DAYS,
+  });
 }
 
 /** Whether the panel shows the card: spot-checks are on, or there is something to show. */

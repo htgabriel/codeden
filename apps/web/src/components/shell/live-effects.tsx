@@ -15,12 +15,8 @@ import { platform } from "@/lib/platform";
 import { snapshotKey, useSnapshot } from "@/lib/queries";
 import { onLiveEvent } from "@/lib/realtime";
 import { startReadAloud } from "@/lib/voice/read-aloud";
+import { blockingHeading } from "./attention-toast";
 import { useAttention } from "./use-attention";
-
-const blockingVerb: Partial<Record<InboxItem["kind"], string>> = {
-  approval: "Approval needed",
-  question: "Question from an agent",
-};
 
 /**
  * Side effects of live events: update toasts and desktop notifications for new inbox items
@@ -52,7 +48,7 @@ export function LiveEffects() {
       if (isBlockingKind(item)) {
         // The sticky toast comes from useAttention; this is its desktop notification.
         if (background) {
-          platform.notify(blockingVerb[item.kind] ?? "CodeDen", {
+          platform.notify(blockingHeading(item.kind) ?? "CodeDen", {
             body: item.title,
             tag: item.id,
             onClick: () => void navigate(attentionTarget(item)),

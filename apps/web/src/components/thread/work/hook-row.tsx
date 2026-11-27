@@ -9,15 +9,16 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { duration } from "@/lib/format";
+import { i18n, useTranslation } from "@/lib/i18n";
 import { type HookRun, hooksRan } from "@/lib/transcript/timeline";
 import { cn } from "@/lib/utils";
 
-const OUTCOME: Record<HookRunOutcome, string> = {
-  running: "running",
-  succeeded: "ran",
-  failed: "failed",
-  blocked: "blocked",
-  cancelled: "cancelled",
+const OUTCOME: Record<HookRunOutcome, () => string> = {
+  running: () => i18n.t("workbench.hooks.outcome.running"),
+  succeeded: () => i18n.t("workbench.hooks.outcome.succeeded"),
+  failed: () => i18n.t("workbench.hooks.outcome.failed"),
+  blocked: () => i18n.t("workbench.hooks.outcome.blocked"),
+  cancelled: () => i18n.t("workbench.hooks.outcome.cancelled"),
 };
 
 /** First line of a run's output: the reason a failed or blocked run shows inline. */
@@ -31,11 +32,12 @@ function firstLine(text: string | undefined): string | undefined {
 /** "exit 2" when the provider reported an exit code that says something. */
 function exitText(run: HookRun): string | undefined {
   return typeof run.exitCode === "number" && run.exitCode !== 0
-    ? `exit ${run.exitCode}`
+    ? i18n.t("workbench.checkRun.exit", { code: run.exitCode })
     : undefined;
 }
 
 function Output({ run }: { run: HookRun }) {
+  const { t } = useTranslation();
   return (
     <div className="mt-1 mb-2 ml-6 space-y-1 rounded-lg border border-border bg-surface p-2.5 font-mono text-[11.5px] wrap-anywhere text-muted-foreground">
       {run.source && (
@@ -48,9 +50,9 @@ function Output({ run }: { run: HookRun }) {
           {run.output}
         </pre>
       ) : (
-        <p className="text-3xs">No output.</p>
+        <p className="text-3xs">{t("workbench.hooks.noOutput")}</p>
       )}
-      {run.outputTruncated && <p className="text-3xs">Output cut to its start and end.</p>}
+      {run.outputTruncated && <p className="text-3xs">{t("workbench.hooks.outputCut")}</p>}
     </div>
   );
 }
@@ -61,10 +63,11 @@ function Output({ run }: { run: HookRun }) {
  * of its own) uses the warning colour and shows its reason inline.
  */
 export function HookRow({ run, warn = false }: { run: HookRun; warn?: boolean }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const running = run.outcome === "running";
   const reason = warn ? firstLine(run.output) : undefined;
-  const meta = [OUTCOME[run.outcome], exitText(run)].filter(Boolean).join(" · ");
+  const meta = [OUTCOME[run.outcome](), exitText(run)].filter(Boolean).join(" · ");
   const Icon = running
     ? Loader2
     : run.outcome === "blocked"
@@ -102,7 +105,7 @@ export function HookRow({ run, warn = false }: { run: HookRun; warn?: boolean })
             running && "text-shine",
           )}
         >
-          {run.event} hook
+          {t("workbench.hooks.event", { event: run.event })}
         </span>
         {run.label && (
           // Short labels stay whole; a long one stops at 40% so the outcome keeps its room.

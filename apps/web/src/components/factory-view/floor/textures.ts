@@ -1,4 +1,5 @@
 import { providerMark } from "@/components/common/provider-logos";
+import { i18n } from "@/lib/i18n";
 import { oklchToSrgb, type Rgb, srgbToHex } from "@/lib/oklch";
 import { BOOTH, WALKWAY, type WorkshopLayout } from "../scene/layout";
 import { canvasOf } from "./kit";
@@ -195,9 +196,13 @@ export function boardCanvas(
   ctx.lineWidth = 6;
   ctx.strokeRect(3, 3, 570, 170);
   const cols: [string, string, string][] = [
-    [String(merged), "MERGED TODAY", hex(p.lamp.green)],
-    [String(working), "AGENTS WORKING", p.signInk],
-    [String(waiting), "WAITING ON YOU", waiting > 0 ? hex(p.lamp.amber) : p.signInk],
+    [String(merged), i18n.t("factoryView.canvas.mergedToday"), hex(p.lamp.green)],
+    [String(working), i18n.t("factoryView.canvas.agentsWorking"), p.signInk],
+    [
+      String(waiting),
+      i18n.t("factoryView.canvas.waitingOnYou"),
+      waiting > 0 ? hex(p.lamp.amber) : p.signInk,
+    ],
   ];
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
@@ -231,7 +236,7 @@ export function closedCanvas(p: FloorPalette): HTMLCanvasElement {
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.font = `800 46px ${FONT}`;
-  ctx.fillText("CLOSED", 120, 43);
+  ctx.fillText(i18n.t("factoryView.canvas.closed"), 120, 43);
   return canvas;
 }
 
@@ -279,7 +284,7 @@ export function dialCanvas(fraction: number, p: FloorPalette): HTMLCanvasElement
   ctx.textAlign = "center";
   ctx.fillText(`${Math.round(fraction * 100)}%`, c, c + 64);
   ctx.font = `600 18px ${FONT}`;
-  ctx.fillText("BUDGET", c, c + 90);
+  ctx.fillText(i18n.t("factoryView.canvas.budget"), c, c + 90);
   return canvas;
 }
 

@@ -5,45 +5,26 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { chime } from "@/lib/attention/chime";
+import { useTranslation } from "@/lib/i18n";
 import { platform } from "@/lib/platform";
 import { SettingRow, SettingsSection, useSettings } from "./settings-ui";
 
-/** The inbox categories (`InboxItem.notify`) and what each covers. */
-const CATEGORIES: { id: InboxNotify; label: string; help: string }[] = [
-  {
-    id: "needs_you",
-    label: "Needs you",
-    help: "PRs only a person can merge, factory decisions it flagged for you, conflicts, budget alerts.",
-  },
-  {
-    id: "failure",
-    label: "Failures",
-    help: "Your sessions' failed runs, a paused factory loop, a regression, a worktree that couldn't be removed.",
-  },
-  {
-    id: "factory",
-    label: "Factory activity",
-    help: "What the factory handles itself: its decisions, the PRs it reviews and merges, its sessions' failures, the daily digest.",
-  },
-  {
-    id: "automation",
-    label: "Automations",
-    help: "Automation results and triage decisions.",
-  },
-];
+/** The inbox categories (`InboxItem.notify`); `prefs.notifications.categories` says what each covers. */
+const CATEGORIES: InboxNotify[] = ["needs_you", "failure", "factory", "automation"];
 
 export function NotificationSettings() {
+  const { t } = useTranslation();
   const { settings, update } = useSettings();
   const [permission, setPermission] = useState(platform.notificationPermission());
   const categories = settings.notifications.categories;
   return (
     <SettingsSection
-      title="Notifications"
-      description="How CodeDen tells you something is waiting."
+      title={t("settings.sections.notifications")}
+      description={t("prefs.notifications.description")}
     >
       <SettingRow
-        label="Toasts"
-        help="In-app toasts for new inbox items in the categories below. Several at once become one toast."
+        label={t("prefs.notifications.toasts")}
+        help={t("prefs.notifications.toastsHelp")}
       >
         <Switch
           checked={settings.notifications.toasts}
@@ -51,37 +32,36 @@ export function NotificationSettings() {
         />
       </SettingRow>
       <SettingRow
-        label="Notify me about"
-        help="For toasts and desktop notifications. Approvals and questions always notify; everything still lands in the inbox."
+        label={t("prefs.notifications.notifyAbout")}
+        help={t("prefs.notifications.notifyAboutHelp")}
         stacked
       >
         <div className="grid gap-2 sm:grid-cols-2">
-          {CATEGORIES.map((c) => (
+          {CATEGORIES.map((id) => (
             <div
-              key={c.id}
+              key={id}
               className="flex items-start justify-between gap-3 rounded-lg border border-border px-3 py-2.5"
             >
               <div className="min-w-0">
-                <div className="text-[13px] font-medium">{c.label}</div>
+                <div className="text-[13px] font-medium">
+                  {t(`prefs.notifications.categories.${id}.label`)}
+                </div>
                 <div className="mt-0.5 text-2xs leading-relaxed text-muted-foreground">
-                  {c.help}
+                  {t(`prefs.notifications.categories.${id}.help`)}
                 </div>
               </div>
               <Switch
-                aria-label={c.label}
-                checked={categories[c.id]}
+                aria-label={t(`prefs.notifications.categories.${id}.label`)}
+                checked={categories[id]}
                 onCheckedChange={(on) =>
-                  update({ notifications: { categories: { ...categories, [c.id]: on } } })
+                  update({ notifications: { categories: { ...categories, [id]: on } } })
                 }
               />
             </div>
           ))}
         </div>
       </SettingRow>
-      <SettingRow
-        label="Sound when an agent needs you"
-        help="A short chime when an approval or a question arrives, even in the background."
-      >
+      <SettingRow label={t("prefs.notifications.sound")} help={t("prefs.notifications.soundHelp")}>
         <div className="flex items-center gap-2">
           <Button
             size="sm"
@@ -91,10 +71,10 @@ export function NotificationSettings() {
               chime.play();
             }}
           >
-            <Volume2 /> Test
+            <Volume2 /> {t("prefs.notifications.test")}
           </Button>
           <Switch
-            aria-label="Sound when an agent needs you"
+            aria-label={t("prefs.notifications.sound")}
             checked={settings.notifications.sound}
             onCheckedChange={(sound) => update({ notifications: { sound } })}
           />
@@ -102,14 +82,16 @@ export function NotificationSettings() {
       </SettingRow>
       <SettingRow
         label={
-          platform.capabilities.osIntegration ? "System notifications" : "Browser notifications"
+          platform.capabilities.osIntegration
+            ? t("prefs.notifications.system")
+            : t("prefs.notifications.browser")
         }
         help={
           permission === "denied"
-            ? "Blocked in your browser settings."
+            ? t("prefs.notifications.blocked")
             : platform.capabilities.osIntegration
-              ? "Shown when the CodeDen window isn't focused."
-              : "Shown when the CodeDen tab isn't focused."
+              ? t("prefs.notifications.windowUnfocused")
+              : t("prefs.notifications.tabUnfocused")
         }
       >
         <div className="flex items-center gap-2">
@@ -119,7 +101,7 @@ export function NotificationSettings() {
               variant="outline"
               onClick={async () => setPermission(await platform.requestNotificationPermission())}
             >
-              <BellRing /> Allow
+              <BellRing /> {t("prefs.notifications.allow")}
             </Button>
           )}
           <Switch
@@ -129,18 +111,18 @@ export function NotificationSettings() {
           />
         </div>
       </SettingRow>
-      <SettingRow label="Send a test notification">
+      <SettingRow label={t("prefs.notifications.sendTest")}>
         <Button
           size="sm"
           variant="outline"
           onClick={() => {
-            toast("Approval needed", { description: "Force push to codeden/fix-checkout-flake" });
-            platform.notify("Approval needed", {
-              body: "Force push to codeden/fix-checkout-flake",
-            });
+            const title = t("prefs.notifications.sampleTitle");
+            const body = t("prefs.notifications.sampleBody");
+            toast(title, { description: body });
+            platform.notify(title, { body });
           }}
         >
-          Test
+          {t("prefs.notifications.test")}
         </Button>
       </SettingRow>
     </SettingsSection>

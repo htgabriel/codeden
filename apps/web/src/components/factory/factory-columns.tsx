@@ -13,11 +13,13 @@ import { Button } from "@/components/ui/button";
 import { useClient } from "@/lib/api";
 import { factoryKeys } from "@/lib/factory";
 import { ago } from "@/lib/format";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { CHECK_HELP, CHECK_LABEL, STAGE_LABEL } from "./meta";
 import { RetryButton } from "./retry-button";
 
 function Column({ title, count, children }: { title: string; count: number; children: ReactNode }) {
+  const { t } = useTranslation();
   return (
     <div className="min-w-0 rounded-lg border border-border bg-surface">
       <div className="flex items-center gap-2 border-b border-border px-3 py-1.5 text-2xs font-medium text-muted-foreground">
@@ -25,7 +27,9 @@ function Column({ title, count, children }: { title: string; count: number; chil
       </div>
       <div className="space-y-0.5 p-1.5">
         {count === 0 ? (
-          <p className="px-2 py-3 text-center text-3xs text-muted-foreground/70">Nothing yet</p>
+          <p className="px-2 py-3 text-center text-3xs text-muted-foreground/70">
+            {t("factory.columns.nothingYet")}
+          </p>
         ) : (
           children
         )}
@@ -69,20 +73,22 @@ export function IgnoredColumn({
   projectId: string;
   ignored: FactoryWorkItem[];
 }) {
+  const { t } = useTranslation();
   const client = useClient();
   const queryClient = useQueryClient();
   const admit = useMutation({
     mutationFn: (itemId: string) => client.factory.admit(projectId, { itemId }),
     onSuccess: (item) => {
-      toast.success("Let in", {
-        description: `${item.title} runs through its pipeline; you merge the result.`,
+      toast.success(t("factory.columns.letIn"), {
+        description: t("factory.columns.letInHint", { title: item.title }),
       });
       void queryClient.invalidateQueries({ queryKey: factoryKeys.all });
     },
-    onError: (e: Error) => toast.error("Couldn't let it in", { description: e.message }),
+    onError: (e: Error) =>
+      toast.error(t("factory.columns.letInFailed"), { description: e.message }),
   });
   return (
-    <Column title="Ignored · untrusted authors" count={ignored.length}>
+    <Column title={t("factory.columns.ignored")} count={ignored.length}>
       {ignored.map((w) => (
         <div key={w.id} className={cn(rowCls, "pr-1")} data-testid="ignored-issue">
           <Link
@@ -99,18 +105,18 @@ export function IgnoredColumn({
               {w.title}
             </span>
             <span className="ml-auto shrink-0 text-3xs text-muted-foreground/80">
-              @{w.author ?? "unknown"}
+              @{w.author ?? t("factory.columns.unknown")}
             </span>
           </Link>
           <Button
             size="xs"
             variant="ghost"
             className="shrink-0"
-            title="Let the factory take this on. A person merges the result."
+            title={t("factory.columns.letInTitle")}
             disabled={admit.isPending}
             onClick={() => admit.mutate(w.id)}
           >
-            <UserCheck /> Let in
+            <UserCheck /> {t("factory.columns.letIn")}
           </Button>
         </div>
       ))}
@@ -152,8 +158,9 @@ export function ChecksColumn({
   projectId: string;
   checks: FactoryMergeChecks[];
 }) {
+  const { t } = useTranslation();
   return (
-    <Column title="Merge checks" count={checks.length}>
+    <Column title={t("factory.columns.mergeChecks")} count={checks.length}>
       {checks.map((pr) => (
         <Link
           key={pr.itemId}
@@ -172,7 +179,7 @@ export function ChecksColumn({
           </div>
           {pr.reviewerProvider && (
             <p className="mt-1 text-3xs text-muted-foreground/80">
-              Reviewer: {pr.reviewerProvider}
+              {t("factory.columns.reviewer", { provider: pr.reviewerProvider })}
               {pr.verdict && ` · ${pr.verdict.replace("_", " ")}`}
               {pr.reviewerNote && ` · ${pr.reviewerNote}`}
             </p>
@@ -198,8 +205,9 @@ export function RecentColumn({
   projectId: string;
   recent: FactoryWorkItem[];
 }) {
+  const { t } = useTranslation();
   return (
-    <Column title="Recent merges & reverts" count={recent.length}>
+    <Column title={t("factory.columns.recent")} count={recent.length}>
       {recent.map((w) => {
         const s = recentIcon[w.stage as keyof typeof recentIcon] ?? recentIcon.merged;
         const row = (

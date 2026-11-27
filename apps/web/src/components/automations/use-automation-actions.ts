@@ -10,6 +10,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useClient } from "@/lib/api";
 import { automationKeys, toastRunResult } from "@/lib/automations";
+import { useTranslation } from "@/lib/i18n";
 
 const fail = (title: string) => (e: Error) => toast.error(title, { description: e.message });
 
@@ -27,6 +28,7 @@ export interface RunConflict {
  * Views refetch through `automation.*` events; mutations also invalidate right away.
  */
 export function useAutomationActions(projectId: string) {
+  const { t } = useTranslation();
   const client = useClient();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -41,10 +43,14 @@ export function useAutomationActions(projectId: string) {
         v.item.automation.target.type === "all_projects" ? projectId : undefined,
       ),
     onSuccess: (_d, v) => {
-      toast.success(`${v.item.automation.name} ${v.enabled ? "on" : "off"}`);
+      toast.success(
+        v.enabled
+          ? t("automations.actions.toggledOn", { name: v.item.automation.name })
+          : t("automations.actions.toggledOff", { name: v.item.automation.name }),
+      );
       refresh();
     },
-    onError: fail("Couldn't change the automation"),
+    onError: fail(t("automations.actions.changeFailed")),
   });
 
   const pause = useMutation({
@@ -53,19 +59,23 @@ export function useAutomationActions(projectId: string) {
         ? client.automations.pause(v.id, projectId)
         : client.automations.resume(v.id, projectId),
     onSuccess: (_d, v) => {
-      toast.success(v.paused ? "Paused in this project" : "Resumed");
+      toast.success(
+        v.paused ? t("automations.scheduleCard.pausedHere") : t("automations.actions.resumed"),
+      );
       refresh();
     },
-    onError: fail("Couldn't change the schedule"),
+    onError: fail(t("automations.actions.scheduleFailed")),
   });
 
   const skipNext = useMutation({
     mutationFn: (id: string) => client.automations.skipNext(id, projectId),
     onSuccess: (skipped) => {
-      toast.success(skipped ? "Next run skipped" : "Nothing scheduled to skip");
+      toast.success(
+        skipped ? t("automations.actions.skipped") : t("automations.actions.nothingToSkip"),
+      );
       refresh();
     },
-    onError: fail("Couldn't skip the next run"),
+    onError: fail(t("automations.actions.skipFailed")),
   });
 
   const onRun = (res: RunAutomationResponse, item: { id: string; name: string }) => {
@@ -90,34 +100,36 @@ export function useAutomationActions(projectId: string) {
     mutationFn: (v: { id: string; name: string; conflict?: ConflictDecision }) =>
       client.automations.run(v.id, { projectId, conflict: v.conflict }),
     onSuccess: (res, v) => onRun(res, v),
-    onError: fail("Couldn't run the automation"),
+    onError: fail(t("automations.actions.runFailed")),
   });
 
   const cancelRun = useMutation({
     mutationFn: (runId: string) => client.automations.cancelRun(runId),
     onSuccess: () => {
-      toast.success("Queued run cancelled");
+      toast.success(t("automations.actions.cancelled"));
       refresh();
     },
-    onError: fail("Couldn't cancel the run"),
+    onError: fail(t("automations.actions.cancelFailed")),
   });
 
   const unskipNext = useMutation({
     mutationFn: (id: string) => client.automations.unskipNext(id, projectId),
     onSuccess: (next) => {
-      toast.success(next ? "The next run will happen" : "Nothing was skipped");
+      toast.success(
+        next ? t("automations.actions.willHappen") : t("automations.actions.nothingSkipped"),
+      );
       refresh();
     },
-    onError: fail("Couldn't undo the skip"),
+    onError: fail(t("automations.actions.undoFailed")),
   });
 
   const clearOverride = useMutation({
     mutationFn: (id: string) => client.automations.clearOverride(id, projectId),
     onSuccess: () => {
-      toast.success("Follows the automation's own switch again");
+      toast.success(t("automations.actions.follows"));
       refresh();
     },
-    onError: fail("Couldn't clear the project override"),
+    onError: fail(t("automations.actions.clearFailed")),
   });
 
   return {

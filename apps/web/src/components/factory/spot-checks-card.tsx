@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { Check, Eye, TriangleAlert } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { ago } from "@/lib/format";
+import { useTranslation } from "@/lib/i18n";
 import { platform } from "@/lib/platform";
 import { cn } from "@/lib/utils";
 import { FileSpotCheckIssueButton, OpenPrButton, SpotCheckDecision } from "./spot-check-actions";
@@ -31,6 +32,7 @@ export function SpotChecksCard({
   spotChecks: FactorySpotChecks;
   focus?: boolean;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(focus || spotChecks.outstanding > 0);
   const ref = useRef<HTMLDetailsElement>(null);
   // The card renders once the factory status is in, after the router's own scroll to the
@@ -56,7 +58,7 @@ export function SpotChecksCard({
     >
       <summary className="flex cursor-pointer items-center gap-2 px-3 py-1.5 font-medium text-muted-foreground">
         <Eye className="size-3.5" aria-hidden />
-        Spot-checks
+        {t("factory.spotCard.title")}
         <span className="min-w-0 truncate font-normal text-muted-foreground/80">
           · {spotCheckShareText(spotChecks.percent)}
         </span>
@@ -65,19 +67,18 @@ export function SpotChecksCard({
             "ml-auto shrink-0 rounded-full px-1.5 tabular-nums",
             outstanding > 0 && "bg-status-waiting/12 text-status-waiting",
           )}
-          title="Merges waiting for a look"
+          title={t("factory.spotCard.toCheckTitle")}
         >
-          {outstanding} to check
+          {t("factory.spotCard.toCheck", { n: outstanding })}
         </span>
       </summary>
       <div className="space-y-2 border-t border-border p-2">
         <p className="px-1 text-3xs text-muted-foreground" data-testid="spot-check-share">
-          {spotCheckProblemText(spotChecks)}. Read the change in the PR view, then record what you
-          found; nothing in the factory waits on it.
+          {spotCheckProblemText(spotChecks)}. {t("factory.spotCard.readHint")}
         </p>
         {pending.length === 0 ? (
           <p className="py-2 text-center text-3xs text-muted-foreground/70">
-            Nothing to spot-check right now.
+            {t("factory.spotCard.nothing")}
           </p>
         ) : (
           <ul className="space-y-1">
@@ -86,8 +87,7 @@ export function SpotChecksCard({
             ))}
             {outstanding > pending.length && (
               <li className="px-2 text-3xs text-muted-foreground">
-                and {outstanding - pending.length} older merge
-                {outstanding - pending.length === 1 ? "" : "s"}
+                {t("factory.spotCard.older", { count: outstanding - pending.length })}
               </li>
             )}
           </ul>
@@ -95,7 +95,7 @@ export function SpotChecksCard({
         {recent.length > 0 && (
           <div>
             <p className="px-1 pt-1 pb-0.5 text-3xs font-medium text-muted-foreground">
-              Checked lately
+              {t("factory.spotCard.checkedLately")}
             </p>
             <ul className="space-y-0.5">
               {recent.map((e) => (
@@ -122,6 +122,7 @@ function ItemTitle({ projectId, entry }: { projectId: string; entry: SpotCheckEn
 }
 
 function PendingRow({ projectId, entry }: { projectId: string; entry: SpotCheckEntry }) {
+  const { t } = useTranslation();
   const reason = SPOT_CHECK_REASON[entry.check.reason];
   return (
     <li
@@ -137,20 +138,20 @@ function PendingRow({ projectId, entry }: { projectId: string; entry: SpotCheckE
           {reason.label}
         </span>
         <span className="ml-auto shrink-0 text-3xs text-muted-foreground">
-          {entry.pr && `#${entry.pr.number} · `}merged{" "}
-          {ago(entry.mergedAt ?? entry.check.sampledAt)}
+          {entry.pr && `#${entry.pr.number} · `}
+          {t("factory.spotCard.merged", { ago: ago(entry.mergedAt ?? entry.check.sampledAt) })}
         </span>
       </div>
       <p className="line-clamp-2 text-3xs text-muted-foreground" title={entry.verdict?.summary}>
         {entry.verdict ? (
           <>
             <span className="font-medium text-foreground/80">
-              Reviewer: {entry.verdict.verdict.replace("_", " ")}
+              {t("factory.columns.reviewer", { provider: entry.verdict.verdict.replace("_", " ") })}
             </span>{" "}
             · {entry.verdict.summary}
           </>
         ) : (
-          "No agent review (a docs-only change)"
+          t("factory.spotCard.noReview")
         )}
       </p>
       <div className="flex flex-wrap items-center gap-1">
@@ -169,6 +170,7 @@ function PendingRow({ projectId, entry }: { projectId: string; entry: SpotCheckE
 }
 
 function CheckedRow({ projectId, entry }: { projectId: string; entry: SpotCheckEntry }) {
+  const { t } = useTranslation();
   const { check } = entry;
   const problem = check.state === "problem";
   return (
@@ -185,7 +187,7 @@ function CheckedRow({ projectId, entry }: { projectId: string; entry: SpotCheckE
         <span className="flex min-w-0 items-center gap-2">
           <ItemTitle projectId={projectId} entry={entry} />
           <span className="shrink-0 text-3xs text-muted-foreground">
-            {problem ? "found a problem" : "looks good"}
+            {problem ? t("factory.spotCard.foundProblem") : t("factory.spotCard.looksGood")}
             {check.checkedAt && ` · ${ago(check.checkedAt)}`}
           </span>
         </span>

@@ -1,5 +1,6 @@
 import { type ComponentProps, useId, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 /** What the text in a number field holds. */
@@ -93,6 +94,7 @@ export function NumberField(props: NumberFieldProps) {
     onMouseUp,
     ...rest
   } = props;
+  const { t } = useTranslation();
   const emit = onChange as (value: number | null) => void;
   const messageId = useId();
   // The user's text while they edit; null shows `value`.
@@ -109,7 +111,7 @@ export function NumberField(props: NumberFieldProps) {
   };
   const show = (n: number) => formatNumber(n, decimal);
   const needsNumber: Message = {
-    text: decimal ? "Enter a number." : "Enter a whole number.",
+    text: decimal ? t("shell.number.enterNumber") : t("shell.number.enterWhole"),
     error: true,
   };
 
@@ -133,10 +135,10 @@ export function NumberField(props: NumberFieldProps) {
       let next = parsed.value;
       if (max !== undefined && next > max) {
         next = max;
-        setMessage({ text: `The most is ${show(max)}.`, error: false });
+        setMessage({ text: t("shell.number.most", { value: show(max) }), error: false });
       } else if (min !== undefined && next < min) {
         next = min;
-        setMessage({ text: `The least is ${show(min)}.`, error: false });
+        setMessage({ text: t("shell.number.least", { value: show(min) }), error: false });
       }
       send(next);
       setDraft(null);
@@ -153,13 +155,15 @@ export function NumberField(props: NumberFieldProps) {
       }
       const why =
         parsed.kind === "empty"
-          ? "It needs a number"
+          ? t("shell.number.needs")
           : decimal
-            ? "That isn't a number"
-            : "That isn't a whole number";
+            ? t("shell.number.notNumber")
+            : t("shell.number.notWhole");
       setMessage({
         text:
-          back === null ? `${why}, so it's empty again.` : `${why}, so it's back to ${show(back)}.`,
+          back === null
+            ? t("shell.number.emptyAgain", { why })
+            : t("shell.number.backTo", { why, value: show(back) }),
         error: false,
       });
       send(back);

@@ -9,9 +9,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { formatAt, timezones } from "@/lib/cron";
+import { dayName, formatAt, ordinal, timezones } from "@/lib/cron";
+import { useTranslation } from "@/lib/i18n";
 import {
-  DAY_NAMES,
   fromCron,
   HOUR_STEPS,
   MINUTE_STEPS,
@@ -78,10 +78,11 @@ function TimeInput({
   onChange: (v: string) => void;
   disabled?: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <Input
       type="time"
-      aria-label="Time"
+      aria-label={t("automations.picker.time")}
       value={value}
       disabled={disabled}
       onChange={(e) => e.target.value && onChange(e.target.value)}
@@ -89,9 +90,6 @@ function TimeInput({
     />
   );
 }
-
-const ordinal = (n: number) =>
-  `${n}${n % 10 === 1 && n !== 11 ? "st" : n % 10 === 2 && n !== 12 ? "nd" : n % 10 === 3 && n !== 13 ? "rd" : "th"}`;
 
 /** The fields of one schedule choice, in a sentence: "every [15] minutes", "on [Monday] at [09:00]". */
 function ChoiceFields({
@@ -103,17 +101,21 @@ function ChoiceFields({
   onChange: (c: ScheduleChoice) => void;
   disabled?: boolean;
 }) {
+  const { t } = useTranslation();
   const text = "text-xs text-muted-foreground";
   switch (choice.kind) {
     case "minutes":
       return (
         <>
-          <span className={text}>every</span>
+          <span className={text}>{t("automations.picker.every")}</span>
           <Pick
-            label="Minutes"
+            label={t("automations.picker.minutesAria")}
             value={choice.every}
             disabled={disabled}
-            options={MINUTE_STEPS.map((n) => ({ value: n, label: `${n} minutes` }))}
+            options={MINUTE_STEPS.map((n) => ({
+              value: n,
+              label: t("automations.picker.nMinutes", { n }),
+            }))}
             onChange={(every) => onChange({ ...choice, every })}
           />
         </>
@@ -121,17 +123,20 @@ function ChoiceFields({
     case "hours":
       return (
         <>
-          <span className={text}>every</span>
+          <span className={text}>{t("automations.picker.every")}</span>
           <Pick
-            label="Hours"
+            label={t("automations.picker.hoursAria")}
             value={choice.every}
             disabled={disabled}
-            options={HOUR_STEPS.map((n) => ({ value: n, label: n === 1 ? "hour" : `${n} hours` }))}
+            options={HOUR_STEPS.map((n) => ({
+              value: n,
+              label: n === 1 ? t("automations.picker.hour") : t("automations.picker.nHours", { n }),
+            }))}
             onChange={(every) => onChange({ ...choice, every })}
           />
-          <span className={text}>at minute</span>
+          <span className={text}>{t("automations.picker.atMinute")}</span>
           <Pick
-            label="Minute past the hour"
+            label={t("automations.picker.minutePast")}
             value={choice.minute}
             disabled={disabled}
             options={[0, 5, 10, 15, 20, 30, 45].map((n) => ({
@@ -146,7 +151,7 @@ function ChoiceFields({
     case "weekdays":
       return (
         <>
-          <span className={text}>at</span>
+          <span className={text}>{t("automations.picker.at")}</span>
           <TimeInput
             value={choice.time}
             disabled={disabled}
@@ -157,15 +162,15 @@ function ChoiceFields({
     case "weekly":
       return (
         <>
-          <span className={text}>on</span>
+          <span className={text}>{t("automations.picker.on")}</span>
           <Pick
-            label="Day of the week"
+            label={t("automations.picker.dayOfWeek")}
             value={choice.day}
             disabled={disabled}
-            options={[1, 2, 3, 4, 5, 6, 0].map((d) => ({ value: d, label: DAY_NAMES[d] ?? "" }))}
+            options={[1, 2, 3, 4, 5, 6, 0].map((d) => ({ value: d, label: dayName(d) }))}
             onChange={(day) => onChange({ ...choice, day })}
           />
-          <span className={text}>at</span>
+          <span className={text}>{t("automations.picker.at")}</span>
           <TimeInput
             value={choice.time}
             disabled={disabled}
@@ -176,9 +181,9 @@ function ChoiceFields({
     case "monthly":
       return (
         <>
-          <span className={text}>on the</span>
+          <span className={text}>{t("automations.picker.onThe")}</span>
           <Pick
-            label="Day of the month"
+            label={t("automations.picker.dayOfMonth")}
             value={choice.day}
             disabled={disabled}
             options={Array.from({ length: 28 }, (_, i) => ({
@@ -187,7 +192,7 @@ function ChoiceFields({
             }))}
             onChange={(day) => onChange({ ...choice, day })}
           />
-          <span className={text}>at</span>
+          <span className={text}>{t("automations.picker.at")}</span>
           <TimeInput
             value={choice.time}
             disabled={disabled}
@@ -198,7 +203,7 @@ function ChoiceFields({
     case "custom":
       return (
         <Input
-          aria-label="Cron expression"
+          aria-label={t("automations.picker.cronAria")}
           value={choice.expression}
           disabled={disabled}
           spellCheck={false}
@@ -226,6 +231,7 @@ export function SchedulePicker({
   disabled?: boolean;
   projectTimezone: string;
 }) {
+  const { t } = useTranslation();
   const id = useId();
   // Custom stays custom while editing, even when the cron happens to match a human choice.
   const [custom, setCustom] = useState(() => fromCron(trigger.expression).kind === "custom");
@@ -242,7 +248,7 @@ export function SchedulePicker({
     <div className="space-y-3" data-testid="schedule-picker">
       <div className="flex flex-wrap items-center gap-2">
         <Pick<ScheduleKind>
-          label="How often"
+          label={t("automations.picker.howOften")}
           value={choice.kind}
           disabled={disabled}
           className="min-w-40"
@@ -252,9 +258,9 @@ export function SchedulePicker({
         <ChoiceFields choice={choice} onChange={set} disabled={disabled} />
       </div>
       <Field
-        label="Timezone"
+        label={t("automations.picker.timezone")}
         htmlFor={`${id}-tz`}
-        help={`Empty: the project's timezone (${projectTimezone}).`}
+        help={t("automations.picker.timezoneHelp", { tz: projectTimezone })}
         className="max-w-xs"
       >
         <Input
@@ -297,7 +303,9 @@ export function SchedulePicker({
               <code className="ml-1.5 font-mono text-muted-foreground">{trigger.expression}</code>
             )}
             <span className="mt-1 block text-muted-foreground">
-              Next: {preview.next.map((d) => formatAt(d, tz)).join("  ·  ")}
+              {t("automations.picker.next", {
+                runs: preview.next.map((d) => formatAt(d, tz)).join("  ·  "),
+              })}
             </span>
           </span>
         )}

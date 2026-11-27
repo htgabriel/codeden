@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/table";
 import { PROVIDER_NAMES } from "@/components/usage/format";
 import { useFactoryScorecard } from "@/lib/factory";
+import { useTranslation } from "@/lib/i18n";
 import { useSnapshotData } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 import {
@@ -30,38 +31,21 @@ import {
   spotChecksTitle,
 } from "./scorecard";
 
-const VIEWS: Array<{ id: ScorecardView; label: string }> = [
-  { id: "builders", label: "Builder" },
-  { id: "reviewers", label: "Reviewer" },
-  { id: "pairs", label: "Pair" },
-];
+const VIEWS: ScorecardView[] = ["builders", "reviewers", "pairs"];
 
-const WINDOWS: Array<{ id: `${ScorecardDays}`; label: string }> = [
-  { id: "7", label: "7 days" },
-  { id: "30", label: "30 days" },
-  { id: "90", label: "90 days" },
-];
+const WINDOWS: Array<`${ScorecardDays}`> = ["7", "30", "90"];
 
-/** Column headings, each with what it counts on hover. */
-const COLUMNS: Array<{ label: string; title: string }> = [
-  { label: "Finished", title: "Work that merged or failed (from its own work) in the window" },
-  { label: "Merged", title: "Merges in the window, and the share of the finished work" },
-  {
-    label: "First pass",
-    title: "Merges that needed no revise round (no failed review or check, no revert)",
-  },
-  { label: "Revise rounds", title: "Revise rounds per finished item" },
-  {
-    label: "Reverted",
-    title: "Merges reverted because CI on the default branch failed after them",
-  },
-  {
-    label: "Spot-checks",
-    title: "Merges a person spot-checked, and the problems they found",
-  },
-  { label: "Cost / merge", title: "What the finished work cost, failures included, per merge" },
-  { label: "To merge", title: "Median time from intake to merge" },
-];
+/** Column headings, each with what it counts on hover (`factory.scorecard.columns.<key>`). */
+const COLUMNS = [
+  "finished",
+  "merged",
+  "firstPass",
+  "reviseRounds",
+  "reverted",
+  "spotChecks",
+  "costPerMerge",
+  "toMerge",
+] as const;
 
 /**
  * The factory scorecard (§10.1): how each builder and reviewer, by provider and model, did on
@@ -69,6 +53,7 @@ const COLUMNS: Array<{ label: string; title: string }> = [
  * be chosen on evidence. Fetched only while open.
  */
 export function ScorecardCard({ projectId }: { projectId: string }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<ScorecardView>("builders");
   const [days, setDays] = useState<ScorecardDays>(30);
@@ -86,38 +71,42 @@ export function ScorecardCard({ projectId }: { projectId: string }) {
     >
       <summary className="flex cursor-pointer items-center gap-2 px-3 py-1.5 font-medium text-muted-foreground">
         <BarChart3 className="size-3.5" aria-hidden />
-        Scorecard
+        {t("factory.scorecard.title")}
         <span className="min-w-0 truncate font-normal text-muted-foreground/80">
-          · first-pass merges, revise rounds, reverts and cost by builder and reviewer
+          · {t("factory.scorecard.summary")}
         </span>
       </summary>
       {open && (
         <div className="space-y-2 border-t border-border p-2">
           <div className="flex flex-wrap items-center gap-2">
-            <Segmented label="Group by" value={view} options={VIEWS} onChange={setView} />
             <Segmented
-              label="Window"
+              label={t("factory.scorecard.groupBy")}
+              value={view}
+              options={VIEWS.map((id) => ({ id, label: t(`factory.scorecard.views.${id}`) }))}
+              onChange={setView}
+            />
+            <Segmented
+              label={t("factory.scorecard.window")}
               value={`${days}` as const}
-              options={WINDOWS}
+              options={WINDOWS.map((id) => ({ id, label: t("factory.scorecard.days", { n: id }) }))}
               onChange={(v) => setDays(Number(v) as ScorecardDays)}
             />
           </div>
           {error ? (
             <p className="py-4 text-center text-3xs text-status-failed">
-              Couldn't load the scorecard: {error.message}
+              {t("factory.scorecard.loadFailed", { message: error.message })}
             </p>
           ) : !data || data.days !== days ? (
             <Skeleton className="h-24 w-full rounded-md" />
           ) : rows.length === 0 ? (
             <p className="py-4 text-center text-3xs text-muted-foreground/70">
-              No finished factory work in the last {days} days.
+              {t("factory.scorecard.empty", { days })}
             </p>
           ) : (
             <ScorecardTable rows={rows} view={view} names={names} />
           )}
           <p className="px-1 text-3xs text-muted-foreground/80">
-            Each item counts for the builder and reviewer of its last attempt. Infrastructure
-            failures, rejected and escalated work and the factory's own reverts don't count.
+            {t("factory.scorecard.footnote")}
           </p>
         </div>
       )}
@@ -131,17 +120,23 @@ function ScorecardTable(props: {
   names: ProviderNames;
 }) {
   const { rows, view, names } = props;
-  const heading = VIEWS.find((v) => v.id === view)?.label ?? "";
+  const { t } = useTranslation();
   return (
     <Table className="text-xs" data-testid="factory-scorecard-table">
       <TableHeader>
         <TableRow className="hover:bg-transparent">
           <TableHead className="h-8 text-2xs">
-            {view === "pairs" ? "Builder → reviewer" : heading}
+            {view === "pairs"
+              ? t("factory.scorecard.pairHeading")
+              : t(`factory.scorecard.views.${view}`)}
           </TableHead>
           {COLUMNS.map((c) => (
-            <TableHead key={c.label} className="h-8 text-right text-2xs" title={c.title}>
-              {c.label}
+            <TableHead
+              key={c}
+              className="h-8 text-right text-2xs"
+              title={t(`factory.scorecard.columns.${c}.title`)}
+            >
+              {t(`factory.scorecard.columns.${c}.label`)}
             </TableHead>
           ))}
         </TableRow>
@@ -160,8 +155,17 @@ function ScorecardTable(props: {
             <Num>
               {r.merged} <Muted>{mergeRate(r)}</Muted>
             </Num>
-            <Num title={`${r.firstPass} of ${r.merged} merges`}>{firstPassRate(r)}</Num>
-            <Num title={`${r.reviseRounds} rounds over ${r.finished} items`}>
+            <Num
+              title={t("factory.scorecard.firstPassTitle", { n: r.firstPass, merged: r.merged })}
+            >
+              {firstPassRate(r)}
+            </Num>
+            <Num
+              title={t("factory.scorecard.reviseTitle", {
+                rounds: r.reviseRounds,
+                finished: r.finished,
+              })}
+            >
               {reviseAverage(r)}
             </Num>
             <Num className={cn(r.reverted > 0 && "text-status-failed")}>{r.reverted}</Num>
@@ -183,13 +187,15 @@ function ScorecardTable(props: {
 }
 
 function Agent({ agent, names }: { agent: ScorecardAgent | null; names: ProviderNames }) {
-  if (!agent) return <span className="text-muted-foreground">No review</span>;
+  const { t } = useTranslation();
+  if (!agent)
+    return <span className="text-muted-foreground">{t("factory.scorecard.noReview")}</span>;
   return (
     <span className="inline-flex min-w-0 items-center gap-1.5" title={agentLabel(agent, names)}>
       <ProviderMark provider={agent.provider} className="size-3.5 text-[8px]" />
       <span className="font-medium">{names(agent.provider)}</span>
       <span className="truncate font-mono text-2xs text-muted-foreground">
-        {agent.model ?? "default model"}
+        {agent.model ?? t("factory.scorecard.defaultModel")}
       </span>
     </span>
   );

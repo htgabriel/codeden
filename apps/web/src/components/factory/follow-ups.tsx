@@ -13,6 +13,7 @@ import { SectionLabel } from "@/components/common/bits";
 import { Button } from "@/components/ui/button";
 import { useClient } from "@/lib/api";
 import { factoryKeys } from "@/lib/factory";
+import { useTranslation } from "@/lib/i18n";
 import { platform } from "@/lib/platform";
 import { cn } from "@/lib/utils";
 
@@ -23,18 +24,17 @@ import { cn } from "@/lib/utils";
  * files them by itself), with whether it is held for the scout or was dropped from that list.
  */
 
-const DROPPED_LABEL: Record<FollowUpDropReason, string> = {
-  duplicate: "duplicate",
-  expired: "expired",
-  capped: "dropped",
-  dismissed: "dismissed",
-};
-
 export const SEVERITY_TONE: Record<FollowUpSeverity, string> = {
   high: "border-status-failed/40 text-status-failed",
   medium: "border-status-waiting/40 text-status-waiting",
   low: "border-border text-muted-foreground",
 };
+
+/** A severity as shown on a follow-up's pill (`factory.followUps.severity.<severity>`). */
+export function SeverityText({ severity }: { severity: FollowUpSeverity }) {
+  const { t } = useTranslation();
+  return <>{t(`factory.followUps.severity.${severity}`)}</>;
+}
 
 function Facts({ f }: { f: ReviewFollowUp }) {
   if (!f.severity && !f.area) return null;
@@ -42,7 +42,7 @@ function Facts({ f }: { f: ReviewFollowUp }) {
     <span className="flex shrink-0 items-center gap-1">
       {f.severity && (
         <span className={cn("rounded-full border px-1.5 text-3xs", SEVERITY_TONE[f.severity])}>
-          {f.severity}
+          <SeverityText severity={f.severity} />
         </span>
       )}
       {f.area && (
@@ -63,16 +63,22 @@ export function FollowUps({
   projectId: string;
   mode: AutonomyMode;
 }) {
+  const { t } = useTranslation();
   const client = useClient();
   const queryClient = useQueryClient();
   const file = useMutation({
     mutationFn: (index: number) => client.factory.fileFollowUp(projectId, item.id, index),
     onSuccess: (next, index) => {
       const issue = next.followUps[index]?.issue;
-      toast.success(issue ? `Filed as #${issue.number}` : "Filed");
+      toast.success(
+        issue
+          ? t("factory.followUps.filedAs", { number: issue.number })
+          : t("factory.followUps.filed"),
+      );
       void queryClient.invalidateQueries({ queryKey: factoryKeys.all });
     },
-    onError: (e: Error) => toast.error("Couldn't file the issue", { description: e.message }),
+    onError: (e: Error) =>
+      toast.error(t("factory.followUps.fileFailed"), { description: e.message }),
   });
   const merged = item.followUps.length > 0;
   const listed: Array<ReviewFollowUp & Partial<FactoryFollowUp>> = merged
@@ -81,7 +87,7 @@ export function FollowUps({
   if (listed.length === 0) return null;
   return (
     <section data-testid="follow-ups">
-      <SectionLabel className="mb-2">Follow-ups · not blocking</SectionLabel>
+      <SectionLabel className="mb-2">{t("factory.followUps.title")}</SectionLabel>
       <div className="overflow-hidden rounded-xl border border-border bg-card">
         {listed.map((f, index) => {
           const issue = f.issue ?? null;
@@ -97,11 +103,13 @@ export function FollowUps({
                   className="shrink-0 text-3xs text-muted-foreground"
                   title={
                     f.dropped
-                      ? "Left the scout's held list without an issue"
-                      : "Held for the scout's next round"
+                      ? t("factory.followUps.droppedTitle")
+                      : t("factory.followUps.heldTitle")
                   }
                 >
-                  {f.dropped ? DROPPED_LABEL[f.dropped.reason] : "held for the scout"}
+                  {f.dropped
+                    ? t(`factory.followUps.dropped.${f.dropped.reason}`)
+                    : t("factory.followUps.held")}
                 </span>
               )}
               {merged &&
@@ -120,7 +128,7 @@ export function FollowUps({
                     disabled={file.isPending}
                     onClick={() => file.mutate(index)}
                   >
-                    <FilePlus /> File issue
+                    <FilePlus /> {t("factory.followUps.fileIssue")}
                   </Button>
                 ))}
             </div>
@@ -130,11 +138,11 @@ export function FollowUps({
       <p className="mt-1.5 text-3xs text-muted-foreground">
         {merged
           ? mode === "dark_factory"
-            ? "Held ones wait for the scout, which weighs them against its other findings; the rest are filed as issues."
-            : "File the ones worth doing as issues; the factory picks them up from there."
+            ? t("factory.followUps.mergedDark")
+            : t("factory.followUps.merged")
           : mode === "dark_factory"
-            ? "They don't hold up the merge; once it merges, high-severity and security ones are filed as issues and the rest wait for the scout's rounds."
-            : "They don't hold up the merge; once it merges you can file them as issues here."}
+            ? t("factory.followUps.pendingDark")
+            : t("factory.followUps.pending")}
       </p>
     </section>
   );

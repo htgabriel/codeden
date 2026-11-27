@@ -3,6 +3,7 @@ import { RefreshCw, RotateCcw } from "lucide-react";
 import { canUpdate } from "@/components/shell/update-banner";
 import { Button } from "@/components/ui/button";
 import { useClient } from "@/lib/api";
+import { Trans, useTranslation } from "@/lib/i18n";
 import { updatesKey, useUpdateActions, useUpdates } from "@/lib/updates";
 
 /**
@@ -10,6 +11,7 @@ import { updatesKey, useUpdateActions, useUpdates } from "@/lib/updates";
  * now", the side-by-side installed versions, and "Roll back to the previous version".
  */
 export function UpdateCheck() {
+  const { t } = useTranslation();
   const client = useClient();
   const queryClient = useQueryClient();
   const { data } = useUpdates();
@@ -21,17 +23,20 @@ export function UpdateCheck() {
   if (!data) return null;
   const busy = data.state === "installing" || data.state === "restarting";
   let text: string;
-  if (!data.enabled) text = "Update checks are off (Settings > General).";
-  else if (data.state === "installing") text = `Installing ${data.target}...`;
-  else if (data.state === "restarting") text = `Restarting into ${data.target}...`;
-  else if (data.state === "installed") text = `Version ${data.target} is installed.`;
-  else if (data.updateAvailable) text = `Version ${data.latest} is available.`;
-  else if (data.error) text = `Couldn't check for updates: ${data.error}`;
-  else if (data.latest) text = "You're on the latest version.";
-  else text = "Not checked yet.";
+  if (!data.enabled) text = t("prefs.updates.off");
+  else if (data.state === "installing")
+    text = t("prefs.updates.installing", { v: data.target ?? "" });
+  else if (data.state === "restarting")
+    text = t("prefs.updates.restarting", { v: data.target ?? "" });
+  else if (data.state === "installed")
+    text = t("prefs.updates.installed", { v: data.target ?? "" });
+  else if (data.updateAvailable) text = t("prefs.updates.available", { v: data.latest ?? "" });
+  else if (data.error) text = t("prefs.updates.checkFailed", { error: data.error });
+  else if (data.latest) text = t("prefs.updates.latest");
+  else text = t("prefs.updates.notChecked");
   const rollbackLabel = data.rollbackTo
-    ? `Roll back to ${data.rollbackTo}`
-    : "Roll back to the previous version";
+    ? t("prefs.updates.rollbackTo", { v: data.rollbackTo })
+    : t("prefs.updates.rollbackPrevious");
   const showInstall = data.updateAvailable && canUpdate(data) && data.state === "idle";
 
   return (
@@ -45,7 +50,7 @@ export function UpdateCheck() {
           <div className="flex flex-wrap items-center gap-2">
             {showInstall && (
               <Button size="xs" onClick={() => actions.install.mutate()} disabled={busy}>
-                Update now
+                {t("prefs.updates.updateNow")}
               </Button>
             )}
             {data.enabled && (
@@ -55,7 +60,8 @@ export function UpdateCheck() {
                 onClick={() => refresh.mutate()}
                 disabled={refresh.isPending}
               >
-                <RefreshCw className={refresh.isPending ? "animate-spin" : undefined} /> Check now
+                <RefreshCw className={refresh.isPending ? "animate-spin" : undefined} />{" "}
+                {t("prefs.updates.checkNow")}
               </Button>
             )}
           </div>
@@ -63,23 +69,30 @@ export function UpdateCheck() {
       </div>
       {data.source === "source" ? (
         <p className="text-muted-foreground">
-          You're running from source: pull and rebuild to update (
-          <code className="font-mono">git pull && pnpm install && pnpm build</code>).
+          <Trans
+            i18nKey="prefs.updates.fromSource"
+            components={{
+              code: <code className="font-mono">git pull && pnpm install && pnpm build</code>,
+            }}
+          />
         </p>
       ) : (
         data.installed.length > 0 && (
           <p className="text-muted-foreground" data-testid="installed-versions">
-            Installed:{" "}
+            {t("prefs.updates.installedList")}{" "}
             {data.installed
               .map(
-                (v) => `${v.version}${v.current ? " (current)" : ""}${v.valid ? "" : " (broken)"}`,
+                (v) =>
+                  `${v.version}${v.current ? t("prefs.updates.current") : ""}${v.valid ? "" : t("prefs.updates.broken")}`,
               )
               .join(", ")}
           </p>
         )
       )}
       {data.state === "failed" && data.installError && (
-        <p className="text-status-failed">Last update failed: {data.installError}</p>
+        <p className="text-status-failed">
+          {t("prefs.updates.lastFailed", { error: data.installError })}
+        </p>
       )}
       {data.warning && <p className="text-status-failed">{data.warning}</p>}
       {data.canRollback && (

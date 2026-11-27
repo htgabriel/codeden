@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useClient } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n";
 
 /** "What's new": the release notes for `version` (GitHub Release body or CHANGELOG). */
 export function WhatsNewDialog({
@@ -25,6 +26,7 @@ export function WhatsNewDialog({
   /** Shown as "Update now" when the running copy can update itself. */
   onUpdate?: () => void;
 }) {
+  const { t } = useTranslation();
   const client = useClient();
   const notes = useQuery({
     queryKey: ["update-notes", version],
@@ -37,25 +39,23 @@ export function WhatsNewDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl" data-testid="whats-new">
         <DialogHeader>
-          <DialogTitle>What's new in CodeDen {version}</DialogTitle>
-          <DialogDescription>Release notes from the CodeDen repository.</DialogDescription>
+          <DialogTitle>{t("shell.whatsNew.title", { version })}</DialogTitle>
+          <DialogDescription>{t("shell.whatsNew.description")}</DialogDescription>
         </DialogHeader>
         <div className="max-h-[50vh] overflow-y-auto text-sm">
           {notes.isPending ? (
-            <p className="text-muted-foreground">Loading the release notes...</p>
+            <p className="text-muted-foreground">{t("shell.whatsNew.loading")}</p>
           ) : notes.data?.body ? (
             <Markdown>{notes.data.body}</Markdown>
           ) : (
-            <p className="text-muted-foreground">
-              The release notes couldn't be loaded. Read them on the release page.
-            </p>
+            <p className="text-muted-foreground">{t("shell.whatsNew.failed")}</p>
           )}
         </div>
         <DialogFooter>
           {notes.data?.url && (
             <Button variant="ghost" size="sm" asChild>
               <a href={notes.data.url} target="_blank" rel="noreferrer">
-                <ExternalLink /> Release page
+                <ExternalLink /> {t("shell.whatsNew.releasePage")}
               </a>
             </Button>
           )}
@@ -67,7 +67,7 @@ export function WhatsNewDialog({
                 onUpdate();
               }}
             >
-              Update now
+              {t("shell.update.updateNow")}
             </Button>
           )}
         </DialogFooter>

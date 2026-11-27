@@ -6,6 +6,7 @@ import { useRetryItem } from "@/components/factory/use-retry-item";
 import { Button } from "@/components/ui/button";
 import { useClient } from "@/lib/api";
 import { factoryKeys } from "@/lib/factory";
+import { useTranslation } from "@/lib/i18n";
 import { platform } from "@/lib/platform";
 import { cn } from "@/lib/utils";
 import { cardNumber, type ViewCard } from "./stages";
@@ -25,6 +26,7 @@ export function NeedActions({
   projectId: string;
   className?: string;
 }) {
+  const { t } = useTranslation();
   const client = useClient();
   const queryClient = useQueryClient();
   const need = card.need;
@@ -34,10 +36,10 @@ export function NeedActions({
   const dismiss = useMutation({
     mutationFn: () => client.factory.dismiss(projectId, card.item.id),
     onSuccess: () => {
-      toast.success(`${name} dismissed`);
+      toast.success(t("factoryView.need.dismissed", { name }));
       refresh();
     },
-    onError: (e) => toast.error("Couldn't dismiss", { description: e.message }),
+    onError: (e) => toast.error(t("factoryView.need.dismissFailed"), { description: e.message }),
   });
   if (!need) return null;
   const busy = retry.isPending || dismiss.isPending;
@@ -51,7 +53,7 @@ export function NeedActions({
       <span className="mr-auto min-w-0 text-2xs font-medium text-status-waiting">{need.label}</span>
       {need.kind === "merge" && prUrl && (
         <Button size="xs" variant="outline" onClick={() => platform.openExternal(prUrl)}>
-          <ExternalLink /> Open PR
+          <ExternalLink /> {t("factoryView.need.openPr")}
         </Button>
       )}
       {(need.kind === "retry" || need.kind === "retry_or_dismiss") && (
@@ -60,9 +62,9 @@ export function NeedActions({
           variant="outline"
           onClick={() => retry.mutate()}
           disabled={busy}
-          aria-label={`Retry ${name}`}
+          aria-label={t("factoryView.need.retryLabel", { name })}
         >
-          <RotateCcw /> Retry
+          <RotateCcw /> {t("factoryView.need.retry")}
         </Button>
       )}
       {need.kind === "retry_or_dismiss" && (
@@ -71,15 +73,15 @@ export function NeedActions({
           variant="ghost"
           onClick={() => dismiss.mutate()}
           disabled={busy}
-          aria-label={`Dismiss ${name}`}
+          aria-label={t("factoryView.need.dismissLabel", { name })}
         >
-          <X /> Dismiss
+          <X /> {t("factoryView.need.dismiss")}
         </Button>
       )}
       {need.kind === "answer" && card.sessionId && (
         <Button size="xs" variant="outline" asChild>
           <Link to="/sessions/$sessionId" params={{ sessionId: card.sessionId }}>
-            <MessageCircleQuestion /> Answer
+            <MessageCircleQuestion /> {t("factoryView.need.answer")}
           </Link>
         </Button>
       )}
@@ -88,9 +90,9 @@ export function NeedActions({
           <Link
             to="/projects/$projectId/factory/$itemId"
             params={{ projectId, itemId: card.item.id }}
-            aria-label={`Review the spec of ${name}`}
+            aria-label={t("factoryView.need.reviewSpecLabel", { name })}
           >
-            <FileCheck /> Review spec
+            <FileCheck /> {t("factoryView.need.reviewSpec")}
           </Link>
         </Button>
       )}

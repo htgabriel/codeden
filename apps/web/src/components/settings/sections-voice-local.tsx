@@ -1,9 +1,11 @@
+import { useTranslation } from "@/lib/i18n";
 import { useLocalStt, WhisperModelSelect, WhisperModelStatus } from "./local-whisper";
 import { WhisperTest } from "./local-whisper-test";
 import { SettingRow, useSettings } from "./settings-ui";
 
 /** Settings › Voice rows for local Whisper (§11.3): model, download status and a test. */
 export function LocalWhisperRows() {
+  const { t } = useTranslation();
   const { settings, update } = useSettings();
   const dictation = settings.voice.dictation;
   const local = useLocalStt();
@@ -11,11 +13,13 @@ export function LocalWhisperRows() {
   return (
     <>
       <SettingRow
-        label="Whisper model"
+        label={t("prefs.whisper.modelLabel")}
         help={
           local.error
-            ? `Couldn't read the local engine: ${local.error.message}`
-            : `Models are downloaded once into ${local.data?.location ?? "the CodeDen folder"} and run on this machine.`
+            ? t("prefs.whisper.readFailed", { message: local.error.message })
+            : t("prefs.whisper.location", {
+                location: local.data?.location ?? t("prefs.whisper.defaultLocation"),
+              })
         }
         stacked
       >
@@ -28,7 +32,7 @@ export function LocalWhisperRows() {
           <WhisperModelStatus status={local.data} modelId={dictation.local.model} />
         </div>
       </SettingRow>
-      <SettingRow label="Try it" help="Say a sentence after pressing Test." stacked>
+      <SettingRow label={t("prefs.whisper.tryIt")} help={t("prefs.whisper.tryItHelp")} stacked>
         <WhisperTest disabled={model?.state !== "installed"} language={dictation.language} />
       </SettingRow>
     </>

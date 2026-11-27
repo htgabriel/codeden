@@ -8,6 +8,7 @@ import {
   type StartWorkResult,
   type UserInputInit,
 } from "@codeden/contracts";
+import { i18n } from "@/lib/i18n";
 
 /**
  * The New session draft (§13): a session view whose first send starts the session. These are
@@ -92,7 +93,7 @@ export interface ResolvedDraft {
 }
 
 /** Why a project whose folder isn't a git repository gets no worktree (as the server says). */
-export const NOT_A_REPO_REASON = "Not a git repository: sessions run in the project folder";
+export const notARepoReason = () => i18n.t("messages.newSession.notARepo");
 
 /**
  * Fill in the defaults, so the pickers show what the first send will start:
@@ -209,7 +210,7 @@ export function localConflict(
     id: `${LOCAL_CONFLICT_PREFIX}${now.getTime()}`,
     projectId: request.projectId,
     request: {
-      purpose: draftPurpose(request.input?.text ?? "") ?? "New session",
+      purpose: draftPurpose(request.input?.text ?? "") ?? i18n.t("messages.newSession.purpose"),
       workKey: request.workKey || result.existing[0]?.workKey || "request:new",
       startedBy: { kind: "user" },
     },

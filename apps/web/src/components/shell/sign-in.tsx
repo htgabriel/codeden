@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useClient } from "@/lib/api";
 import { SignInFailure } from "@/lib/api/network-api";
+import { useTranslation } from "@/lib/i18n";
 import { Logo } from "./logo";
 
 /** Counts a wait down to zero, one second at a time. */
@@ -22,6 +23,7 @@ function useCountdown(): [number, (seconds: number) => void] {
  * sets a 90-day session cookie; the page then reloads into the app.
  */
 export function SignInScreen({ onSignedIn }: { onSignedIn?: () => void }) {
+  const { t } = useTranslation();
   const client = useClient();
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
@@ -43,7 +45,7 @@ export function SignInScreen({ onSignedIn }: { onSignedIn?: () => void }) {
         setError(err.message);
         if (err.retryAfterSec) setWait(err.retryAfterSec);
       } else {
-        setError(err instanceof Error ? err.message : "Sign-in failed.");
+        setError(err instanceof Error ? err.message : t("shell.signIn.failed"));
       }
       setPassword("");
     } finally {
@@ -64,13 +66,15 @@ export function SignInScreen({ onSignedIn }: { onSignedIn?: () => void }) {
         aria-describedby="sign-in-help"
       >
         <Logo className="mx-auto mb-5 size-14" />
-        <h1 className="text-center text-xl font-semibold tracking-tight">Sign in to CodeDen</h1>
+        <h1 className="text-center text-xl font-semibold tracking-tight">
+          {t("shell.signIn.title")}
+        </h1>
         <p id="sign-in-help" className="mt-2 text-center text-sm text-muted-foreground">
-          Enter the network access password you set on the computer running CodeDen.
+          {t("shell.signIn.help")}
         </p>
 
         <label htmlFor="codeden-password" className="mt-7 mb-1.5 block text-[13px] font-medium">
-          Password
+          {t("shell.signIn.password")}
         </label>
         <div className="relative">
           <LockKeyhole className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -92,7 +96,7 @@ export function SignInScreen({ onSignedIn }: { onSignedIn?: () => void }) {
             type="button"
             onClick={() => setShow((s) => !s)}
             className="absolute top-1/2 right-1 flex size-10 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:text-foreground"
-            aria-label={show ? "Hide password" : "Show password"}
+            aria-label={show ? t("shell.signIn.hidePassword") : t("shell.signIn.showPassword")}
           >
             {show ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
           </button>
@@ -111,12 +115,9 @@ export function SignInScreen({ onSignedIn }: { onSignedIn?: () => void }) {
           disabled={!password || busy || wait > 0}
         >
           {busy && <Loader2 className="animate-spin" />}
-          {wait > 0 ? `Try again in ${wait} s` : "Sign in"}
+          {wait > 0 ? t("shell.signIn.tryAgainIn", { wait }) : t("shell.signIn.submit")}
         </Button>
-        <p className="mt-6 text-center text-xs text-muted-foreground">
-          You stay signed in on this device for 90 days. Forgot the password? Set a new one in
-          Settings › Network access on the computer.
-        </p>
+        <p className="mt-6 text-center text-xs text-muted-foreground">{t("shell.signIn.footer")}</p>
       </form>
     </div>
   );

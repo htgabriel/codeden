@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useTranslation } from "@/lib/i18n";
 import { useSetupStatus } from "@/lib/queries";
 import { matchesCombo, shortcut } from "@/lib/shortcuts";
 import { isCustom, withCustomModels } from "./custom";
@@ -92,11 +93,13 @@ export function ModelPicker({
   switchHint,
   effort: offerEffort = true,
   disabled,
-  placeholder = "Choose a model",
+  placeholder: placeholderProp,
   footer,
   shortcut: listen,
   align = "start",
 }: ModelPickerProps) {
+  const { t } = useTranslation();
+  const placeholder = placeholderProp ?? t("workbench.picker.chooseModel");
   const navigate = useNavigate();
   const checks = useSetupStatus({ staleTime: 60_000 }).data?.checks;
   const [open, setOpen] = useState(false);
@@ -149,8 +152,8 @@ export function ModelPicker({
       ? {
           label:
             tab?.kind === "provider"
-              ? `Refresh ${tab.provider.displayName}'s models`
-              : "Refresh every provider's models",
+              ? t("workbench.picker.refreshProvider", { name: tab.provider.displayName })
+              : t("workbench.picker.refreshAll"),
           busy: models.refreshing,
           onRefresh: () => void models.refresh(refreshIds, projectId),
         }
@@ -297,7 +300,7 @@ export function ModelPicker({
       >
         {tabs.length === 0 ? (
           <p className="w-72 px-4 py-6 text-center text-xs text-muted-foreground">
-            No providers are connected. Check that the runner is running.
+            {t("workbench.picker.noProviders")}
           </p>
         ) : (
           <div className="flex h-80 max-sm:h-auto max-sm:flex-col">
@@ -332,11 +335,7 @@ export function ModelPicker({
                   highlight={highlight}
                   onHighlight={setHighlight}
                   notice={notice}
-                  empty={
-                    tab?.kind === "favorites"
-                      ? "No favourites yet. Star a model to pin it here."
-                      : undefined
-                  }
+                  empty={tab?.kind === "favorites" ? t("workbench.picker.noFavourites") : undefined}
                   isFavorite={(row) => starred.has(row.key)}
                   isHidden={(row) => isHidden(hidden, row.provider.id, row.model.id)}
                   isCustom={(row) =>

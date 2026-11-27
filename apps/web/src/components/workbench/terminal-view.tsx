@@ -3,6 +3,7 @@ import { Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import { useEffect, useRef } from "react";
 import { useClient } from "@/lib/api";
+import { i18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { useResolvedTheme } from "@/stores/theme";
 
@@ -88,7 +89,7 @@ export function TerminalView({
       if (e.type === "opened" && !ephemeral) attached.set(key, e.ptyId);
       if (e.type === "exited") {
         attached.delete(key);
-        term.write("\r\n\x1b[2m[process exited]\x1b[0m\r\n");
+        term.write(`\r\n\x1b[2m[${i18n.t("workbench.terminal.exited")}]\x1b[0m\r\n`);
       }
       if (e.type === "error") {
         if (ptyId) attached.delete(key);

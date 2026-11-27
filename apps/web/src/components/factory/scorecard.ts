@@ -1,6 +1,7 @@
 import type { FactoryScorecardRow, ScorecardAgent } from "@codeden/contracts";
 import { shortDuration } from "@/components/factory-view/view-stats";
 import { money, percent } from "@/components/usage/format";
+import { i18n } from "@/lib/i18n";
 
 /**
  * The factory scorecard's figures as the panel shows them (§10.1): who built or reviewed, and the
@@ -16,8 +17,8 @@ export type ProviderNames = (provider: string) => string;
 
 /** "Claude · claude-opus-4-5", "Codex · default model", or "No review". */
 export function agentLabel(agent: ScorecardAgent | null, names: ProviderNames): string {
-  if (!agent) return "No review";
-  return `${names(agent.provider)} · ${agent.model ?? "default model"}`;
+  if (!agent) return i18n.t("factory.scorecard.noReview");
+  return `${names(agent.provider)} · ${agent.model ?? i18n.t("factory.scorecard.defaultModel")}`;
 }
 
 /** The row's name in a view: its builder, its reviewer, or "builder → reviewer". */
@@ -50,20 +51,22 @@ export function medianMerge(row: FactoryScorecardRow): string {
 /** Merges a person spot-checked and the problems they found ("3 · 1 problem"); "—" with none. */
 export function spotChecks(row: FactoryScorecardRow): string {
   if (row.spotChecked === 0) return "—";
-  const problems = row.spotProblems === 1 ? "1 problem" : `${row.spotProblems} problems`;
+  const problems = i18n.t("factory.scorecard.problems", { count: row.spotProblems });
   return `${row.spotChecked} · ${problems}`;
 }
 
 /** "3 merges spot-checked by a person, 1 with a problem". */
 export function spotChecksTitle(row: FactoryScorecardRow): string {
-  const checked = `${row.spotChecked} merge${row.spotChecked === 1 ? "" : "s"} spot-checked by a person`;
-  return `${checked}, ${row.spotProblems} with a problem`;
+  return i18n.t("factory.scorecard.spotChecksTitle", {
+    count: row.spotChecked,
+    problems: row.spotProblems,
+  });
 }
 
 /** "≈ $4.10" estimated, "$4.10" reported, "Not priced" when nothing could be, "—" without a merge. */
 export function costPerMerge(row: FactoryScorecardRow): string {
   if (row.costPerMergeUsd === null) return "—";
-  if (row.costUsd === 0 && row.unpricedTurns > 0) return "Not priced";
+  if (row.costUsd === 0 && row.unpricedTurns > 0) return i18n.t("factory.cost.notPriced");
   return money(row.costPerMergeUsd, row.estimatedUsd > 0);
 }
 
@@ -72,11 +75,19 @@ export function costPerMerge(row: FactoryScorecardRow): string {
  * list prices): ≈ $61.60 over 15 items · 2 turns not priced".
  */
 export function costPerMergeTitle(row: FactoryScorecardRow): string {
-  const kind = row.apiEquivalent ? "API-equivalent cost per merge" : "Cost per merge";
-  const estimated = row.estimatedUsd > 0 ? " (estimated from list prices)" : "";
+  const t = i18n.t;
+  const kind = row.apiEquivalent
+    ? t("factory.scorecard.apiPerMerge")
+    : t("factory.scorecard.perMerge");
+  const estimated = row.estimatedUsd > 0 ? t("factory.scorecard.estimatedSuffix") : "";
   return [
-    `${kind}, failures included${estimated}: ${money(row.costUsd, row.estimatedUsd > 0)} over ${row.finished} item${row.finished === 1 ? "" : "s"}`,
-    row.unpricedTurns > 0 ? `${row.unpricedTurns} turns not priced` : null,
+    t("factory.scorecard.costLine", {
+      kind,
+      estimated,
+      cost: money(row.costUsd, row.estimatedUsd > 0),
+      count: row.finished,
+    }),
+    row.unpricedTurns > 0 ? t("factory.cost.turnsNotPriced", { count: row.unpricedTurns }) : null,
   ]
     .filter(Boolean)
     .join(" · ");

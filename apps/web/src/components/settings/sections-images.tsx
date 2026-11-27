@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useClient } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n";
 import { useSnapshotData } from "@/lib/queries";
 import { EngineSelect, TestResult } from "./image-controls";
 import { SecretField } from "./secret-field";
@@ -19,6 +20,7 @@ import { Segmented, SettingRow, SettingsSection, useSettings } from "./settings-
 
 /** Image generation settings (§12.5): engines, the active one, caps, overrides, keys, test. */
 export function ImageSettings() {
+  const { t } = useTranslation();
   const client = useClient();
   const queryClient = useQueryClient();
   const { settings, update } = useSettings();
@@ -68,8 +70,8 @@ export function ImageSettings() {
   return (
     <>
       <SettingsSection
-        title="Image generation"
-        description="Every agent gets one generate_image tool, routed to the engine you pick here."
+        title={t("settings.sections.images")}
+        description={t("prefs.images.description")}
       >
         <div className="grid gap-2 p-4 sm:grid-cols-3" data-testid="image-engines">
           {(engines.data?.engines ?? []).map((e) => (
@@ -78,12 +80,13 @@ export function ImageSettings() {
                 <StatusDot tone={e.available ? "done" : "idle"} /> {e.label}
                 {active?.engine === e.id && (
                   <span className="ml-auto rounded-full bg-primary/12 px-1.5 text-3xs text-primary">
-                    active
+                    {t("prefs.images.active")}
                   </span>
                 )}
               </div>
               <div className="mt-1 text-2xs text-muted-foreground">
-                {e.reason ?? (e.available ? "Ready" : "Unavailable")}
+                {e.reason ??
+                  (e.available ? t("prefs.providers.ready") : t("prefs.images.unavailable"))}
               </div>
               <div className="mt-1 font-mono text-3xs text-muted-foreground/80">
                 {e.defaultModel}
@@ -91,80 +94,86 @@ export function ImageSettings() {
             </div>
           ))}
           {engines.isLoading && (
-            <div className="text-xs text-muted-foreground">Checking engines…</div>
+            <div className="text-xs text-muted-foreground">{t("prefs.images.checking")}</div>
           )}
         </div>
         <SettingRow
-          label="Engine"
+          label={t("prefs.images.engineLabel")}
           help={
             active
               ? active.engine
-                ? `Agents use ${engines.data?.engines.find((e) => e.id === active.engine)?.label ?? active.engine}.`
-                : (active.reason ?? "No engine is available, so the tool is hidden from agents.")
-              : "Auto uses Codex when it's signed in. None hides the tool from agents."
+                ? t("prefs.images.agentsUse", {
+                    engine:
+                      engines.data?.engines.find((e) => e.id === active.engine)?.label ??
+                      active.engine,
+                  })
+                : (active.reason ?? t("prefs.images.noEngine"))
+              : t("prefs.images.engineHelp")
           }
         >
           <EngineSelect
-            label="Global image engine"
+            label={t("prefs.images.globalEngine")}
             value={ig.engine}
             onChange={(engine) => engine !== "inherit" && update({ imageGeneration: { engine } })}
           />
         </SettingRow>
-        <SettingRow label="Default size">
+        <SettingRow label={t("prefs.images.defaultSize")}>
           <Segmented
             value={ig.defaultSize}
             onChange={(defaultSize) => update({ imageGeneration: { defaultSize } })}
             options={[
-              { value: "1024x1024", label: "Square" },
-              { value: "1536x1024", label: "Landscape" },
-              { value: "1024x1536", label: "Portrait" },
+              { value: "1024x1024", label: t("prefs.images.square") },
+              { value: "1536x1024", label: t("prefs.images.landscape") },
+              { value: "1024x1536", label: t("prefs.images.portrait") },
             ]}
           />
         </SettingRow>
-        <SettingRow label="Quality">
+        <SettingRow label={t("prefs.images.quality")}>
           <Segmented
             value={ig.quality}
             onChange={(quality) => update({ imageGeneration: { quality } })}
             options={[
-              { value: "auto", label: "Auto" },
-              { value: "low", label: "Low" },
-              { value: "medium", label: "Medium" },
-              { value: "high", label: "High" },
+              { value: "auto", label: t("settings.appearance.auto") },
+              { value: "low", label: t("prefs.images.low") },
+              { value: "medium", label: t("prefs.images.medium") },
+              { value: "high", label: t("prefs.images.high") },
             ]}
           />
         </SettingRow>
         <SettingRow
-          label="Daily cap"
+          label={t("prefs.images.dailyCap")}
           help={
             engines.data
-              ? `${engines.data.usage.total} generated today · 0 turns generation off.`
-              : "Maximum images per day across all agents. 0 turns generation off."
+              ? t("prefs.images.generatedToday", { count: engines.data.usage.total })
+              : t("prefs.images.dailyCapHelp")
           }
         >
           <NumberField
             min={0}
-            aria-label="Daily image cap"
+            aria-label={t("prefs.images.dailyCapLabel")}
             value={ig.dailyCap}
             onChange={(dailyCap) => update({ imageGeneration: { dailyCap } })}
             wrapperClassName="w-24"
             className="h-8 text-xs"
           />
         </SettingRow>
-        <SettingRow
-          label="Gemini API key"
-          help="For Gemini image models. Stored in the OS keychain."
-        >
-          <SecretField secret="gemini.apiKey" label="Gemini key" onChange={recheck} />
+        <SettingRow label={t("prefs.images.geminiKey")} help={t("prefs.images.geminiKeyHelp")}>
+          <SecretField
+            secret="gemini.apiKey"
+            label={t("prefs.images.geminiKeyShort")}
+            onChange={recheck}
+          />
+        </SettingRow>
+        <SettingRow label={t("prefs.images.openaiKey")} help={t("prefs.images.openaiKeyHelp")}>
+          <SecretField
+            secret="openai.apiKey"
+            label={t("prefs.images.openaiKeyShort")}
+            onChange={recheck}
+          />
         </SettingRow>
         <SettingRow
-          label="OpenAI API key"
-          help="For OpenAI Images (also used for OpenAI dictation)."
-        >
-          <SecretField secret="openai.apiKey" label="OpenAI key" onChange={recheck} />
-        </SettingRow>
-        <SettingRow
-          label="Test the active engine"
-          help="Generates one small image. It counts toward today's cap."
+          label={t("prefs.images.testActive")}
+          help={t("prefs.images.testActiveHelp")}
           stacked
         >
           <TestResult result={result} pending={test.isPending} onTest={() => test.mutate()} />
@@ -172,19 +181,23 @@ export function ImageSettings() {
       </SettingsSection>
 
       <SettingsSection
-        title="Per-project override"
-        description="A project can use its own engine and cap; unset fields follow the global settings."
+        title={t("prefs.images.overrideTitle")}
+        description={t("prefs.images.overrideDescription")}
       >
-        <SettingRow label="Project">
+        <SettingRow label={t("prefs.images.project")}>
           <Select
             value={projectId || "none"}
             onValueChange={(v) => setProjectId(v === "none" ? "" : v)}
           >
-            <SelectTrigger size="sm" className="w-48" aria-label="Override project">
+            <SelectTrigger
+              size="sm"
+              className="w-48"
+              aria-label={t("prefs.images.overrideProject")}
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="none">Choose a project</SelectItem>
+              <SelectItem value="none">{t("prefs.images.chooseProject")}</SelectItem>
               {projects.map((p) => (
                 <SelectItem key={p.id} value={p.id}>
                   {p.name}
@@ -195,41 +208,44 @@ export function ImageSettings() {
         </SettingRow>
         {projectId && (
           <>
-            <SettingRow label="Engine for this project">
+            <SettingRow label={t("prefs.images.projectEngine")}>
               <EngineSelect
-                label="Project image engine"
+                label={t("prefs.images.projectEngineLabel")}
                 inherit
                 value={override?.engine ?? "inherit"}
                 onChange={(v) => void setOverride({ engine: v === "inherit" ? undefined : v })}
               />
             </SettingRow>
             <SettingRow
-              label="Project daily cap"
+              label={t("prefs.images.projectCap")}
               help={
                 engines.data
-                  ? `Effective cap: ${engines.data.dailyCap} · ${engines.data.usage.byProject[projectId] ?? 0} today`
+                  ? t("prefs.images.effectiveCap", {
+                      cap: engines.data.dailyCap,
+                      today: engines.data.usage.byProject[projectId] ?? 0,
+                    })
                   : undefined
               }
             >
               <NumberField
                 optional
                 min={0}
-                aria-label="Project daily cap"
-                placeholder="global"
+                aria-label={t("prefs.images.projectCap")}
+                placeholder={t("prefs.images.globalPlaceholder")}
                 value={override?.dailyCap}
                 onChange={(dailyCap) => void setOverride({ dailyCap: dailyCap ?? undefined })}
                 wrapperClassName="w-24"
                 className="h-8 text-xs"
               />
             </SettingRow>
-            <SettingRow label="Remove the override">
+            <SettingRow label={t("prefs.images.removeOverride")}>
               <Button
                 size="sm"
                 variant="outline"
                 disabled={!override}
                 onClick={() => void setOverride(null)}
               >
-                Use global settings
+                {t("prefs.images.useGlobal")}
               </Button>
             </SettingRow>
           </>

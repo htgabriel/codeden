@@ -1,6 +1,7 @@
 import type { UsageDimension, UsageReport } from "@codeden/contracts";
 import { BreakdownTable, DIMENSION_LABELS } from "@/components/usage/breakdown";
 import { type ChartMetric, DailyChart, type DrillTarget } from "@/components/usage/daily-chart";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 const DIMENSIONS: UsageDimension[] = ["provider", "model", "project", "role", "source"];
@@ -59,28 +60,29 @@ export function SpendCard({
   onDrill: (t: DrillTarget) => void;
   onPick: (key: string) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <section className="rounded-xl border border-border bg-card">
       <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2.5">
         <h2 className="mr-auto text-sm font-medium">
-          {metric === "cost" ? "Daily spend" : "Daily tokens"}
+          {metric === "cost" ? t("pages.spend.dailySpend") : t("pages.spend.dailyTokens")}
           <span className="ml-2 text-2xs font-normal text-muted-foreground">
-            by {DIMENSION_LABELS[dimension].toLowerCase()} · click a bar for its sessions
+            {t("pages.spend.byHint", { dimension: DIMENSION_LABELS[dimension].toLowerCase() })}
           </span>
         </h2>
         <Segmented
-          label="Break down by"
+          label={t("pages.spend.breakDownBy")}
           value={dimension}
           onChange={onDimension}
           options={DIMENSIONS.map((d) => ({ id: d, label: DIMENSION_LABELS[d] }))}
         />
         <Segmented
-          label="Measure"
+          label={t("pages.spend.measure")}
           value={metric}
           onChange={onMetric}
           options={[
-            { id: "cost", label: "Cost" },
-            { id: "tokens", label: "Tokens" },
+            { id: "cost", label: t("pages.spend.cost") },
+            { id: "tokens", label: t("pages.spend.tokens") },
           ]}
         />
       </div>

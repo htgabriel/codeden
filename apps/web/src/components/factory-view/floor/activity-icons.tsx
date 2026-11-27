@@ -1,4 +1,5 @@
 import { Brain, FileText, Globe, type LucideIcon, Pencil, Search, Terminal } from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
 import type { ActivityKind } from "../scene/activity";
 import type { ActivityStore } from "./use-activity";
 import { useActivityVersion } from "./use-activity";
@@ -21,12 +22,13 @@ export function RecentActivity({
   store: ActivityStore;
   sessionId: string | null;
 }) {
+  const { t } = useTranslation();
   useActivityVersion(store);
   const history = store.get(sessionId).history;
   if (history.length === 0) return null;
   return (
     <div data-testid="factory-view-floor-card-activity">
-      <p className="text-muted-foreground">Latest activity</p>
+      <p className="text-muted-foreground">{t("factoryView.floorCard.latestActivity")}</p>
       <ul className="space-y-0.5">
         {history.map((a) => {
           const Icon = ACTIVITY_ICON[a.kind];

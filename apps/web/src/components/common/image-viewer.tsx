@@ -17,6 +17,7 @@ import {
   DialogPortal,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 /** One image the viewer can show. */
@@ -85,6 +86,7 @@ export function ImageThumbnail({
   className?: string;
   children: ReactNode;
 }) {
+  const { t } = useTranslation();
   const gallery = useContext(GalleryContext);
   if (!gallery) throw new Error("ImageThumbnail must be inside an ImageGallery");
   const image = gallery.images[index];
@@ -92,8 +94,8 @@ export function ImageThumbnail({
     <button
       type="button"
       ref={(el) => gallery.register(index, el)}
-      aria-label={`View ${image?.name ?? "image"}`}
-      title="View full screen"
+      aria-label={t("shell.image.view", { name: image?.name ?? t("shell.image.image") })}
+      title={t("shell.image.fullScreen")}
       onClick={() => gallery.open(index)}
       className={cn(
         "cursor-zoom-in outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
@@ -123,6 +125,7 @@ function ImageViewer({
   onOpenChange: (open: boolean) => void;
   returnFocus: () => void;
 }) {
+  const { t } = useTranslation();
   const closeRef = useRef<HTMLButtonElement>(null);
   const image = images[index];
   const many = images.length > 1;
@@ -175,7 +178,7 @@ function ImageViewer({
             <div className="ml-auto flex shrink-0 items-center gap-1">
               <Button variant="ghost" size="sm" className={onDark} asChild>
                 <a href={image.src} download={image.downloadName ?? ""}>
-                  <Download /> Download
+                  <Download /> {t("shell.image.download")}
                 </a>
               </Button>
               <DialogPrimitive.Close asChild>
@@ -184,7 +187,7 @@ function ImageViewer({
                   variant="ghost"
                   size="icon-sm"
                   className={onDark}
-                  aria-label="Close"
+                  aria-label={t("shell.image.close")}
                 >
                   <XIcon />
                 </Button>
@@ -205,7 +208,7 @@ function ImageViewer({
                 <Button
                   variant="ghost"
                   size="icon-lg"
-                  aria-label="Previous image"
+                  aria-label={t("shell.image.previous")}
                   onClick={() => step(-1)}
                   className={cn(onDark, "absolute top-1/2 left-2 -translate-y-1/2 rounded-full")}
                 >
@@ -214,7 +217,7 @@ function ImageViewer({
                 <Button
                   variant="ghost"
                   size="icon-lg"
-                  aria-label="Next image"
+                  aria-label={t("shell.image.next")}
                   onClick={() => step(1)}
                   className={cn(onDark, "absolute top-1/2 right-2 -translate-y-1/2 rounded-full")}
                 >

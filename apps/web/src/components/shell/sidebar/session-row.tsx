@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { IssueBadge, PrBadge } from "@/components/common/bits";
 import { StatusDot } from "@/components/common/status-dot";
 import { ageShort, statusTone } from "@/lib/format";
+import { useTranslation } from "@/lib/i18n";
 import { useSessionActions } from "@/lib/session-actions";
 import { cn } from "@/lib/utils";
 import { childRow, NavRow, rowBase } from "./nav-row";
@@ -20,6 +21,7 @@ function RenameField({
   title: string;
   onDone: (next: string | null, byKey: boolean) => void;
 }) {
+  const { t } = useTranslation();
   const input = useRef<HTMLInputElement>(null);
   const done = useRef(false);
   useEffect(() => {
@@ -36,7 +38,7 @@ function RenameField({
       ref={input}
       defaultValue={title}
       maxLength={200}
-      aria-label="Session title"
+      aria-label={t("shell.sessionRow.title")}
       className="h-6 min-w-0 flex-1 rounded-sm border border-input bg-background px-1.5 text-[13px] text-foreground outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
       onKeyDown={(e) => {
         e.stopPropagation();
@@ -53,6 +55,7 @@ function RenameField({
  * open its menu; the ⋯ takes the age's place while it shows.
  */
 export function SessionRow({ session }: { session: Session }) {
+  const { t } = useTranslation();
   const actions = useSessionActions(session);
   const menu = useRowMenu();
   const [renaming, setRenaming] = useState(false);
@@ -102,7 +105,7 @@ export function SessionRow({ session }: { session: Session }) {
                 tone === "waiting" ? "font-medium text-status-waiting" : "text-muted-foreground/70",
               )}
             >
-              {tone === "waiting" ? "you" : ageShort(session.updatedAt)}
+              {tone === "waiting" ? t("shell.sessionRow.you") : ageShort(session.updatedAt)}
             </span>
           </NavRow>
         )}
@@ -110,7 +113,7 @@ export function SessionRow({ session }: { session: Session }) {
           <RowMenuButton
             menu={menu}
             entries={entries}
-            label={`${title} actions`}
+            label={t("shell.projectGroup.actions", { name: title })}
             className="absolute top-1/2 right-1 size-6 -translate-y-1/2 opacity-0 transition-opacity group-focus-within/session:opacity-100 group-hover/session:opacity-100 data-[state=open]:opacity-100 touch:size-9 touch:opacity-100"
           />
         )}

@@ -10,6 +10,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { useClient } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n";
 import { fileKey, type RowAddon } from "./config-files-view";
 import { PatchDialog } from "./patch-dialog";
 import { SWITCH_SCOPE_NOTE, skillStateLabel, skillStateTitle } from "./skill-state";
@@ -28,6 +29,7 @@ interface Pending {
  * setting, a switch per row, and the diff preview before the setting is written.
  */
 export function useSkillSwitches(projectId: string | null) {
+  const { t } = useTranslation();
   const client = useClient();
   const queryClient = useQueryClient();
   const queryKey = ["agent-config-skills", projectId];
@@ -67,11 +69,18 @@ export function useSkillSwitches(projectId: string | null) {
       // a minute) read the same setting, so a cached menu must not keep offering the skill.
       for (const key of SESSION_SKILL_QUERIES)
         void queryClient.invalidateQueries({ queryKey: key });
-      toast.success(`Switched ${p.req.enabled ? "on" : "off"} ${p.skill.name}`, {
-        description: res.backupPath ? `Backup: ${res.backupPath}` : (res.file ?? undefined),
-      });
+      toast.success(
+        p.req.enabled
+          ? t("shell.skills.switchedOn", { name: p.skill.name })
+          : t("shell.skills.switchedOff", { name: p.skill.name }),
+        {
+          description: res.backupPath
+            ? t("shell.configEditor.backup", { path: res.backupPath })
+            : (res.file ?? undefined),
+        },
+      );
     },
-    onError: (e) => toast.error("Not changed", { description: e.message }),
+    onError: (e) => toast.error(t("shell.hooks.notChanged"), { description: e.message }),
   });
 
   /** The switch, chip and dimming for a skill row; nothing for files that aren't listed skills. */
@@ -93,7 +102,11 @@ export function useSkillSwitches(projectId: string | null) {
           className="pointer-coarse:after:-inset-y-3.5"
           checked={skill.enabled}
           onCheckedChange={(on) => void ask(skill, on)}
-          aria-label={`${skill.name}: ${skill.enabled ? "on" : "off"}`}
+          aria-label={
+            skill.enabled
+              ? t("shell.skills.ariaOn", { name: skill.name })
+              : t("shell.skills.ariaOff", { name: skill.name })
+          }
           title={title}
           data-testid="skill-switch"
         />
@@ -101,17 +114,23 @@ export function useSkillSwitches(projectId: string | null) {
     };
   };
 
-  const verb = pending?.req.enabled ? "on" : "off";
+  const on = pending?.req.enabled ?? false;
   const dialog = (
     <PatchDialog
       open={pending !== null}
       onOpenChange={(open) => !open && setPending(null)}
-      title={pending ? `Switch ${verb} the ${pending.skill.name} skill` : ""}
+      title={
+        pending
+          ? on
+            ? t("shell.skills.switchOnTitle", { name: pending.skill.name })
+            : t("shell.skills.switchOffTitle", { name: pending.skill.name })
+          : ""
+      }
       note={diff?.changed ? SWITCH_SCOPE_NOTE[diff.scope] : undefined}
       diff={diff}
       error={diffError}
       saving={change.isPending}
-      confirmLabel={`Switch ${verb}`}
+      confirmLabel={on ? t("shell.skills.switchOn") : t("shell.skills.switchOff")}
       onConfirm={() => pending && change.mutate(pending)}
     />
   );

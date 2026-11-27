@@ -24,6 +24,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import { providerHue, providerMark } from "@/components/common/provider-logos";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { type ActivityKind, bubbleOf } from "../scene/activity";
 import { agentCard, agentLabel } from "../scene/agent-card";
@@ -118,6 +119,7 @@ const Bubble = memo(function Bubble({
   pinned: boolean;
   lifted: boolean;
 }) {
+  const { t } = useTranslation();
   const waiting = agent.status === "approval";
   const shown = useBubble(store, agent.sessionId, pinned || waiting);
   const bubble = shown && {
@@ -146,7 +148,9 @@ const Bubble = memo(function Bubble({
         </span>
       )}
       <Icon className="size-3 shrink-0 text-muted-foreground" />
-      <span className="truncate">{bubble ? bubble.activity.text : "Waiting for you"}</span>
+      <span className="truncate">
+        {bubble ? bubble.activity.text : t("factoryView.floor.waitingForYou")}
+      </span>
     </div>
   );
 });
@@ -278,6 +282,7 @@ export function FigureLayer({
   /** Click or Enter on a figure or crate. */
   onActivate: (key: string) => void;
 }) {
+  const { t } = useTranslation();
   const keys = [...agents.map((a) => a.key), ...crates.map((c) => `bay:${c.kind}`)];
   const root = useRef<HTMLDivElement>(null);
   const cardBox = useRef<HTMLDivElement>(null);
@@ -379,7 +384,7 @@ export function FigureLayer({
       data-testid="factory-view-floor-overlay"
     >
       {/* biome-ignore lint/a11y/useSemanticElements: a group of figures with roving focus. */}
-      <div role="group" aria-label="Crew on the floor" onKeyDown={onKeyDown}>
+      <div role="group" aria-label={t("factoryView.floor.crewOnFloor")} onKeyDown={onKeyDown}>
         {agents.map((agent) => {
           const label = agentLabel(agentCard(agent, now));
           const isOpen = hovered === agent.key;
@@ -429,7 +434,7 @@ export function FigureLayer({
               <button
                 type="button"
                 tabIndex={key === focusKey ? 0 : -1}
-                aria-label={`Repair bay, ${crate.title}: ${n} ${n === 1 ? "item" : "items"}`}
+                aria-label={t("factoryView.floor.bayCrate", { title: crate.title, count: n })}
                 aria-description={bayDescription(crate)}
                 aria-expanded={isOpen}
                 aria-controls={isOpen ? cardId : undefined}

@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFactoryStatus } from "@/lib/factory";
+import { useTranslation } from "@/lib/i18n";
 import { useProject, useSessionLookups, useSnapshot, useSnapshotData } from "@/lib/queries";
 
 const CHAT_KEY = "codeden.factoryView.chat";
@@ -66,6 +67,7 @@ function Frame({ children }: { children: ReactNode }) {
  * WebSocket, as on the factory panel.
  */
 export function FactoryViewPage({ projectId }: { projectId: string }) {
+  const { t } = useTranslation();
   const { data: snapshot } = useSnapshot();
   const project = useProject(projectId);
   const factory = project ? isFactoryMode(project.autonomyMode) : false;
@@ -142,9 +144,9 @@ export function FactoryViewPage({ projectId }: { projectId: string }) {
   if (!project)
     return (
       <Frame>
-        <EmptyState icon={<Factory />} title="Project not found" className="flex-1">
+        <EmptyState icon={<Factory />} title={t("factoryView.page.notFound")} className="flex-1">
           <Link to="/" className="text-primary hover:underline">
-            Back to CodeDen
+            {t("factoryView.page.backHome")}
           </Link>
         </EmptyState>
       </Frame>
@@ -154,18 +156,17 @@ export function FactoryViewPage({ projectId }: { projectId: string }) {
       <Frame>
         <EmptyState
           icon={<Factory />}
-          title="Not a factory project"
+          title={t("factoryView.page.notFactory")}
           className="flex-1"
           action={
             <Button size="sm" variant="outline" asChild>
               <Link to="/projects/$projectId" params={{ projectId }}>
-                Back to the project
+                {t("factoryView.page.backToProject")}
               </Link>
             </Button>
           }
         >
-          {project.name} isn't in software factory or dark factory mode, so there's no factory to
-          show.
+          {t("factoryView.page.notFactoryBody", { name: project.name })}
         </EmptyState>
       </Frame>
     );
@@ -234,7 +235,7 @@ export function FactoryViewPage({ projectId }: { projectId: string }) {
                   className="text-xs text-muted-foreground"
                   data-testid="factory-view-floor-unsupported"
                 >
-                  Factory floor needs WebGL; showing the board.
+                  {t("factoryView.page.noWebgl")}
                 </p>
               )}
               <StatsStrip f={f} />
@@ -244,7 +245,7 @@ export function FactoryViewPage({ projectId }: { projectId: string }) {
           {chatColumn && chatOpen && !scene && (
             <aside
               className="flex w-[340px] shrink-0 flex-col border-l border-border bg-surface/40 2xl:w-[400px]"
-              aria-label="Project manager chat"
+              aria-label={t("factoryView.pmChat.label")}
             >
               <QuickChat projectId={projectId} onCollapse={() => setChatOpen(false)} />
             </aside>
@@ -256,11 +257,11 @@ export function FactoryViewPage({ projectId }: { projectId: string }) {
                 scene ? setSceneOverlay(true) : chatColumn ? setChatOpen(true) : setChatSheet(true)
               }
               className="flex w-10 shrink-0 flex-col items-center gap-2 border-l border-border py-3 text-2xs text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-              aria-label="Show the PM chat"
+              aria-label={t("factoryView.floor.showChat")}
               data-testid="factory-view-chat-show"
             >
               <Bot className="size-4 text-primary" aria-hidden />
-              <span className="[writing-mode:vertical-rl]">PM chat</span>
+              <span className="[writing-mode:vertical-rl]">{t("factoryView.pmChat.title")}</span>
             </button>
           )}
         </div>
@@ -270,7 +271,7 @@ export function FactoryViewPage({ projectId }: { projectId: string }) {
             onClick={() => (scene ? setSceneOverlay(true) : setChatSheet(true))}
             data-testid="factory-view-chat-open"
           >
-            <MessageSquare /> PM chat
+            <MessageSquare /> {t("factoryView.pmChat.title")}
           </Button>
         )}
         {!chatColumn && !scene && (
@@ -282,9 +283,9 @@ export function FactoryViewPage({ projectId }: { projectId: string }) {
               showCloseButton={false}
               className="gap-0 p-0 data-[side=bottom]:h-[85dvh] data-[side=bottom]:rounded-t-2xl data-[side=right]:w-[min(26rem,90vw)] data-[side=right]:sm:max-w-none"
             >
-              <SheetTitle className="sr-only">Project manager chat</SheetTitle>
+              <SheetTitle className="sr-only">{t("factoryView.pmChat.label")}</SheetTitle>
               <SheetDescription className="sr-only">
-                The latest messages with this project's PM
+                {t("factoryView.page.chatDescription")}
               </SheetDescription>
               <QuickChat projectId={projectId} onCollapse={() => setChatSheet(false)} />
             </SheetContent>

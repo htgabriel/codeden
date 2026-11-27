@@ -8,6 +8,7 @@ import {
   type SessionStatus,
 } from "@codeden/contracts";
 import { stepLabel } from "@/components/factory/meta";
+import { i18n } from "@/lib/i18n";
 
 /**
  * The Factory view's pipeline (§10.1): every work item of `factory_status` placed on one stage
@@ -15,41 +16,37 @@ import { stepLabel } from "@/components/factory/meta";
  * mapping is unit-tested and the view only draws it.
  */
 
-/** The stages, left to right. */
-export const VIEW_STAGES = [
-  {
-    id: "intake",
-    label: "Intake",
-    hint: "New issues from trusted authors (and the scout in a dark factory), before their type is known.",
-  },
-  {
-    id: "type",
-    label: "Identify type",
-    hint: "Sorted into bug, feature or docs, and waiting for a free agent, in the order agents take them.",
-  },
-  {
-    id: "building",
-    label: "Building",
-    hint: "An agent reproduces the bug or analyzes the feature, then implements it and opens a pull request.",
-  },
-  {
-    id: "reviewing",
-    label: "Reviewing",
-    hint: "The independent reviewer, the merge checks and CI.",
-  },
-  {
-    id: "merge",
-    label: "Merge queue",
-    hint: "Every check passed and auto-merge is on: they merge in this order, seconds apart. Pull requests a person merges wait in Needs you.",
-  },
-  {
-    id: "merged",
-    label: "Merged",
-    hint: "Merged today. Right after an automatic merge, CI on the default branch is watched.",
-  },
-] as const;
+/**
+ * A record of `keys` whose values are read through `text` each time, so they follow the UI
+ * language (§13). Shared by the view's label tables.
+ */
+export function textMap<K extends string>(
+  keys: readonly K[],
+  text: (key: K) => string,
+): Record<K, string> {
+  const props: PropertyDescriptorMap = {};
+  for (const key of keys) props[key] = { get: () => text(key), enumerable: true };
+  return Object.defineProperties({} as Record<K, string>, props);
+}
 
-export type ViewStageId = (typeof VIEW_STAGES)[number]["id"];
+const STAGE_IDS = ["intake", "type", "building", "reviewing", "merge", "merged"] as const;
+
+/** The stages, left to right. */
+export const VIEW_STAGES: readonly {
+  readonly id: (typeof STAGE_IDS)[number];
+  readonly label: string;
+  readonly hint: string;
+}[] = STAGE_IDS.map((id) => ({
+  id,
+  get label() {
+    return i18n.t(`factoryView.stages.${id}.label`);
+  },
+  get hint() {
+    return i18n.t(`factoryView.stages.${id}.hint`);
+  },
+}));
+
+export type ViewStageId = (typeof STAGE_IDS)[number];
 
 /**
  * Where a card is drawn: a pipeline stage, or the lane of work that waits on a person (whatever
@@ -63,7 +60,8 @@ export interface ViewNeed {
   label: string;
 }
 
-export const NEEDS_YOU_LABEL = "Needs you";
+/** The "Needs you" lane's name. */
+export const needsYouLabel = (): string => i18n.t("factoryView.stages.needsYou");
 
 /**
  * A card's state marker, one of four on every card:
@@ -75,12 +73,10 @@ export const NEEDS_YOU_LABEL = "Needs you";
  */
 export type CardState = "running" | "waiting" | "person" | "failed";
 
-export const CARD_STATE_LABEL: Record<CardState, string> = {
-  running: "Running",
-  waiting: "Waiting",
-  person: "Needs a person",
-  failed: "Failed",
-};
+export const CARD_STATE_LABEL: Record<CardState, string> = textMap(
+  ["running", "waiting", "person", "failed"],
+  (k) => i18n.t(`factoryView.stages.cardState.${k}`),
+);
 
 /** What the view knows about a session from the snapshot. */
 export interface SessionInfo {
@@ -264,8 +260,8 @@ function activityOf(
     session?.progress ??
     pr?.note ??
     w.note ??
-    (w.stage === "watching" ? "Watching CI on the default branch" : null) ??
-    (w.stage === "merged" ? "Merged" : stepLabel(w.step, w.type))
+    (w.stage === "watching" ? i18n.t("factoryView.stages.watchingCi") : null) ??
+    (w.stage === "merged" ? i18n.t("factoryView.stages.merged.label") : stepLabel(w.step, w.type))
   );
 }
 
@@ -349,7 +345,7 @@ export function cardNumber(w: FactoryWorkItem): string {
 /** The card's state in words, for its accessible name and the sheet ("Waiting, merged"). */
 export function cardStateLabel(card: Pick<ViewCard, "state" | "item">): string {
   const state = CARD_STATE_LABEL[card.state];
-  return card.item.stage === "merged" ? `${state}, merged` : state;
+  return card.item.stage === "merged" ? i18n.t("factoryView.stages.stateMerged", { state }) : state;
 }
 
 /**
@@ -359,7 +355,10 @@ export function cardStateLabel(card: Pick<ViewCard, "state" | "item">): string {
 export function prLabel(pr: FactoryPrEntry | null, labels: Record<string, string>): string | null {
   if (!pr || pr.state === "checking" || pr.state === "merged" || pr.state === "superseded")
     return null;
-  if (pr.state === "queued") return pr.queuePosition ? `Queued #${pr.queuePosition}` : "Queued";
+  if (pr.state === "queued")
+    return pr.queuePosition
+      ? i18n.t("factoryView.stages.queuedAt", { n: pr.queuePosition })
+      : i18n.t("factoryView.stages.queued");
   const label = labels[pr.state] ?? pr.state;
   return pr.queuePosition ? `${label} · #${pr.queuePosition}` : label;
 }
@@ -373,7 +372,7 @@ export function placesOf(p: ViewPipeline): Map<string, ViewPlace> {
 }
 
 export function placeLabel(place: ViewPlace): string {
-  if (place === "needs_you") return NEEDS_YOU_LABEL;
+  if (place === "needs_you") return needsYouLabel();
   return VIEW_STAGES.find((s) => s.id === place)?.label ?? place;
 }
 
@@ -392,8 +391,8 @@ export function describeMoves(
     const name = cardNumber(card.item);
     lines.push(
       was
-        ? `${name} moved to ${placeLabel(card.place)}.`
-        : `${name} arrived in ${placeLabel(card.place)}.`,
+        ? i18n.t("factoryView.stages.movedTo", { name, place: placeLabel(card.place) })
+        : i18n.t("factoryView.stages.arrivedIn", { name, place: placeLabel(card.place) }),
     );
   }
   return lines;

@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { ProjectTile } from "@/components/shell/sidebar/project-group";
 import { ago } from "@/lib/format";
+import { i18n, useTranslation } from "@/lib/i18n";
 import { platform } from "@/lib/platform";
 import { useProject } from "@/lib/queries";
 import { cn } from "@/lib/utils";
@@ -36,30 +37,82 @@ export function noticeBatchOf(item: ItemOf<"notice">): Notice[] | null {
   return parsed.success ? parsed.data.notices : null;
 }
 
-const look: Record<NoticeType, { icon: LucideIcon; tone: string; label: string }> = {
-  "session.finished": { icon: CheckCircle2, tone: "text-status-done", label: "Finished" },
+const look: Record<NoticeType, { icon: LucideIcon; tone: string; label: () => string }> = {
+  "session.finished": {
+    icon: CheckCircle2,
+    tone: "text-status-done",
+    label: () => i18n.t("workbench.notices.labels.finished"),
+  },
   "session.needs_input": {
     icon: MessageCircleQuestion,
     tone: "text-status-waiting",
-    label: "Needs input",
+    label: () => i18n.t("workbench.notices.labels.needsInput"),
   },
-  "session.failed": { icon: OctagonX, tone: "text-status-failed", label: "Failed" },
-  "pr.opened": { icon: GitPullRequest, tone: "text-status-done", label: "PR opened" },
-  "pr.checks_failed": { icon: XCircle, tone: "text-status-failed", label: "Checks failed" },
-  "pr.checks_passed": { icon: CheckCircle2, tone: "text-status-done", label: "Checks passed" },
-  "pr.merged": { icon: GitMerge, tone: "text-chart-4", label: "Merged" },
-  "review.submitted": { icon: MessagesSquare, tone: "text-primary", label: "Review" },
-  "issue.opened": { icon: CircleDot, tone: "text-status-done", label: "New issue" },
-  "automation.skipped": { icon: SkipForward, tone: "text-muted-foreground", label: "Skipped" },
-  "factory.update": { icon: Factory, tone: "text-primary", label: "Factory" },
-  conflict: { icon: Swords, tone: "text-chart-5", label: "Conflict" },
-  "pm.message": { icon: MessageSquare, tone: "text-primary", label: "From the PM" },
+  "session.failed": {
+    icon: OctagonX,
+    tone: "text-status-failed",
+    label: () => i18n.t("workbench.notices.labels.failed"),
+  },
+  "pr.opened": {
+    icon: GitPullRequest,
+    tone: "text-status-done",
+    label: () => i18n.t("workbench.notices.labels.prOpened"),
+  },
+  "pr.checks_failed": {
+    icon: XCircle,
+    tone: "text-status-failed",
+    label: () => i18n.t("workbench.notices.labels.checksFailed"),
+  },
+  "pr.checks_passed": {
+    icon: CheckCircle2,
+    tone: "text-status-done",
+    label: () => i18n.t("workbench.notices.labels.checksPassed"),
+  },
+  "pr.merged": {
+    icon: GitMerge,
+    tone: "text-chart-4",
+    label: () => i18n.t("workbench.notices.labels.merged"),
+  },
+  "review.submitted": {
+    icon: MessagesSquare,
+    tone: "text-primary",
+    label: () => i18n.t("workbench.notices.labels.review"),
+  },
+  "issue.opened": {
+    icon: CircleDot,
+    tone: "text-status-done",
+    label: () => i18n.t("workbench.notices.labels.newIssue"),
+  },
+  "automation.skipped": {
+    icon: SkipForward,
+    tone: "text-muted-foreground",
+    label: () => i18n.t("workbench.notices.labels.skipped"),
+  },
+  "factory.update": {
+    icon: Factory,
+    tone: "text-primary",
+    label: () => i18n.t("workbench.notices.labels.factory"),
+  },
+  conflict: {
+    icon: Swords,
+    tone: "text-chart-5",
+    label: () => i18n.t("workbench.notices.labels.conflict"),
+  },
+  "pm.message": {
+    icon: MessageSquare,
+    tone: "text-primary",
+    label: () => i18n.t("workbench.notices.labels.fromPm"),
+  },
   "orchestrator.message": {
     icon: MessageSquare,
     tone: "text-primary",
-    label: "From the orchestrator",
+    label: () => i18n.t("workbench.notices.labels.fromOrchestrator"),
   },
-  reminder: { icon: AlarmClock, tone: "text-primary", label: "Wake-up" },
+  reminder: {
+    icon: AlarmClock,
+    tone: "text-primary",
+    label: () => i18n.t("workbench.notices.labels.wakeUp"),
+  },
 };
 
 /** One line of detail under the title, specific to the notice type. */
@@ -72,19 +125,23 @@ function detail(n: Notice): string | null {
     case "session.failed":
       return n.data.error;
     case "pr.checks_failed":
-      return n.data.failedChecks.length ? `Failed: ${n.data.failedChecks.join(", ")}` : null;
+      return n.data.failedChecks.length
+        ? i18n.t("workbench.notices.failedChecks", { checks: n.data.failedChecks.join(", ") })
+        : null;
     case "pr.merged":
       return n.data.linkedIssues.length
-        ? `Closes ${n.data.linkedIssues.map((i) => `#${i}`).join(", ")}`
+        ? i18n.t("workbench.notices.closes", {
+            issues: n.data.linkedIssues.map((i) => `#${i}`).join(", "),
+          })
         : null;
     case "review.submitted":
-      return `${n.data.reviewer ?? "Someone"} ${n.data.state.replace("_", " ")}${n.data.body ? `: ${n.data.body}` : ""}`;
+      return `${n.data.reviewer ?? i18n.t("workbench.notices.someone")} ${n.data.state.replace("_", " ")}${n.data.body ? `: ${n.data.body}` : ""}`;
     case "issue.opened":
       return [n.data.author, ...n.data.labels].filter(Boolean).join(" · ") || null;
     case "automation.skipped":
       return n.data.reason;
     case "conflict":
-      return `${n.data.existing.length} matching ${n.data.existing.length === 1 ? "run" : "runs"} already going`;
+      return i18n.t("workbench.notices.matchingRuns", { count: n.data.existing.length });
     case "pm.message":
     case "orchestrator.message":
       return n.data.text;
@@ -107,6 +164,7 @@ function links(n: Notice): { sessionId: string | null; url: string | null; ref: 
 }
 
 function NoticeRow({ notice }: { notice: Notice }) {
+  const { t } = useTranslation();
   const project = useProject(notice.projectId);
   const { icon: Icon, tone, label } = look[notice.type];
   const text = detail(notice);
@@ -117,7 +175,7 @@ function NoticeRow({ notice }: { notice: Notice }) {
       <Icon className={cn("mt-0.5 size-3.5 shrink-0", tone)} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5 text-3xs text-muted-foreground">
-          <span className={cn("font-medium", tone)}>{label}</span>
+          <span className={cn("font-medium", tone)}>{label()}</span>
           {project && (
             <span className="inline-flex min-w-0 items-center gap-1">
               · <ProjectTile project={project} className="size-3 text-[7px]" />
@@ -146,7 +204,7 @@ function NoticeRow({ notice }: { notice: Notice }) {
             params={{ sessionId: link.sessionId }}
             className="inline-flex items-center gap-0.5 text-3xs text-primary hover:underline"
           >
-            Session <ArrowUpRight className="size-3" />
+            {t("workbench.notices.session")} <ArrowUpRight className="size-3" />
           </Link>
         )}
       </div>
@@ -156,13 +214,14 @@ function NoticeRow({ notice }: { notice: Notice }) {
 
 /** Notices delivered with a wake (§8.2), rendered as compact typed cards. */
 export function NoticeBatchCard({ notices }: { notices: Notice[] }) {
+  const { t } = useTranslation();
   return (
     <div
       className="divide-y divide-border/70 overflow-hidden rounded-xl border border-border bg-card"
       data-testid="notice-batch"
     >
       <div className="bg-muted/30 px-3 py-1.5 text-3xs font-semibold tracking-wider text-muted-foreground uppercase">
-        {notices.length} {notices.length === 1 ? "update" : "updates"} since the last turn
+        {t("workbench.notices.updatesSince", { count: notices.length })}
       </div>
       {notices.map((n) => (
         <NoticeRow key={n.id} notice={n} />

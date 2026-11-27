@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { EmptyState } from "@/components/common/bits";
 import { Button } from "@/components/ui/button";
 import { useClient } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n";
 import { platform } from "@/lib/platform";
 import { cn } from "@/lib/utils";
 import { BrowserCanvas } from "./browser/browser-canvas";
@@ -21,6 +22,7 @@ import { type SessionBrowser, useSessionBrowser } from "./browser/use-session-br
  * keys and scrolling go straight to it.
  */
 export function BrowserPanel({ sessionId }: { sessionId: string }) {
+  const { t } = useTranslation();
   const nativeCapable = platform.capabilities.nativeBrowser;
   const browser = useSessionBrowser(sessionId, nativeCapable);
   const native = nativeCapable && browser.engine === "native";
@@ -40,10 +42,12 @@ export function BrowserPanel({ sessionId }: { sessionId: string }) {
   const onDialogAnswer = useCallback(
     (dialogId: string, accept: boolean, text?: string) => {
       if (channel?.dialog(dialogId, accept, text)) return true;
-      toast.error("Not connected to the browser", { description: "Answer again once it's back." });
+      toast.error(t("workbench.browser.notConnected"), {
+        description: t("workbench.browser.answerAgain"),
+      });
       return false;
     },
-    [channel],
+    [channel, t],
   );
 
   if (browser.open === false) return <ClosedState sessionId={sessionId} browser={browser} />;
@@ -52,8 +56,8 @@ export function BrowserPanel({ sessionId }: { sessionId: string }) {
       <div className="flex h-full items-center justify-center gap-2 text-xs text-muted-foreground">
         <Loader2 className="size-3.5 animate-spin" />
         {browser.connection === "closed"
-          ? "Reconnecting to the session browser…"
-          : "Connecting to the session browser…"}
+          ? t("workbench.browser.reconnecting")
+          : t("workbench.browser.connecting")}
       </div>
     );
   }
@@ -82,7 +86,7 @@ export function BrowserPanel({ sessionId }: { sessionId: string }) {
         {native ? (
           <NativeBrowserView
             sessionId={sessionId}
-            title={browser.activeTab?.title || "Session browser"}
+            title={browser.activeTab?.title || t("workbench.browser.sessionBrowser")}
             // The view paints over everything: it steps aside (a still of the page stays) so a
             // page dialog shows.
             covered={browser.dialogs.length > 0}
@@ -95,7 +99,7 @@ export function BrowserPanel({ sessionId }: { sessionId: string }) {
             // Fill only when the page follows this panel; a preset or another viewer's size is
             // fitted inside instead of stretched.
             fit={mode === "fit" && browser.viewport?.mine ? "fill" : "contain"}
-            title={browser.activeTab?.title || "Session browser"}
+            title={browser.activeTab?.title || t("workbench.browser.sessionBrowser")}
           />
         )}
         <PageDialogLayer
@@ -110,20 +114,21 @@ export function BrowserPanel({ sessionId }: { sessionId: string }) {
 }
 
 function BrowserTabs({ sessionId, browser }: { sessionId: string; browser: SessionBrowser }) {
+  const { t } = useTranslation();
   const client = useClient();
   if (browser.tabs.length < 2) return null;
   return (
     <div
       className="flex h-8 shrink-0 items-end gap-0.5 overflow-x-auto border-b border-border px-2 scroll-thin"
       role="tablist"
-      aria-label="Browser tabs"
+      aria-label={t("workbench.browser.tabs")}
     >
-      {browser.tabs.map((t) => (
+      {browser.tabs.map((tab) => (
         <div
-          key={t.tabId}
+          key={tab.tabId}
           className={cn(
             "group flex h-7 max-w-44 min-w-0 items-center gap-1 rounded-t-md border border-b-0 px-2 text-2xs",
-            t.active
+            tab.active
               ? "border-border bg-background text-foreground"
               : "border-transparent text-muted-foreground hover:bg-accent/50",
           )}
@@ -131,23 +136,23 @@ function BrowserTabs({ sessionId, browser }: { sessionId: string; browser: Sessi
           <button
             type="button"
             role="tab"
-            aria-selected={t.active}
+            aria-selected={tab.active}
             onClick={() =>
-              void browser.run("Couldn't switch tabs", () =>
-                client.browser.activateTab(sessionId, t.tabId),
+              void browser.run(t("workbench.browser.switchFailed"), () =>
+                client.browser.activateTab(sessionId, tab.tabId),
               )
             }
             className="min-w-0 flex-1 truncate text-left"
-            title={t.url}
+            title={tab.url}
           >
-            {t.title || t.url}
+            {tab.title || tab.url}
           </button>
           <button
             type="button"
-            aria-label={`Close ${t.title || t.url}`}
+            aria-label={t("workbench.browser.closeTab", { name: tab.title || tab.url })}
             onClick={() =>
-              void browser.run("Couldn't close the tab", () =>
-                client.browser.closeTab(sessionId, t.tabId),
+              void browser.run(t("workbench.browser.closeTabFailed"), () =>
+                client.browser.closeTab(sessionId, tab.tabId),
               )
             }
             className="rounded p-0.5 opacity-0 group-hover:opacity-100 hover:bg-accent touch:opacity-100"
@@ -161,22 +166,22 @@ function BrowserTabs({ sessionId, browser }: { sessionId: string; browser: Sessi
 }
 
 function ClosedState({ sessionId, browser }: { sessionId: string; browser: SessionBrowser }) {
+  const { t } = useTranslation();
   return (
     <div className="flex h-full items-center justify-center" data-testid="browser-closed">
       <EmptyState
         icon={<Globe />}
-        title="The session browser is closed"
+        title={t("workbench.browser.closed")}
         action={
           <div className="flex items-center gap-2">
             <Button size="sm" onClick={() => void browser.openBrowser()}>
-              <Globe /> Open browser
+              <Globe /> {t("workbench.browser.open")}
             </Button>
             <DevServerMenu sessionId={sessionId} browser={browser} variant="button" />
           </div>
         }
       >
-        It opens on its own when the agent uses a browser tool. Open it yourself to look at a dev
-        server, and the agent will see the same page.
+        {t("workbench.browser.closedHint")}
       </EmptyState>
     </div>
   );

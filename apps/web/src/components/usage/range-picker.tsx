@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { localToday, shiftDay, shortDay } from "./format";
 
@@ -15,11 +16,12 @@ export interface UsageRange {
   to: string;
 }
 
-const PRESETS: { id: Exclude<RangePreset, "custom">; label: string; days: number }[] = [
-  { id: "today", label: "Today", days: 1 },
-  { id: "7d", label: "7 days", days: 7 },
-  { id: "30d", label: "30 days", days: 30 },
-  { id: "90d", label: "90 days", days: 90 },
+/** The presets; their labels are `shell.range.preset.<id>`. */
+const PRESETS: { id: Exclude<RangePreset, "custom">; days: number }[] = [
+  { id: "today", days: 1 },
+  { id: "7d", days: 7 },
+  { id: "30d", days: 30 },
+  { id: "90d", days: 90 },
 ];
 
 /** The days a preset covers, ending today. */
@@ -39,6 +41,7 @@ export function RangePicker({
   value: UsageRange;
   onChange: (range: UsageRange) => void;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [from, setFrom] = useState(value.from);
   const [to, setTo] = useState(value.to);
@@ -47,7 +50,7 @@ export function RangePicker({
   return (
     <div className="flex items-center gap-1.5">
       <fieldset
-        aria-label="Time range"
+        aria-label={t("shell.range.label")}
         className="flex items-center gap-0.5 rounded-lg border border-border bg-card/50 p-0.5 text-xs"
       >
         {PRESETS.map((p) => (
@@ -61,7 +64,7 @@ export function RangePicker({
               value.preset === p.id && "bg-accent text-foreground",
             )}
           >
-            {p.label}
+            {t(`shell.range.preset.${p.id}`)}
           </button>
         ))}
       </fieldset>
@@ -85,14 +88,14 @@ export function RangePicker({
             <CalendarDays className="size-3.5" />
             {value.preset === "custom"
               ? `${shortDay(value.from)} – ${shortDay(value.to)}`
-              : "Custom"}
+              : t("shell.range.custom")}
           </Button>
         </PopoverTrigger>
         <PopoverContent align="end" className="w-64 space-y-3">
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
               <Label htmlFor="usage-from" className="text-2xs">
-                From
+                {t("shell.range.from")}
               </Label>
               <Input
                 id="usage-from"
@@ -104,7 +107,7 @@ export function RangePicker({
             </div>
             <div className="space-y-1">
               <Label htmlFor="usage-to" className="text-2xs">
-                To
+                {t("shell.range.to")}
               </Label>
               <Input
                 id="usage-to"
@@ -125,7 +128,7 @@ export function RangePicker({
               setOpen(false);
             }}
           >
-            Apply range
+            {t("shell.range.apply")}
           </Button>
         </PopoverContent>
       </Popover>

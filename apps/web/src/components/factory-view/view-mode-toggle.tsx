@@ -1,16 +1,12 @@
 import { Box, LayoutGrid, type LucideIcon } from "lucide-react";
 import type { KeyboardEvent } from "react";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import type { ViewMode, ViewModeId } from "./view-mode";
 
-const OPTIONS: { id: ViewModeId; label: string; title: string; icon: LucideIcon }[] = [
-  { id: "board", label: "Board", title: "The pipeline as stages and cards", icon: LayoutGrid },
-  {
-    id: "floor",
-    label: "Floor",
-    title: "Factory floor: a 3D workshop with every agent at its station",
-    icon: Box,
-  },
+const OPTIONS: { id: ViewModeId; icon: LucideIcon }[] = [
+  { id: "board", icon: LayoutGrid },
+  { id: "floor", icon: Box },
 ];
 
 /**
@@ -18,6 +14,7 @@ const OPTIONS: { id: ViewModeId; label: string; title: string; icon: LucideIcon 
  * move between the modes, like any radio group; only the chosen one is a Tab stop.
  */
 export function ViewModeToggle({ view }: { view: ViewMode }) {
+  const { t } = useTranslation();
   const pick = (id: ViewModeId, focus: HTMLElement | null) => {
     view.set(id);
     focus?.querySelector<HTMLElement>(`[data-mode="${id}"]`)?.focus();
@@ -38,7 +35,7 @@ export function ViewModeToggle({ view }: { view: ViewMode }) {
   return (
     <div
       role="radiogroup"
-      aria-label="Factory view mode"
+      aria-label={t("factoryView.mode.label")}
       className="inline-flex items-center rounded-md border border-border bg-muted/40 p-0.5"
       onKeyDown={onKeyDown}
       data-testid="factory-view-mode"
@@ -54,7 +51,7 @@ export function ViewModeToggle({ view }: { view: ViewMode }) {
             role="radio"
             aria-checked={on}
             tabIndex={on ? 0 : -1}
-            title={o.title}
+            title={t(`factoryView.mode.${o.id}.title`)}
             onClick={() => view.set(o.id)}
             data-mode={o.id}
             data-testid={`factory-view-mode-${o.id}`}
@@ -64,7 +61,7 @@ export function ViewModeToggle({ view }: { view: ViewMode }) {
             )}
           >
             <Icon aria-hidden />
-            {o.label}
+            {t(`factoryView.mode.${o.id}.label`)}
           </button>
         );
       })}

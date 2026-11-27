@@ -1,4 +1,5 @@
 import type { BillingMode, SubagentCost, UsageTotals } from "@codeden/contracts";
+import { i18n } from "@/lib/i18n";
 
 /** "$3.20", "$0.042", "$1,284"; estimates read "≈ $3.20". */
 export function money(n: number, estimated = false): string {
@@ -47,11 +48,16 @@ export function subagentCostText(cost: SubagentCost | undefined): string | null 
 
 /** What kind of figure a subagent's cost is, labelled like the session's (§12.6). */
 function subagentCostHeading(cost: SubagentCost, billing: BillingMode): string {
+  const t = i18n.t;
   const unpriced = cost.models.filter((m) => m.costSource === "unpriced").map((m) => m.model);
-  if (cost.costSource === "unpriced") return `Not priced: no price for ${unpriced.join(", ")}`;
-  const kind = billing === "subscription" ? "API-equivalent cost" : "Subagent cost";
-  const label = cost.costSource === "estimated" ? `${kind} (estimated from list prices)` : kind;
-  return unpriced.length > 0 ? `${label} · not priced: ${unpriced.join(", ")}` : label;
+  const models = unpriced.join(", ");
+  if (cost.costSource === "unpriced") return t("shell.usageFormat.noPrice", { models });
+  const kind =
+    billing === "subscription"
+      ? t("shell.usageFormat.apiEquivalent")
+      : t("shell.usageFormat.subagentCost");
+  const label = cost.costSource === "estimated" ? t("shell.usageFormat.estimated", { kind }) : kind;
+  return unpriced.length > 0 ? t("shell.usageFormat.partlyPriced", { label, models }) : label;
 }
 
 /**
@@ -60,17 +66,20 @@ function subagentCostHeading(cost: SubagentCost, billing: BillingMode): string {
  */
 export function subagentCostLines(cost: SubagentCost | undefined, billing: BillingMode): string[] {
   if (!cost) return [];
+  const t = i18n.t;
   return [
     subagentCostHeading(cost, billing),
     ...cost.models.map((m) => {
       const price =
-        m.costSource === "unpriced" ? "not priced" : money(m.costUsd, m.costSource === "estimated");
+        m.costSource === "unpriced"
+          ? t("shell.usageFormat.notPriced")
+          : money(m.costUsd, m.costSource === "estimated");
       return [
         `${m.label ?? m.model}: ${price}`,
-        `${tokens(m.inputTokens)} input`,
-        `${tokens(m.outputTokens)} output`,
-        `${tokens(m.cacheReadTokens)} cache reads`,
-        `${tokens(m.cacheWriteTokens)} cache writes`,
+        t("shell.usageFormat.input", { n: tokens(m.inputTokens) }),
+        t("shell.usageFormat.output", { n: tokens(m.outputTokens) }),
+        t("shell.usageFormat.cacheReads", { n: tokens(m.cacheReadTokens) }),
+        t("shell.usageFormat.cacheWrites", { n: tokens(m.cacheWriteTokens) }),
       ].join(" · ");
     }),
   ];

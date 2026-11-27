@@ -1,4 +1,5 @@
 import { type InboxItem, type InboxItemKind, inboxWaitsOnYou } from "@codeden/contracts";
+import { i18n } from "@/lib/i18n";
 
 export type InboxFilter = "all" | "asks" | "reviews" | "problems";
 
@@ -8,18 +9,18 @@ export interface InboxGroup {
   items: InboxItem[];
 }
 
-const GROUPS: { id: InboxItemKind; title: string; filter: Exclude<InboxFilter, "all"> }[] = [
-  { id: "approval", title: "Approvals", filter: "asks" },
-  { id: "question", title: "Questions", filter: "asks" },
-  { id: "spec_approval", title: "Specs to approve", filter: "asks" },
-  { id: "setup_change", title: "Setup changes", filter: "asks" },
-  { id: "pr_review", title: "Pull requests ready", filter: "reviews" },
-  { id: "spot_check", title: "Spot-checks", filter: "reviews" },
-  { id: "run_failed", title: "Failed runs", filter: "problems" },
-  { id: "cleanup_failed", title: "Worktrees not removed", filter: "problems" },
-  { id: "triage", title: "Triage decisions", filter: "asks" },
-  { id: "automation_result", title: "Automation results", filter: "reviews" },
-  { id: "message", title: "Messages", filter: "reviews" },
+const GROUPS: { id: Exclude<InboxItemKind, "conflict">; filter: Exclude<InboxFilter, "all"> }[] = [
+  { id: "approval", filter: "asks" },
+  { id: "question", filter: "asks" },
+  { id: "spec_approval", filter: "asks" },
+  { id: "setup_change", filter: "asks" },
+  { id: "pr_review", filter: "reviews" },
+  { id: "spot_check", filter: "reviews" },
+  { id: "run_failed", filter: "problems" },
+  { id: "cleanup_failed", filter: "problems" },
+  { id: "triage", filter: "asks" },
+  { id: "automation_result", filter: "reviews" },
+  { id: "message", filter: "reviews" },
 ];
 
 const priorityRank = { high: 0, normal: 1, low: 2 };
@@ -30,7 +31,7 @@ export function groupInbox(items: InboxItem[], filter: InboxFilter = "all"): Inb
   return GROUPS.filter((g) => filter === "all" || g.filter === filter)
     .map((g) => ({
       id: g.id,
-      title: g.title,
+      title: i18n.t(`messages.inboxGroups.${g.id}`),
       items: open
         .filter((i) => i.kind === g.id)
         .sort(

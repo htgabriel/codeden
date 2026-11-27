@@ -7,6 +7,7 @@ import { ReviewDialog } from "@/components/thread/review-dialog";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { RightPanel } from "@/components/workbench/right-panel";
 import { TerminalDrawer } from "@/components/workbench/terminal-drawer";
+import { useTranslation } from "@/lib/i18n";
 import { useSession, useSnapshot } from "@/lib/queries";
 import { hasRightPanel } from "@/lib/session-workspace";
 import { useViewport } from "@/lib/viewport";
@@ -50,6 +51,7 @@ function useFirstRunRedirect() {
  * full-screen sheet; touch tablets in landscape keep the icon rail and an overlay panel.
  */
 export function AppShell() {
+  const { t } = useTranslation();
   const layout = useLayoutStore();
   const viewport = useViewport();
   const setNavOpen = useUiStore((s) => s.setNavOpen);
@@ -72,7 +74,7 @@ export function AppShell() {
         ))}
       {!inlineSidebar ? null : !collapsed ? (
         <ResizeHandle
-          label="Resize sidebar"
+          label={t("shell.appShell.resizeSidebar")}
           value={layout.sidebarWidth}
           direction={1}
           onResize={layout.setSidebarWidth}
@@ -92,7 +94,7 @@ export function AppShell() {
           <>
             <ResizeHandle
               orientation="horizontal"
-              label="Resize terminal"
+              label={t("shell.appShell.resizeTerminal")}
               value={layout.drawerHeight}
               direction={-1}
               onResize={layout.setDrawerHeight}
@@ -113,8 +115,10 @@ export function AppShell() {
             className="gap-0 p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-none md:data-[side=right]:w-[min(42rem,85vw)]"
             data-testid="right-sheet"
           >
-            <SheetTitle className="sr-only">Session panel</SheetTitle>
-            <SheetDescription className="sr-only">Diff, files, browser and more</SheetDescription>
+            <SheetTitle className="sr-only">{t("shell.appShell.panelTitle")}</SheetTitle>
+            <SheetDescription className="sr-only">
+              {t("shell.appShell.panelDescription")}
+            </SheetDescription>
             <RightPanel sessionId={panel} width="100%" />
           </SheetContent>
         </Sheet>
@@ -122,7 +126,7 @@ export function AppShell() {
       {panel && !viewport.sheetPanels && layout.rightOpen && (
         <>
           <ResizeHandle
-            label="Resize panel"
+            label={t("shell.appShell.resizePanel")}
             value={layout.rightWidth}
             direction={-1}
             onResize={layout.setRightWidth}

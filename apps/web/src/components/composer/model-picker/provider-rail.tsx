@@ -2,15 +2,16 @@ import { RefreshCw, Star } from "lucide-react";
 import { Fragment, type KeyboardEvent } from "react";
 import { ProviderMark } from "@/components/common/bits";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { i18n, useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import type { PickerTab } from "./logic";
+import { type PickerTab, reasonText } from "./logic";
 
 function tabLabel(tab: PickerTab): string {
-  if (tab.kind === "favorites") return "Favourites";
+  if (tab.kind === "favorites") return i18n.t("workbench.picker.favourites");
   if (tab.lockedReason) return tab.lockedReason;
   const { availability, provider } = tab;
   if (availability.ready) return provider.displayName;
-  return `${provider.displayName}: ${availability.reason}${availability.detail ? `. ${availability.detail}` : ""}`;
+  return `${provider.displayName}: ${reasonText(availability.reason)}${availability.detail ? `. ${availability.detail}` : ""}`;
 }
 
 /** A locked provider's tile that opens the handoff dialog instead of a tab (§9). */
@@ -77,10 +78,11 @@ export function ProviderRail({
   /** "Refresh models" at the foot of the rail, for the shown tab's provider(s). */
   refresh?: { label: string; busy: boolean; onRefresh: () => void };
 }) {
+  const { t } = useTranslation();
   return (
     <div
       role="toolbar"
-      aria-label="Providers"
+      aria-label={t("workbench.picker.providers")}
       aria-orientation="vertical"
       data-picker-rail
       className="flex w-11 shrink-0 flex-col gap-1 overflow-y-auto border-r border-border bg-muted/20 p-1 no-scrollbar"
@@ -163,7 +165,7 @@ export function ProviderRail({
             </button>
           </TooltipTrigger>
           <TooltipContent side="left" sideOffset={8} className="max-w-60">
-            {refresh.busy ? "Refreshing models…" : refresh.label}
+            {refresh.busy ? t("workbench.picker.refreshing") : refresh.label}
           </TooltipContent>
         </Tooltip>
       )}

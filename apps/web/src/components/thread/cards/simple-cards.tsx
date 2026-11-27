@@ -15,11 +15,13 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useClient } from "@/lib/api";
 import { copyWithFeedback } from "@/lib/copy";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { Markdown } from "../markdown";
 
 /** A proposed plan, clipped when long, with copy and expand. */
 export function PlanCard({ item }: { item: ItemOf<"plan"> }) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const long = item.text.length > 700;
   return (
@@ -27,15 +29,15 @@ export function PlanCard({ item }: { item: ItemOf<"plan"> }) {
       <div className="flex items-center gap-2 border-b border-border px-3.5 py-2">
         <ClipboardList className="size-4 text-primary" />
         <span className="text-2xs font-semibold tracking-wider text-muted-foreground uppercase">
-          Plan
+          {t("workbench.cards.plan")}
         </span>
         <Button
           variant="ghost"
           size="xs"
           className="ml-auto text-muted-foreground"
-          onClick={() => void copyWithFeedback(item.text, "Plan copied")}
+          onClick={() => void copyWithFeedback(item.text, t("workbench.cards.planCopied"))}
         >
-          Copy
+          {t("workbench.cards.copy")}
         </Button>
       </div>
       <div className={cn("relative px-4 py-3", long && !expanded && "max-h-64 overflow-hidden")}>
@@ -50,7 +52,7 @@ export function PlanCard({ item }: { item: ItemOf<"plan"> }) {
           onClick={() => setExpanded((v) => !v)}
           className="w-full border-t border-border py-1.5 text-2xs text-muted-foreground hover:text-foreground"
         >
-          {expanded ? "Collapse plan" : "Expand plan"}
+          {expanded ? t("workbench.cards.collapsePlan") : t("workbench.cards.expandPlan")}
         </button>
       )}
     </div>
@@ -59,15 +61,16 @@ export function PlanCard({ item }: { item: ItemOf<"plan"> }) {
 
 /** The agent's todo list with progress. */
 export function TodoCard({ item }: { item: ItemOf<"todo_list"> }) {
-  const done = item.todos.filter((t) => t.status === "completed").length;
+  const { t } = useTranslation();
+  const done = item.todos.filter((todo) => todo.status === "completed").length;
   const pct = item.todos.length ? (done / item.todos.length) * 100 : 0;
   return (
     <div className="rounded-xl border border-border bg-card px-3.5 py-3">
       <div className="mb-2.5 flex items-center gap-2">
         <ListTodo className="size-4 text-muted-foreground" />
-        <span className="text-[13px] font-medium">Todos</span>
+        <span className="text-[13px] font-medium">{t("workbench.cards.todos")}</span>
         <span className="ml-auto text-2xs text-muted-foreground tabular-nums">
-          {done}/{item.todos.length} done
+          {t("workbench.cards.todosDone", { done, total: item.todos.length })}
         </span>
       </div>
       <div className="mb-2.5 h-1 overflow-hidden rounded-full bg-muted">
@@ -77,11 +80,11 @@ export function TodoCard({ item }: { item: ItemOf<"todo_list"> }) {
         />
       </div>
       <ul className="space-y-1">
-        {item.todos.map((t, i) => (
-          <li key={t.id ?? i} className="flex items-start gap-2 text-[13px]">
-            {t.status === "completed" ? (
+        {item.todos.map((todo, i) => (
+          <li key={todo.id ?? i} className="flex items-start gap-2 text-[13px]">
+            {todo.status === "completed" ? (
               <CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-status-done" />
-            ) : t.status === "in_progress" ? (
+            ) : todo.status === "in_progress" ? (
               <Loader2 className="mt-0.5 size-3.5 shrink-0 animate-spin text-status-running" />
             ) : (
               <Circle className="mt-0.5 size-3.5 shrink-0 text-muted-foreground/50" />
@@ -89,11 +92,11 @@ export function TodoCard({ item }: { item: ItemOf<"todo_list"> }) {
             <span
               className={cn(
                 "min-w-0 wrap-break-word",
-                t.status === "completed" &&
+                todo.status === "completed" &&
                   "text-muted-foreground line-through decoration-muted-foreground/40",
               )}
             >
-              {t.text}
+              {todo.text}
             </span>
           </li>
         ))}
@@ -126,6 +129,7 @@ export function NoticeCard({ item }: { item: ItemOf<"notice"> }) {
 
 /** Inline error with a retry when the provider says it may succeed. */
 export function ErrorCard({ item, sessionId }: { item: ItemOf<"error">; sessionId: string }) {
+  const { t } = useTranslation();
   const client = useClient();
   const retry = useMutation({
     mutationFn: () =>
@@ -150,7 +154,7 @@ export function ErrorCard({ item, sessionId }: { item: ItemOf<"error">; sessionI
             onClick={() => retry.mutate()}
             disabled={retry.isPending}
           >
-            <RotateCcw /> Retry
+            <RotateCcw /> {t("workbench.cards.retry")}
           </Button>
         )}
       </div>

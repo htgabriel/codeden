@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useClient } from "@/lib/api";
 import { factoryKeys } from "@/lib/factory";
 import { ago, until } from "@/lib/format";
+import { useTranslation } from "@/lib/i18n";
 
 /**
  * The factory's lessons (§10.1): general rules its reviewers recorded with their verdicts, which
@@ -23,6 +24,7 @@ export function LessonsCard({
   /** "Learn from reviews" is on: lessons are asked for, kept and briefed. */
   learning: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <details
       className="group rounded-lg border border-border bg-surface text-2xs"
@@ -30,18 +32,15 @@ export function LessonsCard({
     >
       <summary className="flex cursor-pointer items-center gap-2 px-3 py-1.5 font-medium text-muted-foreground">
         <Lightbulb className="size-3.5" aria-hidden />
-        Lessons
+        {t("factory.lessons.title")}
         <span className="font-normal text-muted-foreground/80">
-          ·{" "}
-          {learning
-            ? "what reviews taught the factory; new builders and reviewers get them in their briefs"
-            : "learning from reviews is off: briefs carry none"}
+          · {learning ? t("factory.lessons.summary") : t("factory.lessons.off")}
         </span>
         <span className="ml-auto tabular-nums">{lessons.length}</span>
       </summary>
       {lessons.length === 0 ? (
         <p className="border-t border-border px-2 py-3 text-center text-3xs text-muted-foreground/70">
-          None yet: reviewers add lessons as they review.
+          {t("factory.lessons.empty")}
         </p>
       ) : (
         <ul className="space-y-0.5 border-t border-border p-1.5">
@@ -55,6 +54,7 @@ export function LessonsCard({
 }
 
 function LessonRow({ projectId, lesson }: { projectId: string; lesson: FactoryLesson }) {
+  const { t } = useTranslation();
   const forget = useForgetLesson(projectId);
   // A new lesson waits a day before it goes into briefs: time to read it and forget it.
   const inBriefs = lessonInBriefsAt(lesson);
@@ -73,16 +73,17 @@ function LessonRow({ projectId, lesson }: { projectId: string; lesson: FactoryLe
               params={{ projectId, itemId: lesson.itemId }}
               className="hover:text-foreground hover:underline"
             >
-              from #{lesson.prNumber}
+              {t("factory.lessons.fromPr", { number: lesson.prNumber })}
             </Link>
           ) : (
-            "from a review"
+            t("factory.lessons.fromReview")
           )}
-          {lesson.times > 1 && ` · recorded ${lesson.times}×`} · {ago(lesson.lastSeenAt)}
+          {lesson.times > 1 && ` · ${t("factory.lessons.recorded", { n: lesson.times })}`} ·{" "}
+          {ago(lesson.lastSeenAt)}
           {waiting && (
             <span className="text-status-waiting" data-testid="factory-lesson-waiting">
               {" "}
-              · new: in briefs {until(inBriefs.toISOString())}
+              · {t("factory.lessons.newInBriefs", { when: until(inBriefs.toISOString()) })}
             </span>
           )}
         </span>
@@ -91,8 +92,8 @@ function LessonRow({ projectId, lesson }: { projectId: string; lesson: FactoryLe
         variant="ghost"
         size="icon-xs"
         className="shrink-0 text-muted-foreground"
-        aria-label={`Forget lesson: ${lesson.text}`}
-        title="Forget: later builders and reviewers no longer get it, and it isn't learned again"
+        aria-label={t("factory.lessons.forgetAria", { text: lesson.text })}
+        title={t("factory.lessons.forgetTitle")}
         disabled={forget.isPending}
         onClick={() => forget.mutate(lesson.id)}
       >
@@ -104,16 +105,18 @@ function LessonRow({ projectId, lesson }: { projectId: string; lesson: FactoryLe
 
 /** Forget a lesson; the factory panel refreshes with the lessons still in force. */
 function useForgetLesson(projectId: string) {
+  const { t } = useTranslation();
   const client = useClient();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (lessonId: string) => client.factory.forgetLesson(projectId, lessonId),
     onSuccess: () => {
-      toast.success("Lesson forgotten", {
-        description: "New builders and reviewers no longer get it.",
+      toast.success(t("factory.lessons.forgotten"), {
+        description: t("factory.lessons.forgottenHint"),
       });
       void queryClient.invalidateQueries({ queryKey: factoryKeys.status(projectId) });
     },
-    onError: (e: Error) => toast.error("Couldn't forget the lesson", { description: e.message }),
+    onError: (e: Error) =>
+      toast.error(t("factory.lessons.forgetFailed"), { description: e.message }),
   });
 }

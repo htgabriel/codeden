@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 import { ConflictCard } from "@/components/project/conflict-card";
 import { Button } from "@/components/ui/button";
 import { useClient } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n";
 import type { RunConflict } from "./use-automation-actions";
 
 /**
@@ -18,12 +19,13 @@ export function RunConflictCard({
   projectId: string;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const client = useClient();
   const record: ConflictRecord = {
     id: `run:${conflict.automationId}`,
     projectId,
     request: {
-      purpose: `Run ${conflict.name} now`,
+      purpose: t("automations.conflict.purpose", { name: conflict.name }),
       workKey: conflict.workKey,
       startedBy: { kind: "user" },
     },
@@ -44,7 +46,7 @@ export function RunConflictCard({
             projectId,
             conflict: decision,
           });
-          if (res.status === "conflict") throw new Error("Matching work is still running");
+          if (res.status === "conflict") throw new Error(t("automations.conflict.stillRunning"));
           return { status: res.status, sessionId: "sessionId" in res ? res.sessionId : null };
         }}
         onResolved={onClose}
@@ -53,10 +55,10 @@ export function RunConflictCard({
         size="xs"
         variant="ghost"
         className="text-muted-foreground"
-        aria-label="Dismiss conflict"
+        aria-label={t("automations.conflict.dismissAria")}
         onClick={onClose}
       >
-        <X /> Not now
+        <X /> {t("automations.conflict.notNow")}
       </Button>
     </div>
   );

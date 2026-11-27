@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useClient } from "@/lib/api";
+import { i18n } from "@/lib/i18n";
 import { snapshotKey } from "@/lib/queries";
 import { projectModelsKey } from "./use-project-models";
 
@@ -50,7 +51,7 @@ export function useRefreshModels() {
         });
       }
     } catch (e) {
-      toast.error("Couldn't refresh the models", { description: (e as Error).message });
+      toast.error(i18n.t("workbench.picker.refreshFailed"), { description: (e as Error).message });
     } finally {
       setRefreshing(false);
     }

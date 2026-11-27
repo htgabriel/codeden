@@ -1,3 +1,4 @@
+import { i18n } from "@/lib/i18n";
 // Never inlined as a `data:` URL, which the UI's `script-src 'self'` would block.
 import workletUrl from "./pcm-capture.worklet.js?url&no-inline";
 
@@ -66,7 +67,7 @@ async function connectSink(
 export const startMicCapture: StartCapture = async (onSamples) => {
   const Ctx = audioContextCtor();
   if (!Ctx || !navigator.mediaDevices?.getUserMedia) {
-    throw new Error("This browser can't capture the microphone for dictation.");
+    throw new Error(i18n.t("messages.voice.noMicCapture"));
   }
   // Created before the permission prompt, while the click or key press still counts as a user
   // gesture, so the browser lets the audio start.
@@ -78,7 +79,7 @@ export const startMicCapture: StartCapture = async (onSamples) => {
     });
   } catch {
     void context.close().catch(() => {});
-    throw new Error("Microphone access was blocked.");
+    throw new Error(i18n.t("messages.voice.micBlocked"));
   }
   const release = () => {
     for (const track of stream.getTracks()) track.stop();

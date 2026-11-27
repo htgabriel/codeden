@@ -1,24 +1,38 @@
 import type { UsageReport } from "@codeden/contracts";
 import { Workflow } from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
 import { useResolvedTheme } from "@/stores/theme";
 import { money, percent } from "./format";
 import { SERIES_COLORS } from "./palette";
 
 /** Where background work's spend goes: you vs automations vs the factory, then per automation. */
 export function AutomationSpend({ report }: { report: UsageReport }) {
+  const { t } = useTranslation();
   const theme = useResolvedTheme();
   const { manualCostUsd, automationCostUsd, factoryCostUsd, byAutomation } = report.automations;
   const total = manualCostUsd + automationCostUsd + factoryCostUsd;
   const parts = [
-    { label: "Interactive", value: manualCostUsd, color: SERIES_COLORS[0]?.[theme] },
-    { label: "Automations", value: automationCostUsd, color: SERIES_COLORS[2]?.[theme] },
-    { label: "Factory", value: factoryCostUsd, color: SERIES_COLORS[6]?.[theme] },
+    {
+      label: t("shell.automationSpend.interactive"),
+      value: manualCostUsd,
+      color: SERIES_COLORS[0]?.[theme],
+    },
+    {
+      label: t("shell.projectGroup.automations"),
+      value: automationCostUsd,
+      color: SERIES_COLORS[2]?.[theme],
+    },
+    {
+      label: t("shell.automationSpend.factory"),
+      value: factoryCostUsd,
+      color: SERIES_COLORS[6]?.[theme],
+    },
   ];
   return (
     <div className="rounded-xl border border-border bg-card px-4 py-3">
       <div className="flex items-center gap-2">
         <Workflow className="size-4 text-muted-foreground" />
-        <h3 className="text-sm font-medium">Automation and factory spend</h3>
+        <h3 className="text-sm font-medium">{t("shell.automationSpend.title")}</h3>
       </div>
       <div className="mt-3 flex h-2.5 gap-0.5 overflow-hidden rounded-full bg-muted">
         {total > 0 &&
@@ -55,7 +69,7 @@ export function AutomationSpend({ report }: { report: UsageReport }) {
             <li key={a.automationId} className="flex items-center gap-2">
               <span className="truncate">{a.name}</span>
               <span className="text-2xs text-muted-foreground">
-                {a.sessions} {a.sessions === 1 ? "run" : "runs"}
+                {t("shell.automationSpend.runs", { count: a.sessions })}
               </span>
               <span className="ml-auto font-mono tabular-nums">{money(a.costUsd)}</span>
             </li>
@@ -63,7 +77,7 @@ export function AutomationSpend({ report }: { report: UsageReport }) {
         </ul>
       ) : (
         <p className="mt-3 border-t border-border pt-3 text-2xs text-muted-foreground">
-          No automation runs in this range.
+          {t("shell.automationSpend.none")}
         </p>
       )}
     </div>

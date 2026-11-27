@@ -1,4 +1,5 @@
 import { LOCAL_STT_MAX_SECONDS, LOCAL_STT_SAMPLE_RATE } from "@codeden/contracts";
+import { i18n } from "@/lib/i18n";
 
 /**
  * Turns a browser recording into what the local Whisper engine takes (§11.3): WAV, 16-bit
@@ -104,7 +105,7 @@ export async function toWhisperWav(recording: Blob): Promise<Blob> {
   const Ctx =
     window.AudioContext ??
     (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-  if (!Ctx) throw new Error("This browser can't decode audio for local Whisper.");
+  if (!Ctx) throw new Error(i18n.t("messages.voice.noDecode"));
   const context = new Ctx();
   try {
     return decodedToWhisperWav(await context.decodeAudioData(await recording.arrayBuffer()));

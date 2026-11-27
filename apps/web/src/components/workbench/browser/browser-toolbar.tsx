@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useClient } from "@/lib/api";
 import { VIEWPORTS } from "@/lib/browser-input";
+import { useTranslation } from "@/lib/i18n";
 import { platform } from "@/lib/platform";
 import { cn } from "@/lib/utils";
 import type { ViewportMode } from "./use-panel-viewport";
@@ -53,6 +54,7 @@ export function BrowserToolbar({
   viewportMode: ViewportMode;
   onViewportMode: (mode: ViewportMode) => void;
 }) {
+  const { t } = useTranslation();
   const client = useClient();
   const tab = browser.activeTab;
   const [url, setUrl] = useState(tab?.url ?? "");
@@ -63,7 +65,7 @@ export function BrowserToolbar({
   }, [tab?.url]);
 
   const history = (action: "back" | "forward" | "reload") =>
-    void browser.run("Navigation failed", () =>
+    void browser.run(t("workbench.browser.navigationFailed"), () =>
       client.browser.history(sessionId, action, tab?.tabId),
     );
   const submit = (e: FormEvent) => {
@@ -71,7 +73,7 @@ export function BrowserToolbar({
     editing.current = false;
     const target = url.trim();
     if (!target) return;
-    void browser.run("Navigation failed", () =>
+    void browser.run(t("workbench.browser.navigationFailed"), () =>
       client.browser.navigate(sessionId, target, tab?.tabId),
     );
   };
@@ -91,7 +93,7 @@ export function BrowserToolbar({
         size="icon-xs"
         className={iconBtn}
         onClick={() => history("back")}
-        aria-label="Back"
+        aria-label={t("workbench.browser.back")}
       >
         <ArrowLeft />
       </Button>
@@ -101,7 +103,7 @@ export function BrowserToolbar({
         size="icon-xs"
         className={iconBtn}
         onClick={() => history("forward")}
-        aria-label="Forward"
+        aria-label={t("workbench.browser.forward")}
       >
         <ArrowRight />
       </Button>
@@ -111,7 +113,7 @@ export function BrowserToolbar({
         size="icon-xs"
         className={iconBtn}
         onClick={() => history("reload")}
-        aria-label="Reload"
+        aria-label={t("workbench.browser.reload")}
       >
         <RotateCw />
       </Button>
@@ -123,8 +125,8 @@ export function BrowserToolbar({
         }}
         onBlur={() => (editing.current = false)}
         onChange={(e) => setUrl(e.target.value)}
-        aria-label="Address"
-        placeholder="Enter a URL or localhost:5173"
+        aria-label={t("workbench.browser.address")}
+        placeholder={t("workbench.browser.addressPlaceholder")}
         className="mx-1 h-7 min-w-0 flex-1 rounded-md border border-border bg-background/60 px-2 font-mono text-2xs outline-none focus:border-ring"
       />
       {browser.agentActing && <AgentActingChip />}
@@ -136,7 +138,7 @@ export function BrowserToolbar({
             variant="ghost"
             size="icon-xs"
             className={iconBtn}
-            aria-label="Browser options"
+            aria-label={t("workbench.browser.options")}
           >
             <MoreHorizontal />
           </Button>
@@ -147,7 +149,7 @@ export function BrowserToolbar({
               className="text-xs"
               onSelect={() => platform.nativeBrowser?.inspect(sessionId)}
             >
-              <Code2 /> Inspect
+              <Code2 /> {t("workbench.browser.inspect")}
             </DropdownMenuItem>
           ) : (
             <ViewportItems
@@ -160,17 +162,19 @@ export function BrowserToolbar({
           <DropdownMenuItem
             className="text-xs"
             onSelect={() =>
-              void browser.run("Couldn't open a tab", () => client.browser.newTab(sessionId))
+              void browser.run(t("workbench.browser.newTabFailed"), () =>
+                client.browser.newTab(sessionId),
+              )
             }
           >
-            <Plus /> New tab
+            <Plus /> {t("workbench.browser.newTab")}
           </DropdownMenuItem>
           <DropdownMenuItem
             className="text-xs"
             variant="destructive"
             onSelect={() => void browser.closeBrowser()}
           >
-            <X /> Close browser
+            <X /> {t("workbench.browser.close")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -189,14 +193,15 @@ function ViewportItems({
   /** The applied size when the page follows this panel. */
   applied: { width: number; height: number } | null;
 }) {
+  const { t } = useTranslation();
   return (
     <>
       <DropdownMenuLabel className="flex items-center gap-2 text-2xs">
-        <Monitor className="size-3.5" /> Viewport
+        <Monitor className="size-3.5" /> {t("workbench.browser.viewport")}
       </DropdownMenuLabel>
       <DropdownMenuRadioGroup value={mode} onValueChange={onMode}>
         <DropdownMenuRadioItem value="fit" className="text-xs">
-          Fit to panel
+          {t("workbench.browser.fit")}
           {mode === "fit" && applied && (
             <span className="ml-auto font-mono text-3xs text-muted-foreground">
               {applied.width}×{applied.height}
@@ -218,16 +223,17 @@ function ViewportItems({
 
 /** Shown while an agent drives the browser; your own input still goes straight to the page. */
 function AgentActingChip() {
+  const { t } = useTranslation();
   return (
     <span
       data-testid="browser-agent-acting"
       role="status"
-      title="An agent is using this browser. You can still click and type; both go to the page."
+      title={t("workbench.browser.agentActingHint")}
       className="mr-1 flex h-6 shrink-0 items-center gap-1.5 rounded-full border border-status-running/40 bg-status-running/10 px-2 text-3xs font-medium text-status-running"
     >
       <span className="size-1.5 animate-pulse rounded-full bg-status-running" />
       <Bot className="size-3" />
-      <span className="max-[380px]:sr-only">Agent is acting</span>
+      <span className="max-[380px]:sr-only">{t("workbench.browser.agentActing")}</span>
     </span>
   );
 }
@@ -242,6 +248,7 @@ export function DevServerMenu({
   browser: SessionBrowser;
   variant?: "icon" | "button";
 }) {
+  const { t } = useTranslation();
   const client = useClient();
   const [open, setOpen] = useState(false);
   const servers = useQuery({
@@ -252,7 +259,7 @@ export function DevServerMenu({
   });
   const launch = (port: number, url: string) => {
     if (browser.open)
-      void browser.run("Couldn't open the dev server", () =>
+      void browser.run(t("workbench.browser.devServerFailed"), () =>
         client.browser.openDevServer(sessionId, port),
       );
     else void browser.openBrowser(url);
@@ -266,24 +273,28 @@ export function DevServerMenu({
             variant="ghost"
             size="icon-xs"
             className={iconBtn}
-            aria-label="Dev servers"
+            aria-label={t("workbench.browser.devServers")}
           >
             <Server />
           </Button>
         ) : (
           <Button type="button" size="sm" variant="outline">
-            <Server /> Dev servers
+            <Server /> {t("workbench.browser.devServers")}
           </Button>
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-60">
-        <DropdownMenuLabel className="text-2xs">Running dev servers</DropdownMenuLabel>
+        <DropdownMenuLabel className="text-2xs">
+          {t("workbench.browser.runningDevServers")}
+        </DropdownMenuLabel>
         {servers.isLoading && (
-          <div className="px-2 py-1.5 text-2xs text-muted-foreground">Looking…</div>
+          <div className="px-2 py-1.5 text-2xs text-muted-foreground">
+            {t("workbench.browser.looking")}
+          </div>
         )}
         {servers.data?.servers.length === 0 && (
           <div className="px-2 py-1.5 text-2xs text-muted-foreground">
-            None found. Start one in the terminal, then check again.
+            {t("workbench.browser.noneFound")}
           </div>
         )}
         {servers.data?.servers.map((s) => (
@@ -291,7 +302,9 @@ export function DevServerMenu({
             <span className={cn("size-1.5 rounded-full bg-status-done")} />
             <span className="font-mono">{s.url.replace(/^https?:\/\//, "")}</span>
             {s.pid !== null && (
-              <span className="ml-auto text-3xs text-muted-foreground">pid {s.pid}</span>
+              <span className="ml-auto text-3xs text-muted-foreground">
+                {t("workbench.browser.pid", { pid: s.pid })}
+              </span>
             )}
           </DropdownMenuItem>
         ))}

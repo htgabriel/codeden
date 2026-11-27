@@ -1,7 +1,8 @@
 import { CircleSlash, OctagonX } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTurnCostText } from "@/components/usage/session-cost";
-import { duration, plural } from "@/lib/format";
+import { duration } from "@/lib/format";
+import { useTranslation } from "@/lib/i18n";
 import { checkRunOf } from "@/lib/transcript/checks";
 import type { TimelineRow as Row } from "@/lib/transcript/timeline";
 import { ApprovalCard } from "./cards/approval-card";
@@ -17,10 +18,11 @@ import { HookRow } from "./work/hook-row";
 import { WorkGroup } from "./work/work-group";
 
 function Working({ startedAt }: { startedAt: string }) {
+  const { t } = useTranslation();
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
   }, []);
   return (
     <div className="flex items-center gap-2 px-1.5 text-2xs text-muted-foreground">
@@ -33,7 +35,7 @@ function Working({ startedAt }: { startedAt: string }) {
           />
         ))}
       </span>
-      <span className="text-shine">Working</span>
+      <span className="text-shine">{t("workbench.turn.working")}</span>
       <span className="tabular-nums">{duration(Math.max(0, now - Date.parse(startedAt)))}</span>
     </div>
   );
@@ -46,12 +48,14 @@ function TurnFooter({
   row: Extract<Row, { type: "turn-end" }>;
   sessionId: string;
 }) {
+  const { t } = useTranslation();
   const { turn } = row;
   const cost = useTurnCostText(sessionId, turn.id);
   const parts: string[] = [];
   if (row.durationMs !== null && row.durationMs > 0)
-    parts.push(`Worked for ${duration(row.durationMs)}`);
-  if (row.filesChanged > 0) parts.push(`${plural(row.filesChanged, "file")} changed`);
+    parts.push(t("workbench.turn.workedFor", { duration: duration(row.durationMs) }));
+  if (row.filesChanged > 0)
+    parts.push(t("workbench.turn.filesChanged", { count: row.filesChanged }));
   if (cost) parts.push(cost);
   return (
     <div className="group relative flex items-center gap-3 py-1 text-3xs text-muted-foreground/70">
@@ -59,15 +63,17 @@ function TurnFooter({
       {turn.status === "failed" ? (
         <span className="flex items-center gap-1 text-status-failed">
           <OctagonX className="size-3" />
-          {turn.kind === "compact" ? "Compaction failed" : "Turn failed"}
+          {turn.kind === "compact"
+            ? t("workbench.turn.compactionFailed")
+            : t("workbench.turn.failed")}
           {turn.error ? ` · ${turn.error.message}` : ""}
         </span>
       ) : turn.status === "interrupted" ? (
         <span className="flex items-center gap-1">
-          <CircleSlash className="size-3" /> Interrupted
+          <CircleSlash className="size-3" /> {t("workbench.turn.interrupted")}
         </span>
       ) : (
-        <span>{parts.join(" · ") || "Done"}</span>
+        <span>{parts.join(" · ") || t("workbench.turn.done")}</span>
       )}
       <div className="h-px flex-1 bg-border/70" />
       <ForkFromHere sessionId={sessionId} row={row} />

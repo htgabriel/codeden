@@ -1,6 +1,7 @@
 import type { FactoryStatus } from "@codeden/contracts";
 import { Hourglass, Unplug } from "lucide-react";
 import { InfoHint } from "@/components/common/info-hint";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { providerWaitHelp, wipHelp, wipLabel } from "./meta";
 
@@ -14,6 +15,7 @@ const CHIP =
  * doesn't count").
  */
 export function WipChip({ f, className }: { f: FactoryStatus; className?: string }) {
+  const { t } = useTranslation();
   const { holding, note } = f.wip;
   if (!holding && !note) return null;
   return (
@@ -22,8 +24,8 @@ export function WipChip({ f, className }: { f: FactoryStatus; className?: string
         <span className={cn(CHIP, className)} data-testid="factory-wip">
           <Hourglass className="size-3 shrink-0" aria-hidden />
           <span className="truncate">{wipLabel(f.wip)}</span>
-          <InfoHint label="finishing open work">
-            {`New builds and the scout wait until a pull request merges or closes. ${wipHelp()}`}
+          <InfoHint label={t("factory.wip.finishingLabel")}>
+            {`${t("factory.wip.finishingHint")} ${wipHelp()}`}
           </InfoHint>
         </span>
       )}
@@ -31,7 +33,7 @@ export function WipChip({ f, className }: { f: FactoryStatus; className?: string
         <span className={cn(CHIP, className)} data-testid="factory-wip-provider" title={note}>
           <Unplug className="size-3 shrink-0" aria-hidden />
           <span className="truncate">{note}</span>
-          <InfoHint label="waiting on a provider">{providerWaitHelp()}</InfoHint>
+          <InfoHint label={t("factory.wip.providerLabel")}>{providerWaitHelp()}</InfoHint>
         </span>
       )}
     </>

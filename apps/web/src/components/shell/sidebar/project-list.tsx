@@ -18,17 +18,13 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useTranslation } from "@/lib/i18n";
 import { useProjectActions } from "@/lib/project-actions";
 import { ProjectGroup } from "./project-group";
 import type { GroupPosition } from "./project-menu";
 
 /** Drags move up and down only. */
 const verticalOnly: Modifier = ({ transform }) => ({ ...transform, x: 0 });
-
-const screenReaderInstructions = {
-  draggable:
-    "To reorder, press space or enter, move with the up and down arrow keys, then press space or enter to drop, or escape to cancel.",
-};
 
 function SortableProject({
   project,
@@ -69,25 +65,34 @@ export function SortableProjectGroup({
   /** Group name for screen reader announcements. */
   label: string;
 }) {
+  const { t } = useTranslation();
   const actions = useProjectActions();
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
   const ids = projects.map((p) => p.id);
-  const name = (id: UniqueIdentifier) => projects.find((p) => p.id === id)?.name ?? "project";
+  const name = (id: UniqueIdentifier) =>
+    projects.find((p) => p.id === id)?.name ?? t("shell.projectList.project");
   const place = (id: UniqueIdentifier) =>
-    `position ${ids.indexOf(String(id)) + 1} of ${ids.length} in ${label}`;
+    t("shell.projectList.place", {
+      n: ids.indexOf(String(id)) + 1,
+      total: ids.length,
+      group: label,
+    });
   const announcements: Announcements = {
-    onDragStart: ({ active }) => `Picked up ${name(active.id)}.`,
+    onDragStart: ({ active }) => t("shell.projectList.pickedUp", { name: name(active.id) }),
     onDragOver: ({ active, over }) =>
       over
-        ? `${name(active.id)} is at ${place(over.id)}.`
-        : `${name(active.id)} is outside the list.`,
+        ? t("shell.projectList.isAt", { name: name(active.id), place: place(over.id) })
+        : t("shell.projectList.outside", { name: name(active.id) }),
     onDragEnd: ({ active, over }) =>
-      over ? `${name(active.id)} dropped at ${place(over.id)}.` : `${name(active.id)} dropped.`,
-    onDragCancel: ({ active }) => `Moving ${name(active.id)} cancelled.`,
+      over
+        ? t("shell.projectList.droppedAt", { name: name(active.id), place: place(over.id) })
+        : t("shell.projectList.dropped", { name: name(active.id) }),
+    onDragCancel: ({ active }) => t("shell.projectList.cancelled", { name: name(active.id) }),
   };
+  const screenReaderInstructions = { draggable: t("shell.projectList.instructions") };
 
   const onDragEnd = ({ active, over }: DragEndEvent) => {
     if (!over || active.id === over.id) return;

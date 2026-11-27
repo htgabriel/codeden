@@ -1,5 +1,7 @@
 /** Keyboard shortcuts: one registry for binding, the help dialog and Settings. */
 
+import { i18n } from "@/lib/i18n";
+
 export type ShortcutId =
   | "palette"
   | "sidebar"
@@ -30,29 +32,37 @@ export interface Shortcut {
   group: "General" | "Navigation" | "Composer" | "Panels";
 }
 
-export const SHORTCUTS: Shortcut[] = [
-  { id: "palette", combo: "mod+k", label: "Command palette", group: "General" },
-  { id: "help", combo: "shift+?", label: "Keyboard shortcuts", group: "General" },
-  { id: "theme", combo: "mod+shift+l", label: "Toggle light / dark", group: "General" },
-  { id: "settings", combo: "mod+,", label: "Settings", group: "General" },
-  { id: "orchestrator", combo: "alt+o", label: "Go to orchestrator", group: "Navigation" },
-  { id: "inbox", combo: "alt+i", label: "Go to inbox", group: "Navigation" },
-  { id: "sidebar", combo: "mod+b", label: "Toggle sidebar", group: "Panels" },
-  { id: "rightPanel", combo: "mod+\\", label: "Toggle right panel", group: "Panels" },
-  { id: "terminal", combo: "mod+j", label: "Toggle terminal drawer", group: "Panels" },
-  { id: "tab1", combo: "alt+1", label: "Diff tab", group: "Panels" },
-  { id: "tab2", combo: "alt+2", label: "Files tab", group: "Panels" },
-  { id: "tab3", combo: "alt+3", label: "Browser tab", group: "Panels" },
-  { id: "tab4", combo: "alt+4", label: "Terminal tab", group: "Panels" },
-  { id: "tab5", combo: "alt+5", label: "Issue / PR tab", group: "Panels" },
-  { id: "tab6", combo: "alt+6", label: "Details tab", group: "Panels" },
-  { id: "focusComposer", combo: "/", label: "Focus the composer", group: "Composer" },
-  { id: "send", combo: "enter", label: "Send (queue while running)", group: "Composer" },
-  { id: "newline", combo: "shift+enter", label: "New line", group: "Composer" },
-  { id: "stop", combo: "mod+.", label: "Stop the running turn", group: "Composer" },
-  { id: "dictate", combo: "mod+shift+m", label: "Start / stop dictation", group: "Composer" },
-  { id: "modelPicker", combo: "alt+m", label: "Choose model and effort", group: "Composer" },
+const DEFS: Omit<Shortcut, "label">[] = [
+  { id: "palette", combo: "mod+k", group: "General" },
+  { id: "help", combo: "shift+?", group: "General" },
+  { id: "theme", combo: "mod+shift+l", group: "General" },
+  { id: "settings", combo: "mod+,", group: "General" },
+  { id: "orchestrator", combo: "alt+o", group: "Navigation" },
+  { id: "inbox", combo: "alt+i", group: "Navigation" },
+  { id: "sidebar", combo: "mod+b", group: "Panels" },
+  { id: "rightPanel", combo: "mod+\\", group: "Panels" },
+  { id: "terminal", combo: "mod+j", group: "Panels" },
+  { id: "tab1", combo: "alt+1", group: "Panels" },
+  { id: "tab2", combo: "alt+2", group: "Panels" },
+  { id: "tab3", combo: "alt+3", group: "Panels" },
+  { id: "tab4", combo: "alt+4", group: "Panels" },
+  { id: "tab5", combo: "alt+5", group: "Panels" },
+  { id: "tab6", combo: "alt+6", group: "Panels" },
+  { id: "focusComposer", combo: "/", group: "Composer" },
+  { id: "send", combo: "enter", group: "Composer" },
+  { id: "newline", combo: "shift+enter", group: "Composer" },
+  { id: "stop", combo: "mod+.", group: "Composer" },
+  { id: "dictate", combo: "mod+shift+m", group: "Composer" },
+  { id: "modelPicker", combo: "alt+m", group: "Composer" },
 ];
+
+/** Every shortcut; `label` is read in the UI language each time (§13). */
+export const SHORTCUTS: Shortcut[] = DEFS.map((d) => ({
+  ...d,
+  get label() {
+    return i18n.t(`messages.shortcuts.${d.id}`);
+  },
+}));
 
 export const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
 

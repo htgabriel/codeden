@@ -1,5 +1,6 @@
 import { type FactoryItemCost, ITEM_BUDGET_WARN, itemBudgetUsed } from "@codeden/contracts";
 import { money, tokens } from "@/components/usage/format";
+import { i18n } from "@/lib/i18n";
 
 /**
  * A factory work item's cost (§10.1, §12.6) as the Factory view's cards, its side sheet and the
@@ -18,7 +19,7 @@ function notPriced(c: FactoryItemCost): boolean {
 
 /** "≈ $12.40" for estimates, "$3.10" when reported, "Not priced" when nothing could be. */
 export function costText(c: FactoryItemCost): string {
-  return notPriced(c) ? "Not priced" : money(c.usd, c.estimatedUsd > 0);
+  return notPriced(c) ? i18n.t("factory.cost.notPriced") : money(c.usd, c.estimatedUsd > 0);
 }
 
 /**
@@ -26,17 +27,16 @@ export function costText(c: FactoryItemCost): string {
  * list prices) · 3 sessions · 42 turns · 4.1M tokens".
  */
 export function costTitle(c: FactoryItemCost): string {
-  if (notPriced(c)) {
-    return `Not priced: no price for these models and no reported cost · ${tokens(c.tokens)} tokens`;
-  }
-  const kind = c.apiEquivalent ? "API-equivalent cost so far" : "Cost so far";
-  const label = c.estimatedUsd > 0 ? `${kind} (estimated from list prices)` : kind;
+  const t = i18n.t;
+  if (notPriced(c)) return t("factory.cost.notPricedTitle", { tokens: tokens(c.tokens) });
+  const kind = c.apiEquivalent ? t("factory.cost.apiSoFar") : t("factory.cost.soFar");
+  const label = c.estimatedUsd > 0 ? t("factory.cost.estimated", { kind }) : kind;
   return [
     label,
-    `${c.sessions} session${c.sessions === 1 ? "" : "s"}`,
-    `${c.turns} turn${c.turns === 1 ? "" : "s"}`,
-    `${tokens(c.tokens)} tokens`,
-    c.unpricedTurns > 0 ? `${c.unpricedTurns} turns not priced` : null,
+    t("factory.cost.sessions", { count: c.sessions }),
+    t("factory.cost.turns", { count: c.turns }),
+    t("factory.cost.tokens", { tokens: tokens(c.tokens) }),
+    c.unpricedTurns > 0 ? t("factory.cost.turnsNotPriced", { count: c.unpricedTurns }) : null,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -44,7 +44,7 @@ export function costTitle(c: FactoryItemCost): string {
 
 /** "≈ $12.40 · 4.1M tokens" for the item's Cost fact. */
 export function costFact(c: FactoryItemCost): string {
-  return `${costText(c)} · ${tokens(c.tokens)} tokens`;
+  return `${costText(c)} · ${i18n.t("factory.cost.tokens", { tokens: tokens(c.tokens) })}`;
 }
 
 /**
@@ -55,8 +55,15 @@ export function capText(c: FactoryItemCost | null | undefined): string | null {
   const cap = c?.cap;
   if (!cap) return null;
   return [
-    cap.usd !== null ? `${money(cap.spentUsd)} of ${money(cap.usd)}` : null,
-    cap.tokens !== null ? `${tokens(cap.spentTokens)} of ${tokens(cap.tokens)} tokens` : null,
+    cap.usd !== null
+      ? i18n.t("factory.cost.capUsd", { spent: money(cap.spentUsd), cap: money(cap.usd) })
+      : null,
+    cap.tokens !== null
+      ? i18n.t("factory.cost.capTokens", {
+          spent: tokens(cap.spentTokens),
+          cap: tokens(cap.tokens),
+        })
+      : null,
   ]
     .filter(Boolean)
     .join(" · ");

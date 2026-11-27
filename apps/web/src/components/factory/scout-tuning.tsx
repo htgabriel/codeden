@@ -3,6 +3,7 @@ import { useId } from "react";
 import { Field } from "@/components/automations/form-bits";
 import { InfoHint } from "@/components/common/info-hint";
 import { NumberField } from "@/components/common/number-field";
+import { i18n, useTranslation } from "@/lib/i18n";
 import { AgentPicker } from "./agents-tuning";
 import { reviewAreasHelp, scoutHelp } from "./meta";
 
@@ -20,13 +21,15 @@ export type ScoutDraft = Pick<
 /** What the backlog threshold means, for its hint and the scout's description. */
 export function backlogHelp(minBacklog: number): string {
   return minBacklog === 0
-    ? "0: scheduled rounds are off. The scout only runs when you click Run scout now on the factory panel."
-    : `The scout starts a scheduled round only when ${queueLow(minBacklog)} to be classified or for a free agent, and the interval has passed. 0 turns scheduled rounds off: then only Run scout now starts one.`;
+    ? i18n.t("factory.scoutTuning.backlogOff")
+    : i18n.t("factory.scoutTuning.backlogOn", { low: queueLow(minBacklog) });
 }
 
 /** "fewer than 3 issues wait", or "no issue waits" for a threshold of 1. */
 function queueLow(minBacklog: number): string {
-  return minBacklog === 1 ? "no issue waits" : `fewer than ${minBacklog} issues wait`;
+  return minBacklog === 1
+    ? i18n.t("factory.scoutTuning.noneWaits")
+    : i18n.t("factory.scoutTuning.fewerWait", { n: minBacklog });
 }
 
 /** The dark factory's scout limits in the factory settings. */
@@ -37,32 +40,33 @@ export function ScoutTuning<T extends ScoutDraft>({
   tuning: T;
   onChange: (t: T) => void;
 }) {
+  const { t } = useTranslation();
   const id = useId();
   return (
     <div className="space-y-3 border-t border-border pt-4" data-testid="scout-tuning">
       <div>
         <p className="flex items-center gap-1 text-[13px] font-medium">
-          The scout
-          <InfoHint label="the scout">{scoutHelp()}</InfoHint>
+          {t("factory.scoutTuning.title")}
+          <InfoHint label={t("factory.scoutTuning.titleLabel")}>{scoutHelp()}</InfoHint>
         </p>
         <p className="text-3xs text-muted-foreground">
-          It reviews the app against the vision{" "}
-          {tuning.minBacklog === 0
-            ? "when you click Run scout now"
-            : `on a schedule, when ${queueLow(tuning.minBacklog)}`}
-          , using a few long-lived area reviewers (one reviewer agent per review area, such as
-          security or UX), and files the work worth doing.
+          {t("factory.scoutTuning.intro", {
+            when:
+              tuning.minBacklog === 0
+                ? t("factory.scoutTuning.whenRunNow")
+                : t("factory.scoutTuning.whenScheduled", { low: queueLow(tuning.minBacklog) }),
+          })}
         </p>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <Field
-          label="Review when fewer than"
+          label={t("factory.scoutTuning.reviewWhen")}
           htmlFor={`${id}-backlog`}
           hint={backlogHelp(tuning.minBacklog)}
           help={
             tuning.minBacklog === 0
-              ? "Off: only Run scout now starts a round."
-              : `issue${tuning.minBacklog === 1 ? "" : "s"} wait for an agent.`
+              ? t("factory.scoutTuning.reviewWhenOff")
+              : t("factory.scoutTuning.reviewWhenHelp", { count: tuning.minBacklog })
           }
         >
           <NumberField
@@ -74,9 +78,13 @@ export function ScoutTuning<T extends ScoutDraft>({
           />
         </Field>
         <Field
-          label="Every (hours)"
+          label={t("factory.scoutTuning.every")}
           htmlFor={`${id}-every`}
-          hint={`How often the scout runs a review round: it plans what to look at, its area reviewers review, and it files issues. ${tuning.minBacklog === 0 ? "Scheduled rounds are off while the threshold is 0." : `It also waits until ${queueLow(tuning.minBacklog)}.`}`}
+          hint={`${t("factory.scoutTuning.everyHint")} ${
+            tuning.minBacklog === 0
+              ? t("factory.scoutTuning.everyOff")
+              : t("factory.scoutTuning.everyWaits", { low: queueLow(tuning.minBacklog) })
+          }`}
         >
           <NumberField
             id={`${id}-every`}
@@ -86,7 +94,11 @@ export function ScoutTuning<T extends ScoutDraft>({
             className="text-[13px]"
           />
         </Field>
-        <Field label="Review areas per round" htmlFor={`${id}-areas`} hint={reviewAreasHelp()}>
+        <Field
+          label={t("factory.scoutTuning.areas")}
+          htmlFor={`${id}-areas`}
+          hint={reviewAreasHelp()}
+        >
           <NumberField
             id={`${id}-areas`}
             min={0}
@@ -97,9 +109,9 @@ export function ScoutTuning<T extends ScoutDraft>({
           />
         </Field>
         <Field
-          label="Issues per round"
+          label={t("factory.scoutTuning.issues")}
           htmlFor={`${id}-issues`}
-          hint="The most issues the scout files from one round. It files only what is most worth doing, so a round can file fewer or none."
+          hint={t("factory.scoutTuning.issuesHint")}
         >
           <NumberField
             id={`${id}-issues`}
@@ -111,11 +123,11 @@ export function ScoutTuning<T extends ScoutDraft>({
         </Field>
         <AgentPicker
           id={`${id}-agent`}
-          label="Scout"
+          label={t("factory.badge.scout")}
           provider={tuning.scoutProvider}
           model={tuning.scoutModel}
-          hint="Runs the scout and its area reviewers, long-lived agents that read a lot of code each round. Automatic: the project's provider. A scout or area reviewer on another provider or model starts afresh at its next round."
-          meanwhile="the scout starts on another available provider"
+          hint={t("factory.scoutTuning.agentHint")}
+          meanwhile={t("factory.scoutTuning.agentMeanwhile")}
           onChange={(scoutProvider, scoutModel) =>
             onChange({ ...tuning, scoutProvider, scoutModel })
           }

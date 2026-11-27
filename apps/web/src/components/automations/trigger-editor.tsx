@@ -9,9 +9,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { i18n, useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { Field } from "./form-bits";
-import { EVENT_LABEL } from "./meta";
+import { describeEvent, EVENT_LABEL } from "./meta";
 import { SchedulePicker } from "./schedule-picker";
 
 type EventTrigger = Extract<AutomationTrigger, { type: "event" }>;
@@ -31,11 +32,8 @@ function filtersFor(event: AutomationEventName): (keyof Filter)[] {
   return [];
 }
 
-const FILTER_HELP: Record<keyof Filter, string> = {
-  labels: "Only when the issue or PR has one of these labels.",
-  branches: "Only for PRs into or from these branches.",
-  authors: "Only for these GitHub users.",
-};
+const filterHelp = (key: keyof Filter) => i18n.t(`automations.triggerEditor.filterHelp.${key}`);
+const filterName = (key: keyof Filter) => i18n.t(`automations.triggerEditor.filterName.${key}`);
 
 function EventFields({
   trigger,
@@ -46,6 +44,7 @@ function EventFields({
   onChange: (t: AutomationTrigger) => void;
   disabled?: boolean;
 }) {
+  const { t } = useTranslation();
   const id = useId();
   const setFilter = (key: keyof Filter, value: string) => {
     const next: Filter = { ...trigger.filter, [key]: parseList(value) };
@@ -54,7 +53,7 @@ function EventFields({
   };
   return (
     <div className="space-y-3">
-      <Field label="When">
+      <Field label={t("automations.triggerEditor.when")}>
         <Select
           value={trigger.event}
           disabled={disabled}
@@ -62,26 +61,30 @@ function EventFields({
             onChange({ type: "event", event: event as AutomationEventName, filter: trigger.filter })
           }
         >
-          <SelectTrigger className="w-80" aria-label="Event">
+          <SelectTrigger className="w-80" aria-label={t("automations.triggerEditor.eventAria")}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             {(Object.keys(EVENT_LABEL) as AutomationEventName[]).map((e) => (
               <SelectItem key={e} value={e}>
-                When {EVENT_LABEL[e].charAt(0).toLowerCase()}
-                {EVENT_LABEL[e].slice(1)}
+                {describeEvent(e)}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </Field>
       {filtersFor(trigger.event).map((key) => (
-        <Field key={key} label={`Filter: ${key}`} htmlFor={`${id}-${key}`} help={FILTER_HELP[key]}>
+        <Field
+          key={key}
+          label={t("automations.triggerEditor.filter", { name: filterName(key) })}
+          htmlFor={`${id}-${key}`}
+          help={filterHelp(key)}
+        >
           <Input
             id={`${id}-${key}`}
             defaultValue={list(trigger.filter?.[key])}
             disabled={disabled}
-            placeholder="Any (comma-separated)"
+            placeholder={t("automations.triggerEditor.any")}
             onBlur={(e) => setFilter(key, e.target.value)}
             className="text-[13px]"
           />
@@ -91,20 +94,10 @@ function EventFields({
   );
 }
 
-const KINDS: {
-  id: AutomationTrigger["type"];
-  label: string;
-  help: string;
-  icon: typeof CalendarClock;
-}[] = [
-  {
-    id: "cron",
-    label: "On a schedule",
-    help: "Every few minutes, daily, weekly…",
-    icon: CalendarClock,
-  },
-  { id: "event", label: "When something happens", help: "A PR, an issue or a session", icon: Zap },
-  { id: "manual", label: "Only when I run it", help: "Run now, or the PM runs it", icon: Hand },
+const KINDS: { id: AutomationTrigger["type"]; icon: typeof CalendarClock }[] = [
+  { id: "cron", icon: CalendarClock },
+  { id: "event", icon: Zap },
+  { id: "manual", icon: Hand },
 ];
 
 /**
@@ -125,6 +118,7 @@ export function TriggerEditor({
   /** Triage runs on issue events only. */
   allowCron?: boolean;
 }) {
+  const { t } = useTranslation();
   const switchTo = (type: AutomationTrigger["type"]) => {
     if (type === trigger.type) return;
     if (type === "cron") onChange({ type: "cron", expression: "0 9 * * 1-5" });
@@ -133,7 +127,7 @@ export function TriggerEditor({
   };
   return (
     <div className="space-y-4">
-      <fieldset className="grid gap-2 sm:grid-cols-3" aria-label="When it runs">
+      <fieldset className="grid gap-2 sm:grid-cols-3" aria-label={t("automations.form.whenItRuns")}>
         {KINDS.filter((k) => allowCron || k.id !== "cron").map((k) => (
           <button
             key={k.id}
@@ -153,8 +147,12 @@ export function TriggerEditor({
               )}
             />
             <span className="min-w-0">
-              <span className="block text-[13px] font-medium">{k.label}</span>
-              <span className="block text-3xs text-muted-foreground">{k.help}</span>
+              <span className="block text-[13px] font-medium">
+                {t(`automations.triggerEditor.${k.id}`)}
+              </span>
+              <span className="block text-3xs text-muted-foreground">
+                {t(`automations.triggerEditor.${k.id}Help`)}
+              </span>
             </span>
           </button>
         ))}
@@ -172,7 +170,7 @@ export function TriggerEditor({
       )}
       {trigger.type === "manual" && (
         <p className="text-2xs text-muted-foreground">
-          Runs only when you press Run now, or when the PM runs it.
+          {t("automations.triggerEditor.manualNote")}
         </p>
       )}
     </div>

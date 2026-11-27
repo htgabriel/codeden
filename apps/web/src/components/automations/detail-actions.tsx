@@ -18,9 +18,11 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useClient } from "@/lib/api";
 import { automationKeys } from "@/lib/automations";
+import { useTranslation } from "@/lib/i18n";
 
 /** "From file", "Created by the PM" and "Imported" badges of an automation. */
 export function OriginBadges({ item }: { item: AutomationListItem }) {
+  const { t } = useTranslation();
   const by = item.automation.createdBy;
   return (
     <>
@@ -31,22 +33,24 @@ export function OriginBadges({ item }: { item: AutomationListItem }) {
               className="flex items-center gap-1 rounded bg-muted px-1.5 py-px text-3xs text-muted-foreground"
               data-testid="from-file-badge"
             >
-              <FileCode2 className="size-3" /> From file
+              <FileCode2 className="size-3" /> {t("automations.detail.fromFile")}
             </span>
           </TooltipTrigger>
           <TooltipContent className="font-mono">
-            {item.path ?? "Built in"} · edit the file, or duplicate it to edit here
+            {t("automations.detail.fileTooltip", {
+              path: item.path ?? t("automations.detail.builtIn"),
+            })}
           </TooltipContent>
         </Tooltip>
       )}
       {by === "pm" && (
         <span className="flex items-center gap-1 rounded bg-primary/10 px-1.5 py-px text-3xs text-primary">
-          <Bot className="size-3" /> Created by the PM
+          <Bot className="size-3" /> {t("automations.detail.createdByPm")}
         </span>
       )}
       {by === "import" && (
         <span className="flex items-center gap-1 rounded bg-muted px-1.5 py-px text-3xs text-muted-foreground">
-          <Import className="size-3" /> Imported
+          <Import className="size-3" /> {t("automations.detail.imported")}
         </span>
       )}
     </>
@@ -61,6 +65,7 @@ export function DetailActions({
   item: AutomationListItem;
   projectId: string;
 }) {
+  const { t } = useTranslation();
   const client = useClient();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -75,19 +80,20 @@ export function DetailActions({
       client.automations.duplicate(a.id, a.target.type === "project" ? { projectId } : {}),
     onSuccess: (copy) => {
       void queryClient.invalidateQueries({ queryKey: automationKeys.all });
-      toast.success(`${copy.automation.name} created, off`);
+      toast.success(t("automations.detail.duplicated", { name: copy.automation.name }));
       open(copy.automation.id);
     },
-    onError: (e) => toast.error("Couldn't duplicate", { description: e.message }),
+    onError: (e) =>
+      toast.error(t("automations.detail.duplicateFailed"), { description: e.message }),
   });
   const remove = useMutation({
     mutationFn: () => client.automations.remove(a.id),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: automationKeys.all });
-      toast.success(`${a.name} deleted`);
+      toast.success(t("automations.detail.deleted", { name: a.name }));
       void navigate({ to: "/projects/$projectId/automations", params: { projectId } });
     },
-    onError: (e) => toast.error("Couldn't delete", { description: e.message }),
+    onError: (e) => toast.error(t("automations.detail.deleteFailed"), { description: e.message }),
   });
   return (
     <>
@@ -97,27 +103,33 @@ export function DetailActions({
         onClick={() => duplicate.mutate()}
         disabled={duplicate.isPending}
       >
-        <Copy /> {item.readOnly ? "Duplicate to edit" : "Duplicate"}
+        <Copy />{" "}
+        {item.readOnly
+          ? t("automations.detail.duplicateToEdit")
+          : t("automations.detail.duplicate")}
       </Button>
       {!item.readOnly && (
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button size="icon-sm" variant="ghost" aria-label={`Delete ${a.name}`}>
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              aria-label={t("automations.detail.deleteAria", { name: a.name })}
+            >
               <Trash2 />
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete {a.name}?</AlertDialogTitle>
-              <AlertDialogDescription>
-                It stops running and disappears from every project. Its past runs and their sessions
-                stay. Export it first if you may want it back.
-              </AlertDialogDescription>
+              <AlertDialogTitle>
+                {t("automations.detail.deleteTitle", { name: a.name })}
+              </AlertDialogTitle>
+              <AlertDialogDescription>{t("automations.detail.deleteBody")}</AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
               <AlertDialogAction variant="destructive" onClick={() => remove.mutate()}>
-                Delete
+                {t("automations.detail.delete")}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

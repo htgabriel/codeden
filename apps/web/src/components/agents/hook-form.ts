@@ -4,15 +4,26 @@ import {
   HookEventName,
   type HookHandler,
 } from "@codeden/contracts";
+import { i18n } from "@/lib/i18n";
 
 /** Hook types the dialog edits; others are listed and can be disabled or deleted. */
 export type EditableHookType = keyof typeof HOOK_TYPE_MAIN_FIELD;
 
+const hookType = (type: EditableHookType) => ({
+  get label() {
+    return i18n.t(`shell.hookForm.${type}.label`);
+  },
+  get field() {
+    return i18n.t(`shell.hookForm.${type}.field`);
+  },
+});
+
+/** Each type's name and its main field's label, in the UI language. */
 export const HOOK_TYPE_LABELS: Record<EditableHookType, { label: string; field: string }> = {
-  command: { label: "Command", field: "Command" },
-  http: { label: "HTTP", field: "URL" },
-  prompt: { label: "Prompt", field: "Prompt" },
-  agent: { label: "Agent", field: "Prompt" },
+  command: hookType("command"),
+  http: hookType("http"),
+  prompt: hookType("prompt"),
+  agent: hookType("agent"),
 };
 
 export const isEditableHook = (h: HookHandler): h is HookHandler & { type: EditableHookType } =>

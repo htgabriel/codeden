@@ -11,6 +11,7 @@ import {
   lowerFirst,
   type ModelChoice,
   providerAvailability,
+  reasonText,
 } from "@/components/composer/model-picker/logic";
 import { ModelPicker } from "@/components/composer/model-picker/model-picker";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { i18n, Trans, useTranslation } from "@/lib/i18n";
 import { useRecheckSetup, useSession, useSetupStatus, useSnapshotData } from "@/lib/queries";
 import { useHandoffBlocked, useHandoffSession } from "@/lib/session-actions";
 import { useUiStore } from "@/stores/ui";
@@ -64,13 +66,16 @@ export function handoffTargetProblem(
 ) {
   if (!target) return null;
   if (availability && !availability.ready) {
-    return `${target.displayName} can't start sessions: ${lowerFirst(availability.reason ?? "Not ready")}.`;
+    return i18n.t("workbench.setup.cantStart", {
+      name: target.displayName,
+      reason: lowerFirst(reasonText(availability.reason)),
+    });
   }
   if (session.autonomy === "read_only" && !target.capabilities.readOnly) {
-    return `${target.displayName} can't run read-only sessions. Change this session's permissions first.`;
+    return i18n.t("workbench.handoff.noReadOnly", { name: target.displayName });
   }
   if (session.planMode && !target.capabilities.planMode) {
-    return `${target.displayName} has no plan mode, and this session is still planning. Approve or leave its plan first.`;
+    return i18n.t("workbench.handoff.noPlanMode", { name: target.displayName });
   }
   return null;
 }
@@ -108,6 +113,7 @@ function HandoffForm({
   asked: string | null;
   onDone: () => void;
 }) {
+  const { t } = useTranslation();
   const providers = useSnapshotData((s) => s.runner.providers, []);
   const checks = useSetupStatus({ staleTime: 60_000 }).data?.checks;
   // Until the user picks, the default follows the setup checks as they arrive.
@@ -138,17 +144,13 @@ function HandoffForm({
     <DialogContent className="sm:max-w-lg" data-testid="handoff-dialog">
       <DialogHeader>
         <DialogTitle className="flex items-center gap-2">
-          <ArrowRightLeft className="size-4 text-muted-foreground" /> Hand off this session
+          <ArrowRightLeft className="size-4 text-muted-foreground" /> {t("workbench.handoff.title")}
         </DialogTitle>
-        <DialogDescription>
-          Continue the work in a new session, on any provider. It starts from this session's code (a
-          new branch with its uncommitted changes) and a brief of what was done. The conversation
-          itself isn't copied, and this session stays as it is.
-        </DialogDescription>
+        <DialogDescription>{t("workbench.handoff.description")}</DialogDescription>
       </DialogHeader>
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
-          <Label>Continue with</Label>
+          <Label>{t("workbench.handoff.with")}</Label>
           <div className="w-fit rounded-lg border border-border px-1 py-0.5">
             <ModelPicker
               providers={providers}
@@ -161,15 +163,17 @@ function HandoffForm({
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="handoff-note">
-            What should it do next?{" "}
-            <span className="font-normal text-muted-foreground">Optional</span>
+            {t("workbench.handoff.next")}{" "}
+            <span className="font-normal text-muted-foreground">
+              {t("workbench.setup.optional")}
+            </span>
           </Label>
           <Textarea
             id="handoff-note"
             value={note}
             maxLength={HANDOFF_NOTE_MAX}
             rows={3}
-            placeholder="Continue where it left off"
+            placeholder={t("workbench.handoff.nextPlaceholder")}
             disabled={handoff.isPending}
             onChange={(e) => setNote(e.target.value)}
             onKeyDown={(e) => {
@@ -189,15 +193,13 @@ function HandoffForm({
           <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
             <span>
               {availability.command ? (
-                <>
-                  Run{" "}
-                  <code className="rounded bg-muted px-1 py-0.5 font-mono">
-                    {availability.command}
-                  </code>{" "}
-                  in a terminal, then check again.
-                </>
+                <Trans
+                  i18nKey="workbench.setup.runCommand"
+                  values={{ command: availability.command }}
+                  components={{ code: <code className="rounded bg-muted px-1 py-0.5 font-mono" /> }}
+                />
               ) : (
-                "Set it up, then check again."
+                t("workbench.setup.setItUp")
               )}
             </span>
             <Button
@@ -206,24 +208,24 @@ function HandoffForm({
               disabled={recheck.isPending}
               onClick={() => recheck.mutate()}
             >
-              {recheck.isPending ? "Checking…" : "Check again"}
+              {recheck.isPending ? t("workbench.setup.checking") : t("workbench.setup.checkAgain")}
             </Button>
           </div>
         )}
         {handoff.isPending && (
           <p className="flex items-center gap-1.5 text-xs text-muted-foreground" role="status">
             <Loader2 className="size-3.5 animate-spin" aria-hidden />
-            Writing the handoff brief… This can take a few seconds.
+            {t("workbench.handoff.writing")}
           </p>
         )}
       </div>
       <DialogFooter>
         <Button variant="ghost" onClick={onDone}>
-          Cancel
+          {t("common.cancel")}
         </Button>
         <Button onClick={submit} disabled={problem !== null || handoff.isPending}>
           {handoff.isPending && <Loader2 className="animate-spin" aria-hidden />}
-          Continue in new {name} session
+          {t("workbench.handoff.submit", { name })}
         </Button>
       </DialogFooter>
     </DialogContent>

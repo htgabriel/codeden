@@ -11,6 +11,7 @@ import {
 import { useClient } from "@/lib/api";
 import { notifyCopyFailed } from "@/lib/copy";
 import { saveBlob, saveMarkdown } from "@/lib/download";
+import { useTranslation } from "@/lib/i18n";
 import { platform } from "@/lib/platform";
 
 /** Bytes of a base64 string. */
@@ -26,6 +27,7 @@ export function base64Bytes(b64: string): Uint8Array<ArrayBuffer> {
  * works dropped into `.codeden/automations/`.
  */
 export function ExportMenu({ automationId }: { automationId: string }) {
+  const { t } = useTranslation();
   const client = useClient();
   const exp = useMutation({
     mutationFn: async (how: "download" | "copy") => {
@@ -41,24 +43,25 @@ export function ExportMenu({ automationId }: { automationId: string }) {
       return { how, file, copied: false };
     },
     onSuccess: ({ how, file, copied }) => {
-      if (how === "download") toast.success(`Downloaded ${file.fileName}`);
-      else if (copied) toast.success("Copied as Markdown");
+      if (how === "download")
+        toast.success(t("automations.export.downloaded", { file: file.fileName }));
+      else if (copied) toast.success(t("automations.export.copied"));
     },
-    onError: (e) => toast.error("Couldn't export", { description: e.message }),
+    onError: (e) => toast.error(t("automations.export.failed"), { description: e.message }),
   });
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button size="sm" variant="outline">
-          <Share2 /> Export <ChevronDown className="opacity-60" />
+          <Share2 /> {t("automations.export.export")} <ChevronDown className="opacity-60" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56" data-testid="export-menu">
         <DropdownMenuItem onSelect={() => exp.mutate("download")}>
-          <Download /> Download .md
+          <Download /> {t("automations.export.downloadMd")}
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => exp.mutate("copy")}>
-          <ClipboardCopy /> Copy as Markdown
+          <ClipboardCopy /> {t("automations.export.copyMd")}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -67,22 +70,23 @@ export function ExportMenu({ automationId }: { automationId: string }) {
 
 /** Export every automation of a project as a zip of `.md` files. */
 export function ExportAllButton({ projectId }: { projectId: string }) {
+  const { t } = useTranslation();
   const client = useClient();
   const exp = useMutation({
     mutationFn: () => client.automations.exportAll(projectId),
     onSuccess: (res) => {
       if (res.count === 0) {
-        toast.info("Nothing to export yet");
+        toast.info(t("automations.export.nothing"));
         return;
       }
       saveBlob(res.fileName, new Blob([base64Bytes(res.zipBase64)], { type: "application/zip" }));
-      toast.success(`Exported ${res.count} automation${res.count === 1 ? "" : "s"}`);
+      toast.success(t("automations.export.exported", { count: res.count }));
     },
-    onError: (e) => toast.error("Couldn't export", { description: e.message }),
+    onError: (e) => toast.error(t("automations.export.failed"), { description: e.message }),
   });
   return (
     <Button size="sm" variant="ghost" onClick={() => exp.mutate()} disabled={exp.isPending}>
-      <FileArchive /> Export all
+      <FileArchive /> {t("automations.export.exportAll")}
     </Button>
   );
 }

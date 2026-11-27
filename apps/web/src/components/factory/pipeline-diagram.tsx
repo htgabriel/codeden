@@ -6,6 +6,7 @@ import { InfoHint } from "@/components/common/info-hint";
 import { StatusDot } from "@/components/common/status-dot";
 import { heldReason } from "@/components/factory-view/held-issues";
 import { statusTone, type Tone } from "@/lib/format";
+import { useTranslation } from "@/lib/i18n";
 import { useSnapshot } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 import { issueHelp, LANE_HELP, reviseHelp, stepHelp, stepLabel, TYPE_LABEL } from "./meta";
@@ -43,6 +44,7 @@ function Chip({
   tone: Tone;
   queued?: boolean;
 }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const label = w.issue ? `#${w.issue.number}` : w.pr ? `PR #${w.pr.number}` : w.title.slice(0, 18);
   const sessionId = queued ? null : w.activeSessionId;
@@ -55,11 +57,11 @@ function Chip({
         });
   const hint = [
     w.title,
-    queued ? "Waiting for a free agent" : null,
-    w.trust === "admitted" ? "Let in by hand: a person merges it" : null,
-    w.attempts > 0 ? `Revise round ${w.attempts}` : null,
+    queued ? t("factory.diagram.waitingAgent") : null,
+    w.trust === "admitted" ? t("factory.diagram.admitted") : null,
+    w.attempts > 0 ? t("factory.diagram.reviseRound", { n: w.attempts }) : null,
     w.note,
-    sessionId ? "Click to open the agent's session" : "Click to open the item",
+    sessionId ? t("factory.diagram.openSession") : t("factory.diagram.openItem"),
   ]
     .filter(Boolean)
     .join("\n");
@@ -189,6 +191,7 @@ function Fan({ side }: { side: "out" | "in" }) {
 }
 
 function Lane({ type, children }: { type: WorkType; children: ReactNode }) {
+  const { t } = useTranslation();
   const label = TYPE_LABEL[type];
   return (
     <div
@@ -198,7 +201,7 @@ function Lane({ type, children }: { type: WorkType; children: ReactNode }) {
     >
       <span className="absolute top-1 left-2 flex items-center gap-1 font-mono text-[9.5px] tracking-widest text-muted-foreground uppercase">
         {label}
-        <InfoHint label={`the ${label} lane`} side="right">
+        <InfoHint label={t("factory.diagram.lane", { label })} side="right">
           {LANE_HELP[type]}
         </InfoHint>
       </span>
@@ -208,6 +211,7 @@ function Lane({ type, children }: { type: WorkType; children: ReactNode }) {
 }
 
 function Revise({ count }: { count: number }) {
+  const { t } = useTranslation();
   return (
     <span
       className={cn(
@@ -217,8 +221,12 @@ function Revise({ count }: { count: number }) {
           : "border-border text-muted-foreground",
       )}
     >
-      <RotateCcw className="size-2.5" /> Revise{count > 0 && ` · ${count}`}
-      <InfoHint label="Revise" className="size-3 text-current [&_svg]:size-2.5">
+      <RotateCcw className="size-2.5" /> {t("factory.diagram.revise")}
+      {count > 0 && ` · ${count}`}
+      <InfoHint
+        label={t("factory.diagram.revise")}
+        className="size-3 text-current [&_svg]:size-2.5"
+      >
         {reviseHelp()}
       </InfoHint>
     </span>
@@ -227,6 +235,7 @@ function Revise({ count }: { count: number }) {
 
 /** The live pipeline diagram of a software or dark factory. */
 export function PipelineDiagram({ f }: { f: FactoryStatus }) {
+  const { t } = useTranslation();
   const { data } = useSnapshot();
   const projectId = f.projectId;
   const sessionStatus = new Map(data?.sessions.map((s) => [s.id, s.status]) ?? []);
@@ -277,7 +286,7 @@ export function PipelineDiagram({ f }: { f: FactoryStatus }) {
         <div className="flex items-center gap-1">
           <Node
             kind={dark ? "humanOrScout" : "human"}
-            title="Issue"
+            title={t("factory.diagram.issue")}
             hint={issueHelp(Boolean(dark))}
             items={[]}
             projectId={projectId}
@@ -290,19 +299,26 @@ export function PipelineDiagram({ f }: { f: FactoryStatus }) {
                     "text-[10px]",
                     ignored > 0 ? "text-status-waiting" : "text-muted-foreground",
                   )}
-                  title="Issues from authors who aren't trusted are ignored until you let them in"
+                  title={t("factory.diagram.ignoredTitle")}
                 >
-                  {ignored > 0 ? `${ignored} ignored` : "trusted authors"}
+                  {ignored > 0
+                    ? t("factory.diagram.ignored", { n: ignored })
+                    : t("factory.diagram.trusted")}
                 </span>
                 {held > 0 && (
                   <span
                     className="text-[10px] text-muted-foreground"
                     title={f.held
-                      .map((h) => `Held #${h.issue.number}: ${heldReason(h)}`)
+                      .map((h) =>
+                        t("factory.diagram.heldLine", {
+                          number: h.issue.number,
+                          reason: heldReason(h),
+                        }),
+                      )
                       .join("\n")}
                     data-testid="pipeline-held"
                   >
-                    {held} held
+                    {t("factory.diagram.held", { n: held })}
                   </span>
                 )}
               </span>
@@ -359,7 +375,9 @@ export function PipelineDiagram({ f }: { f: FactoryStatus }) {
             className="w-[120px] shrink-0"
             footer={
               <span className="text-[10px] text-muted-foreground">
-                {f.limits.autoMerge ? "when every check passes" : "ready for you on GitHub"}
+                {f.limits.autoMerge
+                  ? t("factory.diagram.whenPass")
+                  : t("factory.diagram.readyOnGithub")}
               </span>
             }
           />

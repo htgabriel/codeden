@@ -2,6 +2,7 @@ import type { Project, ProjectExecutionBackend, Snapshot } from "@codeden/contra
 import { useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { toast } from "sonner";
+import { i18n } from "@/lib/i18n";
 import { useClient } from "./api";
 import { moveWithinGroup, restoreOrder, withOrder, withPinned } from "./project-order";
 import { snapshotKey } from "./queries";
@@ -50,7 +51,7 @@ export function useProjectActions() {
       optimistic(
         (list) => withOrder(list, projectIds),
         () => client.reorderProjects(projectIds),
-        "Couldn't save the project order",
+        i18n.t("messages.projectActions.orderFailed"),
       );
 
     return {
@@ -58,7 +59,9 @@ export function useProjectActions() {
         optimistic(
           (list) => withPinned(list, project.id, pinned),
           () => client.updateProject(project.id, { pinned }),
-          pinned ? `Couldn't pin ${project.name}` : `Couldn't unpin ${project.name}`,
+          pinned
+            ? i18n.t("messages.projectActions.pinFailed", { name: project.name })
+            : i18n.t("messages.projectActions.unpinFailed", { name: project.name }),
         ),
       /**
        * The project's defaults for new sessions: provider, model and effort (set together, since
@@ -77,7 +80,7 @@ export function useProjectActions() {
         } catch (error) {
           const { defaultProvider, defaultModel, defaultEffort, autonomy } = project;
           set({ defaultProvider, defaultModel, defaultEffort, autonomy });
-          toast.error(`Couldn't change ${project.name}'s session defaults`, {
+          toast.error(i18n.t("messages.projectActions.defaultsFailed", { name: project.name }), {
             description: message(error),
           });
           return false;
@@ -94,7 +97,7 @@ export function useProjectActions() {
           return true;
         } catch (error) {
           set(project.agentCiEnv);
-          toast.error(`Couldn't change ${project.name}'s agent environment`, {
+          toast.error(i18n.t("messages.projectActions.envFailed", { name: project.name }), {
             description: message(error),
           });
           return false;
@@ -112,7 +115,7 @@ export function useProjectActions() {
           return true;
         } catch (error) {
           set(project.execution?.backend ?? "local");
-          toast.error(`Couldn't change where ${project.name}'s sessions run`, {
+          toast.error(i18n.t("messages.projectActions.executionFailed", { name: project.name }), {
             description: message(error),
           });
           return false;
@@ -126,12 +129,14 @@ export function useProjectActions() {
         try {
           await client.archiveProject(project.id);
         } catch (error) {
-          toast.error(`Couldn't archive ${project.name}`, { description: message(error) });
+          toast.error(i18n.t("messages.projectActions.archiveFailed", { name: project.name }), {
+            description: message(error),
+          });
           return false;
         }
         setProjects((list) => list.filter((p) => p.id !== project.id));
-        toast.success(`${project.name} archived`, {
-          description: "Add its folder again to bring it back.",
+        toast.success(i18n.t("messages.projectActions.archived", { name: project.name }), {
+          description: i18n.t("messages.projectActions.archivedDescription"),
         });
         return true;
       },

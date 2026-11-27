@@ -6,18 +6,24 @@ import {
   type ProviderInfo,
   type Session,
 } from "@codeden/contracts";
+import { i18n } from "@/lib/i18n";
 
 /** CodeDen's own MCP server, as every provider names it. */
 export const CODEDEN_MCP_SERVER = "codeden";
 
-/** A server's live state in a few words. */
-export const mcpStateLabel: Record<McpServerLiveState, string> = {
-  connected: "connected",
-  starting: "starting",
-  failed: "failed",
-  needs_sign_in: "needs sign-in",
-  disabled: "disabled",
+const mcpStateProps: PropertyDescriptorMap = {
+  connected: { get: () => i18n.t("messages.mcpStates.connected"), enumerable: true },
+  starting: { get: () => i18n.t("messages.mcpStates.starting"), enumerable: true },
+  failed: { get: () => i18n.t("messages.mcpStates.failed"), enumerable: true },
+  needs_sign_in: { get: () => i18n.t("messages.mcpStates.needs_sign_in"), enumerable: true },
+  disabled: { get: () => i18n.t("messages.mcpStates.disabled"), enumerable: true },
 };
+
+/** A server's live state in a few words, in the UI language. */
+export const mcpStateLabel = Object.defineProperties(
+  {} as Record<McpServerLiveState, string>,
+  mcpStateProps,
+);
 
 /** The dot shown beside a server's live state. */
 export const mcpStateDot: Record<McpServerLiveState, string> = {
@@ -78,7 +84,7 @@ export function mcpRows(
 export function mcpRowTitle(row: McpRow): string | undefined {
   const lines = [
     row.file,
-    row.live && !row.file ? "Reported by the provider; not found in its config files" : undefined,
+    row.live && !row.file ? i18n.t("messages.mcpNotInConfig") : undefined,
     row.live?.error,
   ].filter(Boolean);
   return lines.length > 0 ? lines.join("\n") : undefined;

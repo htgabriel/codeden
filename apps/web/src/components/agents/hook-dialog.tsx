@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useClient } from "@/lib/api";
+import { i18n, useTranslation } from "@/lib/i18n";
 import {
   type EditableHookType,
   emptyHookForm,
@@ -44,11 +45,15 @@ import {
 } from "./hook-form";
 import { PatchDialog } from "./patch-dialog";
 
-export const SCOPE_LABELS: Record<AgentConfigScope, string> = {
-  user: "User",
-  project: "Project (shared)",
-  local: "Local (private)",
-};
+/** Each settings scope's name, in the UI language. */
+export const SCOPE_LABELS: Record<AgentConfigScope, string> = Object.defineProperties(
+  {} as Record<AgentConfigScope, string>,
+  {
+    user: { get: () => i18n.t("shell.hookDialog.scope.user"), enumerable: true },
+    project: { get: () => i18n.t("shell.hookDialog.scope.project"), enumerable: true },
+    local: { get: () => i18n.t("shell.hookDialog.scope.local"), enumerable: true },
+  },
+);
 export const PROVIDER_LABELS: Record<AgentConfigProvider, string> = {
   claude: "Claude Code",
   codex: "Codex",
@@ -112,6 +117,7 @@ export function HookDialog({
   /** Called with the hooks as they are after the save. */
   onSaved: (hooks: HookListResponse) => void;
 }) {
+  const { t } = useTranslation();
   const client = useClient();
   const writable = sources.filter((s) => !s.error);
   const [source, setSource] = useState<HookSource | undefined>(writable[0]);
@@ -168,18 +174,20 @@ export function HookDialog({
   const save = useMutation({
     mutationFn: async () => {
       const req = request();
-      if (!req) throw new Error("Pick a settings file");
+      if (!req) throw new Error(t("shell.hookDialog.pickFile"));
       return client.agentConfig.changeHook(req);
     },
     onSuccess: (res) => {
-      toast.success(`Saved the ${form.event} hook`, {
-        description: res.backupPath ? `Backup: ${res.backupPath}` : (res.file ?? undefined),
+      toast.success(t("shell.hookDialog.saved", { event: form.event }), {
+        description: res.backupPath
+          ? t("shell.configEditor.backup", { path: res.backupPath })
+          : (res.file ?? undefined),
       });
       setReview(false);
       onOpenChange(false);
       onSaved(res.hooks);
     },
-    onError: (e) => toast.error("Not saved", { description: e.message }),
+    onError: (e) => toast.error(t("shell.configEditor.notSaved"), { description: e.message }),
   });
 
   const typeInfo = HOOK_TYPE_LABELS[form.type];
@@ -188,11 +196,13 @@ export function HookDialog({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-xl" data-testid="hook-dialog">
           <DialogHeader>
-            <DialogTitle>{editing ? `Edit ${editing.event} hook` : "Add hook"}</DialogTitle>
-            <DialogDescription className="break-all">
+            <DialogTitle>
               {editing
-                ? editing.file
-                : "Written to the hooks key of the settings file, with a diff preview and a backup first."}
+                ? t("shell.hookDialog.editTitle", { event: editing.event })
+                : t("shell.hookDialog.addTitle")}
+            </DialogTitle>
+            <DialogDescription className="break-all">
+              {editing ? editing.file : t("shell.hookDialog.description")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -219,13 +229,13 @@ export function HookDialog({
                 )}
                 {scopes.length === 1 && (
                   <p className="text-3xs text-muted-foreground">
-                    Pick a project at the top for project and local hooks.
+                    {t("shell.hookDialog.pickProject")}
                   </p>
                 )}
               </div>
             )}
             <div className="grid grid-cols-2 gap-3">
-              <Field id="hook-event" label="Event">
+              <Field id="hook-event" label={t("shell.hookDialog.event")}>
                 <Select value={form.event} onValueChange={(event) => set({ event })}>
                   <SelectTrigger id="hook-event" className="w-full font-mono text-xs">
                     <SelectValue />
@@ -241,8 +251,8 @@ export function HookDialog({
               </Field>
               <Field
                 id="hook-matcher"
-                label="Matcher (optional)"
-                hint="Tool name or regex. Empty matches everything; some events ignore it."
+                label={t("shell.hookDialog.matcher")}
+                hint={t("shell.hookDialog.matcherHint")}
               >
                 <Input
                   id="hook-matcher"
@@ -257,20 +267,20 @@ export function HookDialog({
               <Segmented<EditableHookType>
                 value={form.type}
                 onChange={(type) => set({ type })}
-                options={Object.entries(HOOK_TYPE_LABELS).map(([value, t]) => ({
+                options={Object.entries(HOOK_TYPE_LABELS).map(([value, type]) => ({
                   value: value as EditableHookType,
-                  label: t.label,
+                  label: type.label,
                 }))}
               />
               <div className="w-32">
-                <Field id="hook-timeout" label="Timeout (seconds)">
+                <Field id="hook-timeout" label={t("shell.hookDialog.timeout")}>
                   <NumberField
                     id="hook-timeout"
                     optional
                     min={1}
                     value={form.timeout === "" ? null : Number(form.timeout)}
-                    onChange={(t) => set({ timeout: t === null ? "" : String(t) })}
-                    placeholder="Default"
+                    onChange={(v) => set({ timeout: v === null ? "" : String(v) })}
+                    placeholder={t("shell.hookDialog.default")}
                     className="font-mono text-xs"
                   />
                 </Field>
@@ -293,7 +303,7 @@ export function HookDialog({
                   rows={3}
                   value={form.value}
                   onChange={(e) => set({ value: e.target.value })}
-                  placeholder="Check that the tests were run before stopping."
+                  placeholder={t("shell.hookDialog.promptPlaceholder")}
                   className="text-xs"
                 />
               )}
@@ -301,10 +311,10 @@ export function HookDialog({
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => onOpenChange(false)}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button disabled={!valid} onClick={() => void preview()}>
-              Review & save
+              {t("shell.configEditor.reviewSave")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -312,7 +322,7 @@ export function HookDialog({
       <PatchDialog
         open={review}
         onOpenChange={setReview}
-        title={`Review the ${form.event} hook`}
+        title={t("shell.hookDialog.reviewTitle", { event: form.event })}
         diff={diff}
         error={diffError}
         onConfirm={() => save.mutate()}

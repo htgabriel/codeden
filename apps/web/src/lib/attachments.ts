@@ -1,5 +1,6 @@
 import type { Attachment } from "@codeden/contracts";
 import type { ViewerImage } from "@/components/common/image-viewer";
+import { i18n } from "@/lib/i18n";
 
 /**
  * The URL an image attachment loads from, or `null` when it can only be shown by name (a file,
@@ -31,7 +32,7 @@ export function attachmentGallery(
     const subtype = attachment.mediaType.split("/")[1] ?? "png";
     images.push({
       src,
-      name: attachment.name ?? "Attached image",
+      name: attachment.name ?? i18n.t("messages.attachedImage"),
       downloadName: attachment.name ?? `image.${subtype}`,
     });
     return images.length - 1;

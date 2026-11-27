@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useClient } from "@/lib/api";
 import { attachmentGallery } from "@/lib/attachments";
+import { useTranslation } from "@/lib/i18n";
 import { useSnapshotData } from "@/lib/queries";
 import { queueKey, queuePosition, senderLabel, useQueuedMessages } from "@/lib/queue";
 
@@ -27,12 +28,13 @@ function Thumbnail({
   image: number;
   src: string | undefined;
 }) {
+  const { t } = useTranslation();
   if (image >= 0 && src) {
     return (
       <ImageThumbnail index={image} className="rounded-md">
         <img
           src={src}
-          alt={attachment.name ?? "Attached image"}
+          alt={attachment.name ?? t("workbench.queue.attachedImage")}
           className="block size-8 rounded-md border border-border object-cover"
         />
       </ImageThumbnail>
@@ -58,13 +60,14 @@ function QueuedRow({
   index: number;
   canSteer: boolean;
 }) {
+  const { t } = useTranslation();
   const client = useClient();
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState<string | null>(null);
   const refresh = () => queryClient.invalidateQueries({ queryKey: queueKey(session.id) });
   // A 409 means delivery took the message first: say so and let the list catch up.
   const onError = (e: Error) => {
-    toast.error(e.message || "Couldn't change the queued message");
+    toast.error(e.message || t("workbench.queue.changeFailed"));
     void refresh();
   };
   const edit = useMutation({
@@ -83,7 +86,7 @@ function QueuedRow({
   const sendNow = useMutation({
     mutationFn: () => client.queue.sendNow(session.id, message.id),
     onSuccess: () => {
-      toast("Sent to the running turn");
+      toast(t("orchestrator.composer.sentToTurn"));
       void refresh();
     },
     onError,
@@ -104,7 +107,7 @@ function QueuedRow({
     <li
       className="group flex items-start gap-2.5 px-3 py-2"
       data-testid="queued-message"
-      aria-label={`${queuePosition(index)} queued message`}
+      aria-label={t("workbench.queue.rowLabel", { position: queuePosition(index) })}
     >
       <span className="mt-0.5 w-9 shrink-0 text-3xs font-medium text-muted-foreground uppercase">
         {queuePosition(index)}
@@ -121,7 +124,7 @@ function QueuedRow({
           <div className="space-y-1.5">
             <Textarea
               autoFocus
-              aria-label="Edit queued message"
+              aria-label={t("workbench.queue.editLabel")}
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => {
@@ -132,10 +135,10 @@ function QueuedRow({
             />
             <div className="flex gap-1.5">
               <Button size="xs" onClick={save} disabled={busy}>
-                Save
+                {t("workbench.queue.save")}
               </Button>
               <Button size="xs" variant="ghost" onClick={() => setDraft(null)}>
-                Cancel
+                {t("common.cancel")}
               </Button>
             </div>
           </div>
@@ -165,8 +168,8 @@ function QueuedRow({
             <Button
               size="icon-xs"
               variant="ghost"
-              aria-label="Send now"
-              title="Send now, into the running turn"
+              aria-label={t("workbench.queue.sendNow")}
+              title={t("workbench.queue.sendNowHint")}
               disabled={busy}
               onClick={() => sendNow.mutate()}
             >
@@ -176,8 +179,8 @@ function QueuedRow({
           <Button
             size="icon-xs"
             variant="ghost"
-            aria-label="Edit"
-            title="Edit"
+            aria-label={t("workbench.queue.edit")}
+            title={t("workbench.queue.edit")}
             disabled={busy}
             onClick={() => setDraft(message.input.text)}
           >
@@ -186,8 +189,8 @@ function QueuedRow({
           <Button
             size="icon-xs"
             variant="ghost"
-            aria-label="Delete"
-            title="Delete"
+            aria-label={t("workbench.queue.delete")}
+            title={t("workbench.queue.delete")}
             disabled={busy}
             onClick={() => remove.mutate()}
           >
@@ -206,6 +209,7 @@ function QueuedRow({
  * A delivered message leaves the tray and shows in the transcript.
  */
 export function QueuedMessages({ session, running }: { session: Session; running: boolean }) {
+  const { t } = useTranslation();
   const { data: messages = [] } = useQueuedMessages(session.id);
   const providerCanSteer = useSnapshotData(
     (s) => s.runner.providers.find((p) => p.id === session.provider)?.capabilities.steer ?? false,
@@ -215,15 +219,17 @@ export function QueuedMessages({ session, running }: { session: Session; running
   if (messages.length === 0) return null;
   return (
     <section
-      aria-label="Queued messages"
+      aria-label={t("workbench.queue.label")}
       data-testid="queued-messages"
       className="mx-auto w-full max-w-[46rem] px-6 pb-2"
     >
       <div className="overflow-hidden rounded-xl border border-border bg-card/70 shadow-xs animate-rise">
         <div className="flex items-center gap-1.5 border-b border-border/70 px-3 py-1.5 text-3xs text-muted-foreground">
           <ListOrdered className="size-3" />
-          <span className="font-medium text-foreground/80">{messages.length} queued</span>
-          <span>· sent one at a time when the current turn ends</span>
+          <span className="font-medium text-foreground/80">
+            {t("workbench.queue.count", { count: messages.length })}
+          </span>
+          <span>{t("workbench.queue.oneAtATime")}</span>
         </div>
         <ul className="max-h-64 divide-y divide-border/60 overflow-y-auto scroll-thin">
           {messages.map((m, i) => (

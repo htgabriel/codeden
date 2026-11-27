@@ -1,4 +1,5 @@
 import type { Item } from "@codeden/contracts";
+import { i18n } from "@/lib/i18n";
 import { redactSecrets } from "@/lib/redact";
 
 /**
@@ -57,13 +58,13 @@ export function safeCommand(command: string): string {
     const first = words[0];
     if (!first || SETUP.has(first)) continue;
     const program = first.split(/[\\/]/).pop() ?? first;
-    if (!PLAIN.test(program)) return "a command";
+    if (!PLAIN.test(program)) return i18n.t("factoryView.activity.aCommand");
     const sub = words[1];
     return sub && PLAIN.test(sub) && !sub.startsWith("-") && sub.length <= 24
       ? `${program} ${sub}`
       : program;
   }
-  return "a command";
+  return i18n.t("factoryView.activity.aCommand");
 }
 
 /** A path or other target, trimmed, redacted and cut from the front. */
@@ -86,28 +87,39 @@ export function activityOf(item: Item): Activity | null {
   });
   if (item.kind === "reasoning") {
     const text = item.summary ?? (item.redacted ? "" : item.text);
-    return text.trim() ? make("think", text) : make("think", "Thinking…");
+    return text.trim()
+      ? make("think", text)
+      : make("think", i18n.t("factoryView.activity.thinking"));
   }
   if (item.kind === "assistant_message") return item.text.trim() ? make("think", item.text) : null;
   if (item.kind !== "tool_call") return null;
+  const t = i18n.t;
   switch (item.toolKind) {
     case "command":
-      return make("run", `Run ${safeCommand(item.command)}`);
+      return make("run", t("factoryView.activity.run", { command: safeCommand(item.command) }));
     case "file_edit": {
       const one = item.changes.length === 1 ? item.changes[0]?.path : undefined;
-      return make("edit", one ? `Edit ${target(one)}` : `Edit ${item.changes.length} files`);
+      return make(
+        "edit",
+        one
+          ? t("factoryView.activity.edit", { target: target(one) })
+          : t("factoryView.activity.editFiles", { count: item.changes.length }),
+      );
     }
     case "file_read":
-      return make("read", `Read ${target(item.path)}`);
+      return make("read", t("factoryView.activity.read", { target: target(item.path) }));
     case "search":
-      return make("search", `Search: ${item.query}`);
+      return make("search", t("factoryView.activity.search", { query: item.query }));
     case "web":
       return make(
         "web",
-        item.title ?? (item.url ? `Web: ${hostOf(item.url)}` : `Web: ${item.query ?? ""}`),
+        item.title ??
+          t("factoryView.activity.web", {
+            target: item.url ? hostOf(item.url) : (item.query ?? ""),
+          }),
       );
     case "browser":
-      return make("web", item.title ?? `Browser: ${item.action}`);
+      return make("web", item.title ?? t("factoryView.activity.browser", { action: item.action }));
     case "mcp":
       return make("run", item.title ?? `${item.server} · ${item.tool}`);
     default:

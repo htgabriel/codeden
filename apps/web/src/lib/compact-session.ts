@@ -1,6 +1,7 @@
 import type { ProviderInfo, Session } from "@codeden/contracts";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { i18n } from "@/lib/i18n";
 import { useTranscriptsStore } from "@/stores/transcripts";
 import { useClient } from "./api";
 import { useSnapshotData } from "./queries";
@@ -26,11 +27,11 @@ export function compactBlocked(
   session: Pick<Session, "status" | "resumeToken">,
   checking = false,
 ): string | null {
-  if (session.status === "waiting") return "Answer what it's waiting on first";
-  if (session.status === "running") return "Wait for the running turn to finish";
-  if (NOT_STARTED.has(session.status)) return "The session hasn't started yet";
-  if (!session.resumeToken) return "No conversation to compact yet";
-  if (checking) return "Wait for the project's checks to finish";
+  if (session.status === "waiting") return i18n.t("messages.compact.waiting");
+  if (session.status === "running") return i18n.t("messages.compact.running");
+  if (NOT_STARTED.has(session.status)) return i18n.t("messages.compact.notStarted");
+  if (!session.resumeToken) return i18n.t("messages.compact.noConversation");
+  if (checking) return i18n.t("messages.compact.checking");
   return null;
 }
 
@@ -55,18 +56,18 @@ export function useCompactSession(session: Session) {
   const compact = useMutation({
     mutationFn: () => client.compactSession(session.id),
     onSuccess: () =>
-      toast("Compacting the conversation", {
-        description: "Messages you send meanwhile wait until it's done.",
+      toast(i18n.t("messages.compact.started"), {
+        description: i18n.t("messages.compact.startedDescription"),
       }),
     onError: (error) =>
-      toast.error("Couldn't compact the session", { description: message(error) }),
+      toast.error(i18n.t("messages.compact.failed"), { description: message(error) }),
   });
   const supported = compactSupported(session, provider);
   return {
     supported,
     blocked: supported
       ? compact.isPending
-        ? "Compacting…"
+        ? i18n.t("messages.compact.compacting")
         : compactBlocked(session, checking)
       : null,
     pending: compact.isPending,

@@ -1,4 +1,5 @@
 import { drainText, type FactoryStatus, type WorkType } from "@codeden/contracts";
+import { i18n } from "@/lib/i18n";
 import type { ViewCard } from "../stages";
 import { type AgentInputs, type SceneAgent, sceneAgents } from "./agents";
 import { type BayCrate, bayCount, repairBay } from "./repair-bay";
@@ -135,10 +136,10 @@ export function sceneOf(inputs: AgentInputs, prev: Seating | null, plan: FloorPl
   };
 }
 
-const STATION_WORDS: [StationId[], string][] = [
+const STATION_WORDS: [StationId[], "building" | "inReview" | "inMergeQueue"][] = [
   [["prep", "bench"], "building"],
-  [["review"], "in review"],
-  [["merge"], "in the merge queue"],
+  [["review"], "inReview"],
+  [["merge"], "inMergeQueue"],
 ];
 
 /**
@@ -148,21 +149,31 @@ const STATION_WORDS: [StationId[], string][] = [
 export function sceneSummary(scene: Scene): string {
   const parts: string[] = [];
   const add = (n: number, text: string) => {
-    if (n > 0) parts.push(`${n} ${text}`);
+    if (n > 0) parts.push(i18n.t("factoryView.summary.part", { n, text }));
   };
-  add(scene.tickets.ids.length, "in intake");
+  add(scene.tickets.ids.length, i18n.t("factoryView.summary.inIntake"));
   const work = scene.agents.filter((a) => a.card);
   for (const [stations, words] of STATION_WORDS)
-    add(work.filter((a) => stations.includes(stationOf(a))).length, words);
-  add(scene.shipped, "merged today");
-  add(scene.agents.filter((a) => a.status === "approval").length, "waiting for approval");
-  add(bayCount(scene.bay), "in the repair bay");
-  const lines = [parts.length > 0 ? `${parts.join(", ")}.` : "The factory floor is quiet."];
+    add(
+      work.filter((a) => stations.includes(stationOf(a))).length,
+      i18n.t(`factoryView.summary.${words}`),
+    );
+  add(scene.shipped, i18n.t("factoryView.summary.mergedToday"));
+  add(
+    scene.agents.filter((a) => a.status === "approval").length,
+    i18n.t("factoryView.summary.waitingForApproval"),
+  );
+  add(bayCount(scene.bay), i18n.t("factoryView.summary.inRepairBay"));
+  const lines: string[] = [
+    parts.length > 0
+      ? i18n.t("factoryView.summary.parts", { parts: parts.join(", ") })
+      : i18n.t("factoryView.summary.quiet"),
+  ];
   if (scene.scout?.active && !scene.stopped)
-    lines.push(`The scout is on round ${scene.scout.round}.`);
+    lines.push(i18n.t("factoryView.summary.scoutRound", { round: scene.scout.round }));
   if (scene.draining !== null) {
-    lines.push(`${drainText(scene.draining)}; the IN door is closed until the factory resumes.`);
+    lines.push(i18n.t("factoryView.summary.draining", { drain: drainText(scene.draining) }));
   }
-  if (scene.stopped) lines.push("The loop is stopped.");
+  if (scene.stopped) lines.push(i18n.t("factoryView.summary.stopped"));
   return lines.join(" ");
 }

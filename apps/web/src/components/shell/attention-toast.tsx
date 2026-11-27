@@ -3,11 +3,14 @@ import { BellRing, Hourglass, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { i18n, useTranslation } from "@/lib/i18n";
 
-const heading: Partial<Record<InboxItem["kind"], string>> = {
-  approval: "Approval needed",
-  question: "Question from an agent",
-};
+/** The heading for a blocking item ("Approval needed"), in the UI language. */
+export function blockingHeading(kind: InboxItem["kind"]): string | undefined {
+  if (kind === "approval") return i18n.t("shell.attention.approval");
+  if (kind === "question") return i18n.t("shell.attention.question");
+  return undefined;
+}
 
 export interface AttentionToastProps {
   item: InboxItem;
@@ -22,6 +25,7 @@ export interface AttentionToastProps {
 
 /** The sticky toast for an item that blocks an agent, shown until it is opened or resolved. */
 export function AttentionToast(props: AttentionToastProps) {
+  const { t } = useTranslation();
   const { item } = props;
   const [offer, setOffer] = useState<"offer" | "on" | "none">(
     props.offerNotifications ? "offer" : "none",
@@ -37,16 +41,18 @@ export function AttentionToast(props: AttentionToastProps) {
           <Hourglass className="size-3.5" />
         </span>
         <div className="min-w-0 flex-1">
-          <div className="text-[13px] font-medium">{heading[item.kind] ?? "Waiting on you"}</div>
+          <div className="text-[13px] font-medium">
+            {blockingHeading(item.kind) ?? t("sidebar.waitingOnYou")}
+          </div>
           <div className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{item.title}</div>
         </div>
         <Button size="sm" onClick={props.onOpen}>
-          Open
+          {t("shell.attention.open")}
         </Button>
         <Button
           size="icon-xs"
           variant="ghost"
-          aria-label="Dismiss"
+          aria-label={t("shell.attention.dismiss")}
           className="-mr-1 text-muted-foreground"
           onClick={props.onDismiss}
         >
@@ -56,15 +62,13 @@ export function AttentionToast(props: AttentionToastProps) {
       {offer === "offer" && (
         <div className="mt-3 flex items-center gap-2 border-t border-border pt-2.5">
           <BellRing className="size-3.5 shrink-0 text-muted-foreground" />
-          <span className="flex-1 text-xs text-muted-foreground">
-            Get notified when CodeDen is in the background
-          </span>
+          <span className="flex-1 text-xs text-muted-foreground">{t("shell.attention.offer")}</span>
           <Button
             size="xs"
             variant="outline"
             onClick={async () => setOffer((await props.onEnableNotifications()) ? "on" : "none")}
           >
-            Turn on
+            {t("shell.attention.turnOn")}
           </Button>
           <Button
             size="xs"
@@ -74,13 +78,13 @@ export function AttentionToast(props: AttentionToastProps) {
               setOffer("none");
             }}
           >
-            Not now
+            {t("shell.attention.notNow")}
           </Button>
         </div>
       )}
       {offer === "on" && (
         <div className="mt-3 border-t border-border pt-2.5 text-xs text-muted-foreground">
-          Desktop notifications are on.
+          {t("shell.attention.on")}
         </div>
       )}
     </div>

@@ -1,13 +1,15 @@
+import { useTranslation } from "@/lib/i18n";
 import { ConfigFilesView } from "./config-files-view";
 import { useSkillSwitches } from "./skill-switches";
 
 /** Memory files of every provider (CLAUDE.md, rules, auto memory, AGENTS.md), edited in place. */
 export function MemoryEditor({ projectId }: { projectId: string | null }) {
+  const { t } = useTranslation();
   return (
     <ConfigFilesView
       projectId={projectId}
       kinds={["memory", "rule", "auto_memory"]}
-      emptyText="No memory files found."
+      emptyText={t("shell.memory.empty")}
     />
   );
 }
@@ -17,6 +19,7 @@ export function MemoryEditor({ projectId }: { projectId: string | null }) {
  * writes its provider's own setting.
  */
 export function SkillsView({ projectId }: { projectId: string | null }) {
+  const { t } = useTranslation();
   const switches = useSkillSwitches(projectId);
   return (
     <>
@@ -24,8 +27,8 @@ export function SkillsView({ projectId }: { projectId: string | null }) {
         projectId={projectId}
         kinds={["skill"]}
         create="skill"
-        placeholder="Describe when the skill applies and the steps to follow…"
-        emptyText="No skills yet. Create one to teach agents a repeatable workflow."
+        placeholder={t("shell.memory.skillPlaceholder")}
+        emptyText={t("shell.memory.skillsEmpty")}
         rowAddon={switches.addon}
         onFilesChanged={() => void switches.refetch()}
       />
@@ -36,13 +39,14 @@ export function SkillsView({ projectId }: { projectId: string | null }) {
 
 /** Claude subagents (`.claude/agents`) and Codex agents (`.codex/agents`). */
 export function SubagentsView({ projectId }: { projectId: string | null }) {
+  const { t } = useTranslation();
   return (
     <ConfigFilesView
       projectId={projectId}
       kinds={["subagent"]}
       create="subagent"
-      placeholder="Describe the subagent's role, tools and what it returns…"
-      emptyText="No subagents yet."
+      placeholder={t("shell.memory.subagentPlaceholder")}
+      emptyText={t("shell.memory.subagentsEmpty")}
     />
   );
 }

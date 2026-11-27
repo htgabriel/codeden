@@ -7,6 +7,7 @@ import { PatchDiff } from "@/components/on-demand";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useClient } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n";
 import { platform } from "@/lib/platform";
 import { cn } from "@/lib/utils";
 import { useResolvedTheme } from "@/stores/theme";
@@ -19,7 +20,8 @@ function filesUrl(pr: GithubPrDetails): string {
   return `${pr.url}/files`;
 }
 
-function OpenOnGithub({ pr, label = "Open on GitHub" }: { pr: GithubPrDetails; label?: string }) {
+function OpenOnGithub({ pr, label }: { pr: GithubPrDetails; label?: string }) {
+  const { t } = useTranslation();
   return (
     <Button
       variant="link"
@@ -27,7 +29,7 @@ function OpenOnGithub({ pr, label = "Open on GitHub" }: { pr: GithubPrDetails; l
       className="h-auto px-0 text-2xs"
       onClick={() => platform.openExternal(filesUrl(pr))}
     >
-      {label} <ExternalLink className="size-3" />
+      {label ?? t("shell.pr.openOnGithub")} <ExternalLink className="size-3" />
     </Button>
   );
 }
@@ -42,6 +44,7 @@ export function PrFilesToggle({
   open: ReadonlySet<string>;
   onChange: (open: ReadonlySet<string>) => void;
 }) {
+  const { t } = useTranslation();
   if (pr.files.length === 0 || pr.files.length > EXPAND_ALL_MAX) return null;
   const allOpen = open.size === pr.files.length;
   return (
@@ -51,7 +54,7 @@ export function PrFilesToggle({
       className="h-5 px-1.5 text-2xs font-normal tracking-normal normal-case"
       onClick={() => onChange(allOpen ? new Set() : new Set(pr.files.map((f) => f.path)))}
     >
-      {allOpen ? "Collapse all" : "Expand all"}
+      {allOpen ? t("shell.pr.collapseAll") : t("shell.pr.expandAll")}
     </Button>
   );
 }
@@ -69,6 +72,7 @@ export function PrFiles({
   open: ReadonlySet<string>;
   onToggle: (path: string) => void;
 }) {
+  const { t } = useTranslation();
   const client = useClient();
   const diff = useQuery({
     queryKey: ["github", "pr-diff", pr.id, pr.headSha],
@@ -105,13 +109,13 @@ export function PrFiles({
           );
         })}
         {pr.files.length === 0 && (
-          <p className="px-3 py-2 text-xs text-muted-foreground">No files changed.</p>
+          <p className="px-3 py-2 text-xs text-muted-foreground">{t("shell.pr.noFiles")}</p>
         )}
       </div>
       {truncated && (
         <p className="flex flex-wrap items-center gap-x-2 text-2xs text-muted-foreground">
-          GitHub lists the first {pr.files.length} of {pr.changedFiles} files.
-          <OpenOnGithub pr={pr} label="See the rest on GitHub" />
+          {t("shell.pr.firstFiles", { shown: pr.files.length, total: pr.changedFiles })}
+          <OpenOnGithub pr={pr} label={t("shell.pr.seeRest")} />
         </p>
       )}
     </div>
@@ -164,6 +168,7 @@ function FileDiffBody({
   file: GithubPrFile;
   diff: GithubPrDiffFile | undefined;
 }) {
+  const { t } = useTranslation();
   const theme = useResolvedTheme();
   if (diff?.patch) {
     // A patch the renderer can't parse shows a note for this file only, not a broken PR view.
@@ -172,7 +177,7 @@ function FileDiffBody({
         key={diff.patch}
         fallback={
           <DiffNote>
-            Couldn't render this file's diff.
+            {t("shell.pr.renderFailed")}
             <OpenOnGithub pr={pr} />
           </DiffNote>
         }
@@ -191,10 +196,10 @@ function FileDiffBody({
     );
   }
   const message = !diff
-    ? "This file is no longer in the pull request's latest diff."
+    ? t("shell.pr.goneFromDiff")
     : file.status === "renamed" && file.additions + file.deletions === 0
-      ? "Renamed without content changes."
-      : "GitHub shows no diff for this file (binary, empty or too large).";
+      ? t("shell.pr.renamedOnly")
+      : t("shell.pr.noDiff");
   return (
     <DiffNote>
       {message}

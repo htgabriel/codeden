@@ -4,6 +4,7 @@ import { AlertTriangle, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useClient } from "@/lib/api";
+import { Trans, useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 const connected = (r: RefreshProjectResponse) =>
@@ -25,6 +26,7 @@ export function CheckRemoteButton({
   layout?: "stacked" | "inline";
   className?: string;
 }) {
+  const { t } = useTranslation();
   const client = useClient();
   const check = useMutation({
     mutationFn: () => client.refreshProject(projectId),
@@ -33,7 +35,9 @@ export function CheckRemoteButton({
     },
   });
   const result = check.data;
-  const text = check.isError ? `Couldn't check: ${check.error.message}` : result?.message;
+  const text = check.isError
+    ? t("shell.github.checkFailed", { error: check.error.message })
+    : result?.message;
   return (
     <span
       className={cn(
@@ -50,7 +54,7 @@ export function CheckRemoteButton({
         data-testid="check-remote"
       >
         <RefreshCw className={cn(check.isPending && "animate-spin")} />
-        {check.isPending ? "Checking…" : "Check again"}
+        {check.isPending ? t("shell.github.checking") : t("shell.github.checkAgain")}
       </Button>
       <span
         role="status"
@@ -75,11 +79,12 @@ export function CheckRemoteButton({
  * its own. The user restores the remote and checks again, or makes the project local-only.
  */
 export function RemoteWarningBanner({ project }: { project: Project }) {
+  const { t } = useTranslation();
   const client = useClient();
   const disconnect = useMutation({
     mutationFn: () => client.disconnectGithub(project.id),
-    onSuccess: () => toast.success(`${project.name} is now a local-only project`),
-    onError: (e) => toast.error("Couldn't disconnect GitHub", { description: e.message }),
+    onSuccess: () => toast.success(t("shell.github.nowLocalOnly", { name: project.name })),
+    onError: (e) => toast.error(t("shell.github.disconnectFailed"), { description: e.message }),
   });
   if (project.kind !== "github" || !project.remoteWarning) return null;
   const { owner, repo } = project.github;
@@ -92,20 +97,13 @@ export function RemoteWarningBanner({ project }: { project: Project }) {
     >
       <AlertTriangle className="mt-0.5 size-4 shrink-0 text-status-waiting" />
       <div className="min-w-0 flex-1 space-y-1">
-        <p className="text-[13px] font-medium">The GitHub remote is missing</p>
+        <p className="text-[13px] font-medium">{t("shell.github.remoteMissing")}</p>
         <p className="text-xs leading-relaxed text-muted-foreground">
-          {remoteUrl ? (
-            <>
-              <code className="font-mono">origin</code> now points to{" "}
-              <code className="font-mono">{remoteUrl}</code>
-            </>
-          ) : (
-            <>
-              This folder has no GitHub <code className="font-mono">origin</code> any more
-            </>
-          )}
-          , so CodeDen still uses {owner}/{repo} for issues and pull requests. Restore the remote
-          and check again, or make the project local-only (synced issues and PRs are kept).
+          <Trans
+            i18nKey={remoteUrl ? "shell.github.remoteChanged" : "shell.github.remoteGone"}
+            values={{ url: remoteUrl ?? "", repo: `${owner}/${repo}` }}
+            components={{ code: <code className="font-mono" /> }}
+          />
         </p>
         <div className="flex flex-wrap items-center gap-2 pt-1">
           <CheckRemoteButton projectId={project.id} layout="inline" />
@@ -115,7 +113,7 @@ export function RemoteWarningBanner({ project }: { project: Project }) {
             onClick={() => disconnect.mutate()}
             disabled={disconnect.isPending}
           >
-            Make local-only
+            {t("shell.github.makeLocalOnly")}
           </Button>
         </div>
       </div>

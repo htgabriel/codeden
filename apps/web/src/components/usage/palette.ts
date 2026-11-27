@@ -1,4 +1,5 @@
 import type { ChartConfig } from "@/components/ui/chart";
+import { i18n } from "@/lib/i18n";
 
 /**
  * Categorical series colors, validated for colour-vision deficiency on adjacent pairs in both
@@ -18,12 +19,25 @@ export const SERIES_COLORS: { light: string; dark: string }[] = [
 
 export const OTHER_COLOR = { light: "#a3a29c", dark: "#6b6a65" };
 
-/** Token categories in the tokens chart, in stacking order. */
+type TokenKindKey = "input" | "cacheWrite" | "cacheRead" | "output";
+
+const tokenKind = <K extends TokenKindKey>(
+  key: K,
+  slot: number,
+) => ({
+  key,
+  slot,
+  get label() {
+    return i18n.t(`shell.tokenKinds.${key as TokenKindKey}`);
+  },
+});
+
+/** Token categories in the tokens chart, in stacking order (labels in the UI language). */
 export const TOKEN_KINDS = [
-  { key: "input", label: "Input", slot: 0 },
-  { key: "cacheWrite", label: "Cache writes", slot: 1 },
-  { key: "cacheRead", label: "Cache reads", slot: 2 },
-  { key: "output", label: "Output", slot: 6 },
+  tokenKind("input", 0),
+  tokenKind("cacheWrite", 1),
+  tokenKind("cacheRead", 2),
+  tokenKind("output", 6),
 ] as const;
 
 /** Providers keep the same color everywhere. */

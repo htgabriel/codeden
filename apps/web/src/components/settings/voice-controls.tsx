@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { useTranslation } from "@/lib/i18n";
 import { formatCombo, leavesTypingAlone } from "@/lib/shortcuts";
 import { SettingRow, useSettings } from "./settings-ui";
 
@@ -28,21 +29,22 @@ export function ShortcutRecorder({
 }) {
   // `needsModifier` after a key on its own (Space, a letter, Enter): it would take that key over
   // in every text field, so the recorder asks for Ctrl/⌘ or Alt with it.
+  const { t } = useTranslation();
   const [recording, setRecording] = useState<false | "keys" | "needsModifier">(false);
   const label =
     recording === "keys"
-      ? "Press keys…"
+      ? t("prefs.voice.pressKeys")
       : recording === "needsModifier"
-        ? `Add ${formatCombo("mod")} or ${formatCombo("alt")}…`
+        ? t("prefs.voice.addModifier", { mod: formatCombo("mod"), alt: formatCombo("alt") })
         : value
           ? formatCombo(value)
-          : "Not set";
+          : t("prefs.voice.notSet");
   return (
     <div className="flex items-center gap-2">
       <Button
         size="sm"
         variant="outline"
-        aria-label="Push-to-talk shortcut"
+        aria-label={t("prefs.voice.pushToTalkShortcut")}
         className="min-w-36 font-mono text-xs"
         onClick={() => setRecording("keys")}
         onBlur={() => setRecording(false)}
@@ -63,7 +65,7 @@ export function ShortcutRecorder({
         <Button
           size="icon-sm"
           variant="ghost"
-          aria-label="Clear push-to-talk"
+          aria-label={t("prefs.voice.clearPushToTalk")}
           onClick={() => onChange(null)}
         >
           <X />
@@ -74,15 +76,16 @@ export function ShortcutRecorder({
 }
 
 export function QuietHoursRow() {
+  const { t } = useTranslation();
   const { settings, update } = useSettings();
   const quiet = settings.voice.readAloud.quietHours;
   const set = (patch: { start?: string; end?: string }) =>
     quiet && update({ voice: { readAloud: { quietHours: { ...quiet, ...patch } } } });
   return (
-    <SettingRow label="Quiet hours" help="Nothing is spoken in this window.">
+    <SettingRow label={t("prefs.voice.quietHours")} help={t("prefs.voice.quietHoursHelp")}>
       <div className="flex items-center gap-2">
         <Switch
-          aria-label="Quiet hours"
+          aria-label={t("prefs.voice.quietHours")}
           checked={quiet !== null}
           onCheckedChange={(on) =>
             update({
@@ -92,16 +95,16 @@ export function QuietHoursRow() {
         />
         <Input
           type="time"
-          aria-label="Quiet hours start"
+          aria-label={t("prefs.voice.quietStart")}
           disabled={!quiet}
           value={quiet?.start ?? "22:00"}
           onChange={(e) => set({ start: e.target.value })}
           className="h-8 w-24 text-xs"
         />
-        <span className="text-2xs text-muted-foreground">to</span>
+        <span className="text-2xs text-muted-foreground">{t("prefs.voice.to")}</span>
         <Input
           type="time"
-          aria-label="Quiet hours end"
+          aria-label={t("prefs.voice.quietEnd")}
           disabled={!quiet}
           value={quiet?.end ?? "07:00"}
           onChange={(e) => set({ end: e.target.value })}

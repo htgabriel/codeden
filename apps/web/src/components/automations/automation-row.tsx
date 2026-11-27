@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { stateIn, switchValue } from "@/lib/automations";
 import { ago, until } from "@/lib/format";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { OriginBadges } from "./detail-actions";
 import { describeTrigger, RUN_STATUS, SKIP_REASON } from "./meta";
@@ -25,6 +26,7 @@ export function AutomationRow({
   actions: ReturnType<typeof useAutomationActions>;
   compact?: boolean;
 }) {
+  const { t } = useTranslation();
   const a = item.automation;
   const state = stateIn(item, projectId);
   const on = switchValue(item, projectId);
@@ -57,12 +59,12 @@ export function AutomationRow({
           <OriginBadges item={item} />
           {state?.paused && (
             <span className="rounded bg-status-waiting/12 px-1.5 py-px text-3xs text-status-waiting">
-              Paused
+              {t("automations.row.paused")}
             </span>
           )}
           {state?.enabledOverride != null && (
             <span className="rounded bg-muted px-1.5 py-px text-3xs text-muted-foreground">
-              Project override
+              {t("automations.row.projectOverride")}
             </span>
           )}
         </div>
@@ -73,11 +75,13 @@ export function AutomationRow({
           <span>{describeTrigger(a.trigger)}</span>
           {state?.nextRunAt && (
             <span className="text-foreground/70">
-              · next {until(state.nextRunAt)}
-              {state.skipNextAt === state.nextRunAt && " (skipped)"}
+              {t("automations.row.next", { when: until(state.nextRunAt) })}
+              {state.skipNextAt === state.nextRunAt && t("automations.row.skipped")}
             </span>
           )}
-          {blocked && <span className="text-status-waiting">· off for this project</span>}
+          {blocked && (
+            <span className="text-status-waiting">{t("automations.row.offForProject")}</span>
+          )}
           {last && (
             <span className="flex items-center gap-1" title={last.purpose}>
               · <StatusDot tone={RUN_STATUS[last.status].tone} className="size-1.5" />
@@ -93,7 +97,11 @@ export function AutomationRow({
           size="icon-xs"
           variant="ghost"
           className="text-muted-foreground opacity-0 group-hover:opacity-100 focus-visible:opacity-100 touch:opacity-100"
-          aria-label={state.paused ? `Resume ${a.name}` : `Pause ${a.name}`}
+          aria-label={
+            state.paused
+              ? t("automations.row.resumeAria", { name: a.name })
+              : t("automations.row.pauseAria", { name: a.name })
+          }
           onClick={() => actions.pause.mutate({ id: a.id, paused: !state.paused })}
         >
           {state.paused ? <Play /> : <Pause />}
@@ -104,15 +112,19 @@ export function AutomationRow({
         variant="ghost"
         className="text-muted-foreground"
         disabled={actions.run.isPending || a.action.type === "triage"}
-        title={a.action.type === "triage" ? "Triage runs when an issue opens" : "Run now"}
+        title={
+          a.action.type === "triage"
+            ? t("automations.row.triageRunsOnIssue")
+            : t("automations.row.runNow")
+        }
         onClick={() => actions.run.mutate({ id: a.id, name: a.name })}
       >
-        <Play /> Run
+        <Play /> {t("automations.row.run")}
       </Button>
       <Switch
         checked={on}
         onCheckedChange={(enabled) => actions.toggle.mutate({ item, enabled })}
-        aria-label={`Enable ${a.name}`}
+        aria-label={t("automations.row.enableAria", { name: a.name })}
       />
     </div>
   );

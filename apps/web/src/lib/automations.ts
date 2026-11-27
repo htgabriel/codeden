@@ -6,6 +6,7 @@ import type {
 } from "@codeden/contracts";
 import { type QueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { i18n } from "@/lib/i18n";
 import { useClient } from "./api";
 import type { AutomationRunsQuery } from "./api/automations-api";
 
@@ -116,12 +117,7 @@ export type RunResultToast =
   | { kind: "success"; title: string; sessionId: string | null }
   | { kind: "error"; title: string; description: string; sessionId: string | null };
 
-const RESULT_TITLE: Record<RunResult["status"], string> = {
-  started: "Run started",
-  queued: "Queued behind running work",
-  skipped: "Skipped",
-  joined: "Sent to the running session",
-};
+const resultTitle = (status: RunResult["status"]) => i18n.t(`messages.automations.${status}`);
 
 /**
  * The notification for a run-now result. A launch that throws (the session or PM message
@@ -133,12 +129,12 @@ export function runResultToast(res: RunResult): RunResultToast {
   if ("run" in res && res.run.status === "failed") {
     return {
       kind: "error",
-      title: "Run failed",
-      description: res.run.error?.message ?? "The automation couldn't start.",
+      title: i18n.t("messages.automations.failed"),
+      description: res.run.error?.message ?? i18n.t("messages.automations.couldntStart"),
       sessionId,
     };
   }
-  return { kind: "success", title: RESULT_TITLE[res.status], sessionId };
+  return { kind: "success", title: resultTitle(res.status), sessionId };
 }
 
 /** Show a run-now result; with `openSession`, an "Open session" action when it has one. */
@@ -147,7 +143,7 @@ export function toastRunResult(res: RunResult, openSession?: (sessionId: string)
   const sessionId = shown.sessionId;
   const action =
     sessionId && openSession
-      ? { label: "Open session", onClick: () => openSession(sessionId) }
+      ? { label: i18n.t("messages.automations.openSession"), onClick: () => openSession(sessionId) }
       : undefined;
   if (shown.kind === "error") toast.error(shown.title, { description: shown.description, action });
   else toast.success(shown.title, { action });

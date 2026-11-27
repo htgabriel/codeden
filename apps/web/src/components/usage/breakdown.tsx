@@ -7,17 +7,23 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { i18n, useTranslation } from "@/lib/i18n";
 import { useResolvedTheme } from "@/stores/theme";
 import { money, percent, tokens } from "./format";
 import { colorSlots, OTHER_COLOR, SERIES_COLORS } from "./palette";
 
-export const DIMENSION_LABELS: Record<UsageDimension, string> = {
-  provider: "Provider",
-  model: "Model",
-  project: "Project",
-  role: "Role",
-  source: "Started by",
-};
+const DIMENSIONS: readonly UsageDimension[] = ["provider", "model", "project", "role", "source"];
+
+/** Each dimension's name, in the UI language. */
+export const DIMENSION_LABELS: Record<UsageDimension, string> = Object.defineProperties(
+  {} as Record<UsageDimension, string>,
+  Object.fromEntries(
+    DIMENSIONS.map((d) => [
+      d,
+      { get: () => i18n.t(`shell.breakdown.dimension.${d}`), enumerable: true },
+    ]),
+  ),
+);
 
 /** A table of one dimension's values with their share of spend; rows can narrow the report. */
 export function BreakdownTable({
@@ -29,13 +35,14 @@ export function BreakdownTable({
   dimension: UsageDimension;
   onPick?: (key: string) => void;
 }) {
+  const { t } = useTranslation();
   const theme = useResolvedTheme();
   const series = report.series[dimension];
   const slots = colorSlots(series.map((s) => s.key));
   const total = report.totals.costUsd;
   if (series.length === 0) {
     return (
-      <p className="py-8 text-center text-xs text-muted-foreground">No usage in this range.</p>
+      <p className="py-8 text-center text-xs text-muted-foreground">{t("shell.breakdown.none")}</p>
     );
   }
   return (
@@ -43,11 +50,11 @@ export function BreakdownTable({
       <TableHeader>
         <TableRow className="hover:bg-transparent">
           <TableHead className="h-8 text-2xs">{DIMENSION_LABELS[dimension]}</TableHead>
-          <TableHead className="h-8 w-[28%] text-2xs">Share of spend</TableHead>
-          <TableHead className="h-8 text-right text-2xs">Cost</TableHead>
-          <TableHead className="h-8 text-right text-2xs">Tokens</TableHead>
-          <TableHead className="h-8 text-right text-2xs">Turns</TableHead>
-          <TableHead className="h-8 text-right text-2xs">Sessions</TableHead>
+          <TableHead className="h-8 w-[28%] text-2xs">{t("shell.breakdown.share")}</TableHead>
+          <TableHead className="h-8 text-right text-2xs">{t("shell.breakdown.cost")}</TableHead>
+          <TableHead className="h-8 text-right text-2xs">{t("shell.breakdown.tokens")}</TableHead>
+          <TableHead className="h-8 text-right text-2xs">{t("shell.breakdown.turns")}</TableHead>
+          <TableHead className="h-8 text-right text-2xs">{t("shell.palette.sessions")}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -64,7 +71,7 @@ export function BreakdownTable({
               key={s.key}
               className={pickable ? "cursor-pointer" : undefined}
               onClick={pickable ? () => onPick?.(s.key) : undefined}
-              title={pickable ? `Show only ${s.label}` : undefined}
+              title={pickable ? t("shell.breakdown.showOnly", { label: s.label }) : undefined}
             >
               <TableCell className="max-w-56 py-2">
                 <span className="flex items-center gap-2">

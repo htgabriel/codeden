@@ -1,6 +1,7 @@
 import type { UsageReport } from "@codeden/contracts";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import type { ReactNode } from "react";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { isApiEquivalent, money, percent, tokens, totalTokens, trend } from "./format";
 
@@ -17,6 +18,7 @@ function Tile({
   delta?: { text: string; up: boolean } | null;
   testId?: string;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="min-w-0 rounded-xl border border-border bg-card px-4 py-3">
       <div className="flex items-center gap-1.5 text-2xs text-muted-foreground">{label}</div>
@@ -26,7 +28,7 @@ function Tile({
         </span>
         {delta && (
           <span
-            title="Compared with the previous period of the same length"
+            title={t("shell.totals.compared")}
             className="inline-flex items-center text-2xs text-muted-foreground tabular-nums"
           >
             {delta.up ? <ArrowUpRight className="size-3" /> : <ArrowDownRight className="size-3" />}
@@ -41,6 +43,7 @@ function Tile({
 
 /** Headline numbers for the range: spend, tokens, cache hit rate and averages. */
 export function UsageTotals({ report }: { report: UsageReport }) {
+  const { t: tr } = useTranslation();
   const t = report.totals;
   const p = report.previousTotals;
   const estimated = t.estimatedCostUsd > 0;
@@ -52,13 +55,13 @@ export function UsageTotals({ report }: { report: UsageReport }) {
         testId="usage-total"
         label={
           <>
-            {apiEquivalent ? "API-equivalent cost" : "Spend"}
+            {apiEquivalent ? tr("shell.usageFormat.apiEquivalent") : tr("shell.totals.spend")}
             {apiEquivalent && (
               <span
                 className="rounded border border-border px-1 text-3xs"
-                title="You use a subscription login: this is what the same work would cost on API credits, not your bill."
+                title={tr("shell.totals.subscriptionTip")}
               >
-                subscription
+                {tr("shell.totals.subscription")}
               </span>
             )}
           </>
@@ -67,40 +70,50 @@ export function UsageTotals({ report }: { report: UsageReport }) {
         delta={trend(t.costUsd, p.costUsd)}
         sub={
           estimated
-            ? `${money(perDay)}/day · ${money(t.estimatedCostUsd)} estimated`
-            : `${money(perDay)} a day on average`
+            ? tr("shell.totals.perDayEstimated", {
+                perDay: money(perDay),
+                estimated: money(t.estimatedCostUsd),
+              })
+            : tr("shell.totals.perDayAverage", { perDay: money(perDay) })
         }
       />
       <Tile
         testId="usage-tokens"
-        label="Tokens"
+        label={tr("shell.breakdown.tokens")}
         value={tokens(totalTokens(t))}
         delta={trend(totalTokens(t), totalTokens(p))}
-        sub={`${tokens(t.inputTokens)} in · ${tokens(t.outputTokens)} out · ${tokens(t.cacheReadTokens)} cached`}
+        sub={tr("shell.totals.tokensSub", {
+          input: tokens(t.inputTokens),
+          output: tokens(t.outputTokens),
+          cached: tokens(t.cacheReadTokens),
+        })}
       />
       <Tile
-        label="Cache hit rate"
+        label={tr("shell.totals.cacheHitRate")}
         value={percent(t.cacheHitRate)}
-        sub={`${tokens(t.cacheWriteTokens)} written to cache`}
+        sub={tr("shell.totals.written", { n: tokens(t.cacheWriteTokens) })}
       />
       <Tile
-        label="Per session"
+        label={tr("shell.totals.perSession")}
         value={
           report.averages.perSessionUsd === null
             ? "—"
             : money(report.averages.perSessionUsd, estimated)
         }
-        sub={`${t.sessions.toLocaleString("en-US")} sessions · ${t.turns.toLocaleString("en-US")} turns`}
+        sub={tr("shell.totals.sessionsTurns", {
+          sessions: t.sessions.toLocaleString("en-US"),
+          turns: t.turns.toLocaleString("en-US"),
+        })}
       />
       <Tile
-        label="Per merged PR"
+        label={tr("shell.totals.perMergedPr")}
         value={
           report.averages.perMergedPrUsd === null ? "—" : money(report.averages.perMergedPrUsd)
         }
         sub={
           report.averages.mergedPrs > 0
-            ? `${report.averages.mergedPrs} merged PRs`
-            : "No merged PRs in range"
+            ? tr("shell.totals.mergedPrs", { count: report.averages.mergedPrs })
+            : tr("shell.totals.noMergedPrs")
         }
       />
     </div>
@@ -109,11 +122,11 @@ export function UsageTotals({ report }: { report: UsageReport }) {
 
 /** A short note under the totals when some turns could not be priced. */
 export function UnpricedNote({ report, className }: { report: UsageReport; className?: string }) {
+  const { t } = useTranslation();
   if (report.totals.unpricedTurns === 0) return null;
   return (
     <p className={cn("text-2xs text-muted-foreground", className)}>
-      {report.totals.unpricedTurns} turns ran on models with no price and no reported cost; their
-      tokens are counted but cost $0. Add a price under Prices.
+      {t("shell.totals.unpriced", { count: report.totals.unpricedTurns })}
     </p>
   );
 }

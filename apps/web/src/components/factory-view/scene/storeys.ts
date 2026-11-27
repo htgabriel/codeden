@@ -1,3 +1,5 @@
+import { i18n } from "@/lib/i18n";
+import { textMap } from "../stages";
 import type { SceneAgent } from "./agents";
 
 /**
@@ -10,11 +12,10 @@ import type { SceneAgent } from "./agents";
 export type StoreyId = "workshop" | "lookout";
 export type StoreyFocus = StoreyId | "both";
 
-export const STOREY_LABEL: Record<StoreyFocus, string> = {
-  workshop: "Workshop",
-  lookout: "Lookout",
-  both: "Both",
-};
+export const STOREY_LABEL: Record<StoreyFocus, string> = textMap(
+  ["workshop", "lookout", "both"],
+  (k) => i18n.t(`factoryView.storeys.${k}`),
+);
 
 /** Which storey an agent works on. */
 export function storeyOf(a: Pick<SceneAgent, "role">): StoreyId {

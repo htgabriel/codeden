@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { capText, costText, costTitle, hasCost, nearCap } from "@/components/factory/item-cost";
 import { PR_STATE_LABEL, TYPE_LABEL } from "@/components/factory/meta";
 import { ageShort } from "@/lib/format";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { type CardState, cardNumber, cardStateLabel, prLabel, type ViewCard } from "./stages";
 
@@ -29,8 +30,9 @@ export function TypeBadge({
   /** Inside a card: shorten to fit its width. */
   fit?: boolean;
 }) {
+  const { t } = useTranslation();
   if (!type) return null;
-  const label = type === "docs" ? "Docs" : TYPE_LABEL[type];
+  const label = type === "docs" ? t("factoryView.card.docs") : TYPE_LABEL[type];
   return (
     <span
       className={cn(
@@ -41,7 +43,7 @@ export function TypeBadge({
     >
       {type === "feature" && fit ? (
         <>
-          <span className="@[9.5rem]:hidden">Feat</span>
+          <span className="@[9.5rem]:hidden">{t("factoryView.card.feat")}</span>
           <span className="hidden @[9.5rem]:inline">{label}</span>
         </>
       ) : (
@@ -118,6 +120,7 @@ export function ViewCardButton({
   onOpen: (card: ViewCard) => void;
   className?: string;
 }) {
+  const { t } = useTranslation();
   const w = card.item;
   const number = cardNumber(w);
   const pr = prLabel(card.pr, PR_LABELS);
@@ -129,7 +132,12 @@ export function ViewCardButton({
     <button
       type="button"
       onClick={() => onOpen(card)}
-      aria-label={`${number} ${w.title}, ${cardStateLabel(card)}${cost ? `, cost ${costText(cost)}` : ""}`}
+      aria-label={t(cost ? "factoryView.card.labelCost" : "factoryView.card.label", {
+        number,
+        title: w.title,
+        state: cardStateLabel(card),
+        cost: cost ? costText(cost) : "",
+      })}
       data-testid="factory-view-card"
       data-state={card.state}
       className={cn(
@@ -147,21 +155,21 @@ export function ViewCardButton({
         {w.trust === "admitted" && (
           <ShieldAlert
             className="size-3 shrink-0 text-status-waiting"
-            aria-label="Let in from an untrusted author"
+            aria-label={t("factoryView.card.admitted")}
           />
         )}
         <span
           className="ml-auto shrink-0 text-[10px] text-muted-foreground tabular-nums"
-          title={`In this step since ${new Date(card.since).toLocaleString()}`}
+          title={t("factoryView.card.since", { when: new Date(card.since).toLocaleString() })}
         >
-          {since === "now" ? "just now" : since}
+          {since === "now" ? t("format.justNow") : since}
         </span>
       </div>
       <div className="mt-1 line-clamp-2 text-[12.5px] leading-snug font-medium">{w.title}</div>
       {(w.attempts > 0 || pr || checks || cost) && (
         <div className="mt-1 flex flex-wrap items-center gap-1">
           {w.attempts > 0 && (
-            <Pill tone="person" title={`Revise round ${w.attempts}`}>
+            <Pill tone="person" title={t("factoryView.card.revise", { n: w.attempts })}>
               <RotateCcw className="size-2.5" aria-hidden /> {w.attempts}
             </Pill>
           )}
@@ -179,7 +187,14 @@ export function ViewCardButton({
           {checks && (
             <Pill
               tone={checks.failed > 0 ? "failed" : undefined}
-              title={`${checks.passed} of ${checks.total} merge checks passed${checks.failed ? `, ${checks.failed} failed` : ""}`}
+              title={t(
+                checks.failed ? "factoryView.card.checksFailed" : "factoryView.card.checks",
+                {
+                  passed: checks.passed,
+                  total: checks.total,
+                  failed: checks.failed,
+                },
+              )}
             >
               <ListChecks className="size-2.5" aria-hidden /> {checks.passed}/{checks.total}
             </Pill>
@@ -187,7 +202,10 @@ export function ViewCardButton({
           {cost && (
             <Pill
               tone={nearCap(cost) ? "person" : undefined}
-              title={[costTitle(cost), capText(cost) && `Spend cap: ${capText(cost)}`]
+              title={[
+                costTitle(cost),
+                capText(cost) && t("factoryView.card.cap", { cap: capText(cost) ?? "" }),
+              ]
                 .filter(Boolean)
                 .join(" · ")}
               testId="factory-view-card-cost"

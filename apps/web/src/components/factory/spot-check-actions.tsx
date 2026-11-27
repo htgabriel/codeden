@@ -23,6 +23,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useClient } from "@/lib/api";
 import { factoryKeys } from "@/lib/factory";
+import { useTranslation } from "@/lib/i18n";
 
 /**
  * A person's spot-check of a merge (§10.1): read the change in the PR view, then **Looks good** or
@@ -32,12 +33,13 @@ import { factoryKeys } from "@/lib/factory";
 
 /** Record a decision; the panel and the item page refresh, and a GitHub failure is said plainly. */
 function useSpotCheck(projectId: string, itemId: string) {
+  const { t } = useTranslation();
   const client = useClient();
   const queryClient = useQueryClient();
   const done = (res: FactorySpotCheckResponse, success: string) => {
     if (res.issueError) {
-      toast.warning("Recorded, but the issue wasn't filed", {
-        description: `${res.issueError}. Use File issue to try again.`,
+      toast.warning(t("factory.spotActions.notFiled"), {
+        description: t("factory.spotActions.notFiledHint", { error: res.issueError }),
       });
     } else {
       toast.success(success);
@@ -56,18 +58,21 @@ function useSpotCheck(projectId: string, itemId: string) {
       done(
         res,
         req.verdict === "looks_good"
-          ? "Spot-check recorded: looks good"
+          ? t("factory.spotActions.recordedGood")
           : res.item.spotCheck?.issue
-            ? `Problem recorded and filed as #${res.item.spotCheck.issue.number}`
-            : "Problem recorded",
+            ? t("factory.spotActions.problemFiled", { number: res.item.spotCheck.issue.number })
+            : t("factory.spotActions.problemRecorded"),
       ),
-    onError: fail("Couldn't record the spot-check"),
+    onError: fail(t("factory.spotActions.recordFailed")),
   });
   const fileIssue = useMutation({
     mutationFn: () => client.factory.fileSpotCheckIssue(projectId, itemId),
     onSuccess: (res) =>
-      done(res, `Filed as #${res.item.spotCheck?.issue?.number ?? "?"}: the factory takes it on`),
-    onError: fail("Couldn't file the issue"),
+      done(
+        res,
+        t("factory.spotActions.filed", { number: res.item.spotCheck?.issue?.number ?? "?" }),
+      ),
+    onError: fail(t("factory.followUps.fileFailed")),
   });
   return { decide, fileIssue };
 }
@@ -88,11 +93,12 @@ export function OpenPrButton({
   itemId: string;
   title: string;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   return (
     <>
       <Button size="xs" variant="outline" onClick={() => setOpen(true)}>
-        <GitPullRequest /> Open PR
+        <GitPullRequest /> {t("factory.spotActions.openPr")}
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent
@@ -105,7 +111,7 @@ export function OpenPrButton({
           }}
         >
           <DialogHeader>
-            <DialogTitle>Pull request #{pr.number}</DialogTitle>
+            <DialogTitle>{t("factory.spotActions.prTitle", { number: pr.number })}</DialogTitle>
             <DialogDescription className="truncate">{title}</DialogDescription>
           </DialogHeader>
           <div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 scroll-thin">
@@ -113,7 +119,7 @@ export function OpenPrButton({
           </div>
           <DialogFooter className="items-center sm:justify-between">
             <p className="text-2xs text-muted-foreground">
-              Read the change, then record what you found.
+              {t("factory.spotActions.readThenRecord")}
             </p>
             <div className="flex flex-wrap gap-1.5">
               <SpotCheckDecision
@@ -147,6 +153,7 @@ export function SpotCheckDecision({
   /** Called once the decision is recorded (the PR dialog closes). */
   onDecided?: () => void;
 }) {
+  const { t } = useTranslation();
   const { decide } = useSpotCheck(projectId, itemId);
   const [asking, setAsking] = useState(false);
   const [note, setNote] = useState("");
@@ -161,7 +168,7 @@ export function SpotCheckDecision({
         onClick={() => decide.mutate({ verdict: "looks_good" }, { onSuccess: onDecided })}
         disabled={decide.isPending}
       >
-        <Check /> Looks good
+        <Check /> {t("factory.spotState.looks_good")}
       </Button>
       <Button
         size={size}
@@ -169,23 +176,20 @@ export function SpotCheckDecision({
         onClick={() => setAsking(true)}
         disabled={decide.isPending}
       >
-        <TriangleAlert /> Found a problem
+        <TriangleAlert /> {t("factory.spotState.problem")}
       </Button>
       <Dialog open={asking} onOpenChange={setAsking}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Found a problem</DialogTitle>
-            <DialogDescription>
-              What's wrong with "{title}"? It's recorded on the item and counts against its builder
-              and reviewer in the scorecard.
-            </DialogDescription>
+            <DialogTitle>{t("factory.spotState.problem")}</DialogTitle>
+            <DialogDescription>{t("factory.spotActions.whatsWrong", { title })}</DialogDescription>
           </DialogHeader>
           <Textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
             maxLength={SPOT_CHECK_NOTE_MAX}
-            placeholder="What you found, specific enough for an agent to fix it"
-            aria-label="What you found"
+            placeholder={t("factory.spotActions.notePlaceholder")}
+            aria-label={t("factory.spotActions.noteAria")}
             className="min-h-28 text-[13px]"
             autoFocus
           />
@@ -197,15 +201,15 @@ export function SpotCheckDecision({
               className="mt-0.5"
             />
             <span>
-              File a follow-up issue with this note
+              {t("factory.spotActions.fileFollowUp")}
               <span className="block text-3xs text-muted-foreground">
-                Labelled for the factory, which takes it on as new work.
+                {t("factory.spotActions.fileFollowUpHint")}
               </span>
             </span>
           </label>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setAsking(false)}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               onClick={() =>
@@ -222,7 +226,9 @@ export function SpotCheckDecision({
               }
               disabled={decide.isPending || !text}
             >
-              {decide.isPending ? "Recording…" : "Record problem"}
+              {decide.isPending
+                ? t("factory.spotActions.recording")
+                : t("factory.spotActions.recordProblem")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -239,6 +245,7 @@ export function FileSpotCheckIssueButton({
   projectId: string;
   itemId: string;
 }) {
+  const { t } = useTranslation();
   const { fileIssue } = useSpotCheck(projectId, itemId);
   return (
     <Button
@@ -247,7 +254,8 @@ export function FileSpotCheckIssueButton({
       onClick={() => fileIssue.mutate()}
       disabled={fileIssue.isPending}
     >
-      <FilePlus2 /> {fileIssue.isPending ? "Filing…" : "File issue"}
+      <FilePlus2 />{" "}
+      {fileIssue.isPending ? t("factory.spotActions.filing") : t("factory.followUps.fileIssue")}
     </Button>
   );
 }

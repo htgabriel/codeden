@@ -1,5 +1,6 @@
 import type { FactoryStatus } from "@codeden/contracts";
-import { compact, plural, usd } from "@/lib/format";
+import { compact, usd } from "@/lib/format";
+import { i18n } from "@/lib/i18n";
 
 /**
  * The Factory view's stats strip: six figures, each with an optional small bar. Where the
@@ -42,7 +43,10 @@ export function openPrs(f: FactoryStatus) {
  */
 export function mergePathNote(stats: FactoryStatus["stats"]): string | undefined {
   if (stats.fastMerges7d + stats.retestedMerges7d === 0) return undefined;
-  return `${stats.fastMerges7d} fast · ${stats.retestedMerges7d} re-tested, 7 days`;
+  return i18n.t("factoryView.stats.mergePaths", {
+    fast: stats.fastMerges7d,
+    retested: stats.retestedMerges7d,
+  });
 }
 
 export function viewStats(f: FactoryStatus): StatTile[] {
@@ -53,16 +57,17 @@ export function viewStats(f: FactoryStatus): StatTile[] {
   const forYou = open.filter((p) => p.state === "waiting_for_you" || p.state === "stuck").length;
   const { stats } = f;
   const paths = mergePathNote(stats);
+  const t = i18n.t;
   return [
     {
       id: "spend",
-      label: "Spend today",
+      label: t("factoryView.stats.spend"),
       value: budgetUsd ? usd(f.spendToday.usd) : compact(f.spendToday.tokens),
       detail: budgetUsd
-        ? `of ${usd(budgetUsd)}`
+        ? t("factoryView.stats.ofBudget", { budget: usd(budgetUsd) })
         : budgetTokens
-          ? `of ${compact(budgetTokens)} tokens`
-          : "no budget set",
+          ? t("factoryView.stats.ofTokens", { tokens: compact(budgetTokens) })
+          : t("factoryView.stats.noBudget"),
       bar: {
         value: budgetUsd ? f.spendToday.usd : f.spendToday.tokens,
         max: budgetUsd ?? budgetTokens ?? 0,
@@ -72,50 +77,55 @@ export function viewStats(f: FactoryStatus): StatTile[] {
     f.limits.autoMerge
       ? {
           id: "merges",
-          label: "Merges today",
+          label: t("factoryView.stats.merges"),
           value: String(f.mergesToday),
-          detail: `of ${f.limits.maxMergesPerDay} a day`,
+          detail: t("factoryView.stats.ofPerDay", { n: f.limits.maxMergesPerDay }),
           bar: { value: f.mergesToday, max: f.limits.maxMergesPerDay, warn: false },
           ...(paths ? { note: paths } : {}),
         }
       : {
           id: "merges",
-          label: "Merges today",
+          label: t("factoryView.stats.merges"),
           value: String(stats.mergedToday),
-          detail: "auto-merge off",
+          detail: t("factoryView.stats.autoMergeOff"),
           ...(paths ? { note: paths } : {}),
         },
     {
       id: "agents",
-      label: "Agents working",
+      label: t("factoryView.stats.agents"),
       value: String(f.activeSessions),
-      detail: `of ${f.limits.maxConcurrentSessions}`,
+      detail: t("factoryView.stats.of", { n: f.limits.maxConcurrentSessions }),
       bar: { value: f.activeSessions, max: f.limits.maxConcurrentSessions, warn: false },
     },
     {
       id: "prs",
-      label: "Open PRs",
+      label: t("factoryView.stats.prs"),
       value: String(open.length),
-      detail: forYou > 0 ? `${forYou} for you` : queued > 0 ? `${queued} queued` : undefined,
+      detail:
+        forYou > 0
+          ? t("factoryView.stats.forYou", { n: forYou })
+          : queued > 0
+            ? t("factoryView.stats.queued", { n: queued })
+            : undefined,
     },
     {
       id: "failures",
-      label: "Failed · reverted",
+      label: t("factoryView.stats.failures"),
       value: `${stats.failedToday} · ${stats.revertedToday}`,
-      detail: `today · ${f.consecutiveFailures} in a row`,
+      detail: t("factoryView.stats.inARow", { n: f.consecutiveFailures }),
       alert: stats.failedToday + stats.revertedToday > 0,
       ...(stats.fastReverts7d > 0
-        ? { note: `${plural(stats.fastReverts7d, "fast merge")} reverted, 7 days` }
+        ? { note: t("factoryView.stats.fastReverts", { count: stats.fastReverts7d }) }
         : {}),
     },
     {
       id: "median",
-      label: "Issue to merge",
+      label: t("factoryView.stats.median"),
       value: stats.medianMergeMs7d === null ? "—" : shortDuration(stats.medianMergeMs7d),
       detail:
         stats.merged7d > 0
-          ? `median of ${plural(stats.merged7d, "merge")}, 7 days`
-          : "no merges in 7 days",
+          ? t("factoryView.stats.medianOf", { count: stats.merged7d })
+          : t("factoryView.stats.noMerges"),
     },
   ];
 }

@@ -10,6 +10,7 @@ import {
 } from "@codeden/contracts";
 import type { CreateAutomationInput } from "@/lib/api/automations-api";
 import { cronError } from "@/lib/cron";
+import { i18n } from "@/lib/i18n";
 import { actionText } from "./action-editor";
 
 /** What the automation editor edits: everything but the id, switch and history. */
@@ -101,19 +102,24 @@ export function draftFromAutomation(a: Automation): AutomationDraft {
   };
 }
 
-/** Why the draft cannot be saved yet, in plain words; empty when it can. */
+/** Why the draft cannot be saved yet, in plain words (UI language); empty when it can. */
 export function draftProblems(d: AutomationDraft, timezone: string): string[] {
+  const t = i18n.t;
   const out: string[] = [];
-  if (!d.name.trim()) out.push("Give it a name.");
+  if (!d.name.trim()) out.push(t("automations.problems.name"));
   if (d.trigger.type === "cron") {
     const tz = d.trigger.timezone || timezone;
-    if (cronError(d.trigger.expression.trim(), tz)) out.push("Fix the schedule.");
+    if (cronError(d.trigger.expression.trim(), tz)) out.push(t("automations.problems.schedule"));
   }
   if (d.action.type !== "triage" && !actionText(d.action).trim()) {
-    out.push(d.action.type === "start_session" ? "Write the prompt." : "Write the message.");
+    out.push(
+      d.action.type === "start_session"
+        ? t("automations.problems.prompt")
+        : t("automations.problems.message"),
+    );
   }
   if (d.action.type === "triage" && d.trigger.type !== "event") {
-    out.push("Triage runs when an issue event happens.");
+    out.push(t("automations.problems.triage"));
   }
   return out;
 }

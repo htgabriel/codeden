@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useSettings } from "@/components/settings/settings-ui";
 import { useClient } from "@/lib/api";
+import { i18n } from "@/lib/i18n";
 import { isTyping, leavesTypingAlone, matchesCombo, shortcut } from "@/lib/shortcuts";
 import { createCloudStt } from "@/lib/voice/cloud-stt";
 import { stt as browserStt, type SpeechToText } from "@/lib/voice/engines";
@@ -132,7 +133,7 @@ export function useDictation({
       onError: (message) => {
         // The engine still ends after an error; until then the last segments may come back.
         if (phaseRef.current !== "idle") move(engine.finishesAfterStop ? "finishing" : "idle");
-        toast.error("Dictation stopped", { description: message });
+        toast.error(i18n.t("workbench.composer.dictationStopped"), { description: message });
       },
     });
   };

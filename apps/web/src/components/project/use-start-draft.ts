@@ -12,6 +12,7 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { canSendDraft, draftInput } from "@/components/composer/composer-box";
 import { type CodeDenClient, useClient } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n";
 import {
   buildStartRequest,
   draftPurpose,
@@ -55,6 +56,7 @@ const isPersisted = (record: ConflictRecord) => !record.id.startsWith(LOCAL_CONF
  * server closes the conflict it replaces (`replacesConflict`).
  */
 export function useStartDraft(projectId: string, resolved: ResolvedDraft, workKey: string) {
+  const { t } = useTranslation();
   const client = useClient();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -80,7 +82,7 @@ export function useStartDraft(projectId: string, resolved: ResolvedDraft, workKe
   /** The start request for the draft as it is now. An empty draft starts nothing. */
   const currentRequest = (): StartSessionRequestInit => {
     const now = getDraft(useComposerStore.getState(), draftKey);
-    if (!canSendDraft(now)) throw new Error("Write the task in the composer first");
+    if (!canSendDraft(now)) throw new Error(t("shell.startDraft.writeFirst"));
     return buildStartRequest(projectId, draftInput(now), resolved, workKey);
   };
 
@@ -114,7 +116,7 @@ export function useStartDraft(projectId: string, resolved: ResolvedDraft, workKe
           toProject();
           return;
         case "queued":
-          toast("Queued behind running work");
+          toast(t("triage.queued"));
           becomeSession(result.sessionId, request.input, true);
           return;
         case "started":
@@ -125,7 +127,7 @@ export function useStartDraft(projectId: string, resolved: ResolvedDraft, workKe
           return;
       }
     },
-    onError: (e) => toast.error("Couldn't start the session", { description: e.message }),
+    onError: (e) => toast.error(t("shell.startDraft.startFailed"), { description: e.message }),
   });
 
   /**
@@ -140,10 +142,10 @@ export function useStartDraft(projectId: string, resolved: ResolvedDraft, workKe
    * with that request in place of the saved one, a local one retries the start with it.
    */
   const decide = async (decision: ConflictDecision): Promise<StartSessionResponse> => {
-    if (!conflict) throw new Error("No conflict to resolve");
+    if (!conflict) throw new Error(t("shell.startDraft.noConflict"));
     const { record } = conflict;
     const skip = decision.resolution === "skip";
-    if (!skip && keyChanged) throw new Error("The work key changed: send the draft again");
+    if (!skip && keyChanged) throw new Error(t("shell.startDraft.keyChanged"));
     // Skip starts nothing, so the saved request is all it needs.
     const request = skip
       ? conflict.request
@@ -183,7 +185,7 @@ export function useStartDraft(projectId: string, resolved: ResolvedDraft, workKe
     request: {
       ...conflict.record.request,
       purpose: canStart
-        ? (draftPurpose(draft.text) ?? "New session")
+        ? (draftPurpose(draft.text) ?? t("shell.projectGroup.newSession"))
         : conflict.record.request.purpose,
     },
   };
@@ -195,9 +197,9 @@ export function useStartDraft(projectId: string, resolved: ResolvedDraft, workKe
     sending: start.isPending,
     conflict: shown,
     startBlocked: !canStart
-      ? "The composer is empty: write the task to start it, or skip"
+      ? t("shell.startDraft.empty")
       : keyChanged
-        ? "The work key changed: send the draft again to check it"
+        ? t("shell.startDraft.keyChangedCheck")
         : null,
     decide,
     onConflictResolved,

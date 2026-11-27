@@ -22,25 +22,33 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useClient } from "@/lib/api";
 import { automationKeys } from "@/lib/automations";
+import { i18n, Trans, useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { Segmented } from "./form-bits";
 import { describeTrigger } from "./meta";
 
 /** Read picked files into an import source: `.zip` as base64, anything else as text. */
 export async function readImportFiles(files: File[]): Promise<AutomationImportSource> {
+  const t = i18n.t;
   const zip = files.find((f) => /\.zip$/i.test(f.name));
   const texts = files.filter((f) => !/\.zip$/i.test(f.name));
   if (files.filter((f) => /\.zip$/i.test(f.name)).length > 1) {
-    throw new Error("Pick one .zip at a time");
+    throw new Error(t("automations.import.oneZip"));
   }
   if (texts.length > AUTOMATION_IMPORT_LIMITS.maxFiles) {
-    throw new Error(`At most ${AUTOMATION_IMPORT_LIMITS.maxFiles} files at once`);
+    throw new Error(t("automations.import.maxFiles", { n: AUTOMATION_IMPORT_LIMITS.maxFiles }));
   }
   for (const f of texts) {
-    if (f.size > AUTOMATION_IMPORT_LIMITS.maxFileChars) throw new Error(`${f.name} is too large`);
+    if (f.size > AUTOMATION_IMPORT_LIMITS.maxFileChars)
+      throw new Error(t("automations.import.tooLarge", { name: f.name }));
   }
   if (zip && zip.size > AUTOMATION_IMPORT_LIMITS.maxZipBytes) {
-    throw new Error(`${zip.name} is larger than ${AUTOMATION_IMPORT_LIMITS.maxZipBytes / 1024} KB`);
+    throw new Error(
+      t("automations.import.zipTooLarge", {
+        name: zip.name,
+        kb: AUTOMATION_IMPORT_LIMITS.maxZipBytes / 1024,
+      }),
+    );
   }
   const source: AutomationImportSource = {};
   if (texts.length) {
@@ -61,11 +69,16 @@ export async function readImportFiles(files: File[]): Promise<AutomationImportSo
 
 /** The agent line of a preview: provider and model, or the default agent. */
 function agentLine(item: AutomationImportPreviewItem): string {
+  const t = i18n.t;
   const a = item.automation?.action;
   if (!a) return "";
-  if (a.type === "message_pm") return "Messages the PM";
-  if (a.type === "triage") return "PM triage";
-  return [a.provider ?? "Default agent", a.model, a.effort && `${a.effort} effort`]
+  if (a.type === "message_pm") return t("automations.import.messagesPm");
+  if (a.type === "triage") return t("automations.import.pmTriage");
+  return [
+    a.provider ?? t("automations.import.defaultAgent"),
+    a.model,
+    a.effort && t("automations.import.effort", { effort: a.effort }),
+  ]
     .filter(Boolean)
     .join(" · ");
 }
@@ -79,6 +92,7 @@ function PreviewRow({
   checked: boolean;
   onCheck: (v: boolean) => void;
 }) {
+  const { t } = useTranslation();
   const a = item.automation;
   const action = a?.action;
   const level = action?.type === "start_session" ? (action.autonomy ?? "auto") : null;
@@ -102,7 +116,7 @@ function PreviewRow({
         checked={checked}
         disabled={!a}
         onChange={(e) => onCheck(e.target.checked)}
-        aria-label={`Import ${a?.name ?? item.fileName}`}
+        aria-label={t("automations.import.importAria", { name: a?.name ?? item.fileName })}
       />
       <span className="min-w-0 flex-1 space-y-1">
         <span className="flex flex-wrap items-center gap-2">
@@ -132,8 +146,7 @@ function PreviewRow({
             {item.fullPermissions && (
               <span className="flex items-start gap-1.5 text-2xs text-status-waiting">
                 <AlertTriangle className="mt-px size-3.5 shrink-0" />
-                Full permissions: it never asks before acting. Check the prompt before you switch it
-                on.
+                {t("automations.import.fullWarning")}
               </span>
             )}
           </>
@@ -158,6 +171,7 @@ function linkUrl(input: string): string {
  * automations always start off.
  */
 export function ImportDialog({ projectId }: { projectId: string }) {
+  const { t } = useTranslation();
   const client = useClient();
   const queryClient = useQueryClient();
   const id = useId();
@@ -190,16 +204,16 @@ export function ImportDialog({ projectId }: { projectId: string }) {
       res: await client.automations.previewImport(src),
     }),
     onSuccess: ({ src, res }) => show(src, res.items),
-    onError: (e) => toast.error("Couldn't read the import", { description: e.message }),
+    onError: (e) => toast.error(t("automations.import.readFailed"), { description: e.message }),
   });
   const linkPreview = useMutation({
     mutationFn: (url: string) => client.automations.previewLink(url),
     onSuccess: (res) => show(res.source, res.items),
-    onError: (e) => toast.error("Couldn't import from the link", { description: e.message }),
+    onError: (e) => toast.error(t("automations.import.linkFailed"), { description: e.message }),
   });
   const commit = useMutation({
     mutationFn: () => {
-      if (!source) throw new Error("Nothing to import");
+      if (!source) throw new Error(t("automations.import.nothing"));
       return client.automations.importAutomations({
         source,
         select: [...selected],
@@ -209,13 +223,15 @@ export function ImportDialog({ projectId }: { projectId: string }) {
     onSuccess: (res) => {
       void queryClient.invalidateQueries({ queryKey: automationKeys.all });
       const n = res.created.length;
-      toast.success(`Imported ${n} automation${n === 1 ? "" : "s"}, all off`, {
-        description: res.failed.length ? `${res.failed.length} could not be imported` : undefined,
+      toast.success(t("automations.import.imported", { count: n }), {
+        description: res.failed.length
+          ? t("automations.import.notImported", { n: res.failed.length })
+          : undefined,
       });
       setOpen(false);
       reset();
     },
-    onError: (e) => toast.error("Couldn't import", { description: e.message }),
+    onError: (e) => toast.error(t("automations.import.failed"), { description: e.message }),
   });
 
   const pick = async (files: FileList | null) => {
@@ -223,7 +239,7 @@ export function ImportDialog({ projectId }: { projectId: string }) {
     try {
       preview.mutate(await readImportFiles([...files]));
     } catch (e) {
-      toast.error("Couldn't read the files", { description: (e as Error).message });
+      toast.error(t("automations.import.filesFailed"), { description: (e as Error).message });
     }
   };
   const valid = items?.filter((i) => i.automation) ?? [];
@@ -239,27 +255,26 @@ export function ImportDialog({ projectId }: { projectId: string }) {
     >
       <DialogTrigger asChild>
         <Button size="sm" variant="outline">
-          <Import /> Import
+          <Import /> {t("automations.import.import")}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-2xl" data-testid="import-dialog">
         <DialogHeader>
-          <DialogTitle>Import automations</DialogTitle>
+          <DialogTitle>{t("automations.import.title")}</DialogTitle>
           <DialogDescription>
-            Markdown automation files (<code>.md</code>), a <code>.zip</code> of them, pasted text
-            or a link. Nothing runs, and everything you import starts off.
+            <Trans i18nKey="automations.import.description" components={{ code: <code /> }} />
           </DialogDescription>
         </DialogHeader>
         {!items ? (
           <div className="space-y-3">
             <Segmented
-              label="Import from"
+              label={t("automations.import.importFrom")}
               value={mode}
               onChange={setMode}
               options={[
-                { id: "files", label: "Files" },
-                { id: "paste", label: "Paste" },
-                { id: "link", label: "Link" },
+                { id: "files", label: t("automations.import.files") },
+                { id: "paste", label: t("automations.import.paste") },
+                { id: "link", label: t("automations.import.link") },
               ]}
             />
             {mode === "link" ? (
@@ -280,15 +295,13 @@ export function ImportDialog({ projectId }: { projectId: string }) {
                   autoFocus
                   placeholder="https://gist.github.com/…"
                   className="font-mono text-[12px]"
-                  aria-label="Link to import"
+                  aria-label={t("automations.import.linkAria")}
                   data-testid="import-link-input"
                 />
                 <p className="flex items-start gap-1.5 text-2xs text-muted-foreground">
                   <Link2 className="mt-px size-3.5 shrink-0" />
                   <span>
-                    A link to a <code>.md</code> or <code>.zip</code> file, a GitHub file or a
-                    public gist. CodeDen downloads it once, sends no credentials, and imports
-                    exactly what the preview shows.
+                    <Trans i18nKey="automations.import.linkHelp" components={{ code: <code /> }} />
                   </span>
                 </p>
               </form>
@@ -303,10 +316,12 @@ export function ImportDialog({ projectId }: { projectId: string }) {
                 }}
               >
                 <FileUp className="size-6 text-muted-foreground" />
-                <span className="text-[13px] font-medium">Choose or drop .md files or a .zip</span>
+                <span className="text-[13px] font-medium">{t("automations.import.drop")}</span>
                 <span className="text-2xs text-muted-foreground">
-                  Up to {AUTOMATION_IMPORT_LIMITS.maxFiles} automations,{" "}
-                  {AUTOMATION_IMPORT_LIMITS.maxFileChars / 1024} KB each
+                  {t("automations.import.limits", {
+                    files: AUTOMATION_IMPORT_LIMITS.maxFiles,
+                    kb: AUTOMATION_IMPORT_LIMITS.maxFileChars / 1024,
+                  })}
                 </span>
                 <input
                   id={`${id}-files`}
@@ -327,7 +342,7 @@ export function ImportDialog({ projectId }: { projectId: string }) {
                   '---\nname: Release notes draft\ntrigger:\n  type: cron\n  expression: "0 16 * * 5"\n---\nDraft the release notes for {{project.name}}.'
                 }
                 className="font-mono text-[12px]"
-                aria-label="Automation Markdown"
+                aria-label={t("automations.import.markdownAria")}
               />
             )}
           </div>
@@ -354,22 +369,21 @@ export function ImportDialog({ projectId }: { projectId: string }) {
               ))}
             </div>
             <div className="flex flex-wrap items-center gap-3 text-xs">
-              <span className="text-muted-foreground">Import into</span>
+              <span className="text-muted-foreground">{t("automations.import.importInto")}</span>
               <Segmented
-                label="Import into"
+                label={t("automations.import.importInto")}
                 value={target}
                 onChange={setTarget}
                 options={[
-                  { id: "project", label: "This project", icon: <FolderGit2 /> },
-                  { id: "all_projects", label: "All projects", icon: <Globe /> },
+                  { id: "project", label: t("automations.form.thisProject"), icon: <FolderGit2 /> },
+                  { id: "all_projects", label: t("automations.form.allProjects"), icon: <Globe /> },
                 ]}
               />
             </div>
             {fullSelected && (
               <p className="flex items-start gap-1.5 rounded-lg border border-status-waiting/30 bg-status-waiting/[0.06] px-3 py-2 text-2xs text-status-waiting">
                 <AlertTriangle className="mt-px size-3.5 shrink-0" />
-                Some selected automations use Full permissions and would act without asking. They
-                start off; review them before switching them on.
+                {t("automations.import.fullSelected")}
               </p>
             )}
           </div>
@@ -378,13 +392,16 @@ export function ImportDialog({ projectId }: { projectId: string }) {
           {items ? (
             <>
               <Button variant="ghost" onClick={reset}>
-                Back
+                {t("automations.import.back")}
               </Button>
               <Button
                 onClick={() => commit.mutate()}
                 disabled={selected.size === 0 || commit.isPending}
               >
-                Import {selected.size} of {valid.length}, off
+                {t("automations.import.importCount", {
+                  selected: selected.size,
+                  total: valid.length,
+                })}
               </Button>
             </>
           ) : mode === "paste" ? (
@@ -392,7 +409,7 @@ export function ImportDialog({ projectId }: { projectId: string }) {
               onClick={() => preview.mutate({ text })}
               disabled={!text.trim() || preview.isPending}
             >
-              Preview
+              {t("automations.import.preview")}
             </Button>
           ) : (
             mode === "link" && (
@@ -401,7 +418,9 @@ export function ImportDialog({ projectId }: { projectId: string }) {
                 form={linkForm}
                 disabled={!link.trim() || linkPreview.isPending}
               >
-                {linkPreview.isPending ? "Downloading…" : "Preview"}
+                {linkPreview.isPending
+                  ? t("automations.import.downloading")
+                  : t("automations.import.preview")}
               </Button>
             )
           )}

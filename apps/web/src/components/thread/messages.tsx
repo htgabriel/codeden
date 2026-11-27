@@ -5,6 +5,7 @@ import { ImageGallery, ImageThumbnail } from "@/components/common/image-viewer";
 import { useClient } from "@/lib/api";
 import { attachmentGallery } from "@/lib/attachments";
 import { copyWithFeedback } from "@/lib/copy";
+import { useTranslation } from "@/lib/i18n";
 import { foldDigest } from "@/lib/orchestration";
 import { DigestDisclosure, WakeLine } from "./digest-fold";
 import { Markdown } from "./markdown";
@@ -36,18 +37,20 @@ function AttachmentView({
   image: number;
   src: string | undefined;
 }) {
+  const { t } = useTranslation();
   if (attachment.type === "file") return <FileChip label={attachment.name ?? attachment.path} />;
   // Images are served from artifacts; the browser never loads a filesystem path. A path the
   // server could not map to an artifact arrives as a bare file name.
   if (image < 0 || !src) {
-    const label = attachment.source.type === "path" ? attachment.source.path : "image";
+    const label =
+      attachment.source.type === "path" ? attachment.source.path : t("workbench.messages.image");
     return <FileChip label={attachment.name ?? label} />;
   }
   return (
     <ImageThumbnail index={image} className="block overflow-hidden rounded-lg border border-border">
       <img
         src={src}
-        alt={attachment.name ?? "Attached image"}
+        alt={attachment.name ?? t("workbench.queue.attachedImage")}
         className="h-28 w-auto max-w-64 object-cover"
       />
     </ImageThumbnail>
@@ -119,6 +122,7 @@ export function AssistantMessage({
   item: ItemOf<"assistant_message">;
   streaming: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="group relative">
       <Markdown streaming={streaming}>{item.text}</Markdown>
@@ -126,9 +130,9 @@ export function AssistantMessage({
         <button
           type="button"
           className="absolute -bottom-5 left-0 flex items-center gap-1 text-3xs text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-foreground touch:opacity-100"
-          onClick={() => void copyWithFeedback(item.text, "Copied message")}
+          onClick={() => void copyWithFeedback(item.text, t("workbench.messages.copied"))}
         >
-          <Copy className="size-3" /> Copy
+          <Copy className="size-3" /> {t("workbench.cards.copy")}
         </button>
       )}
     </div>

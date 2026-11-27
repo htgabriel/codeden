@@ -2,6 +2,7 @@ import { type FactoryRetryMode, type StoppedItem, stoppedRetry } from "@codeden/
 import { Hammer, RotateCcw } from "lucide-react";
 import type { ComponentProps } from "react";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "@/lib/i18n";
 import { useRetryItem } from "./use-retry-item";
 
 /**
@@ -26,6 +27,7 @@ export function RetryButton({
   variant?: ComponentProps<typeof Button>["variant"];
   className?: string;
 }) {
+  const { t } = useTranslation();
   const retry = useRetryItem(projectId, item.id, mode);
   const can = stoppedRetry(item);
   if (!can) return null;
@@ -33,8 +35,10 @@ export function RetryButton({
   const rebuild = (mode ?? can.mode) === "rebuild";
   const title =
     rebuild || !pr
-      ? `Run it again from the first step${pr ? `, replacing #${pr.number}` : ""}`
-      : `Send #${pr.number} back to a fresh review of its latest commits (no new build)`;
+      ? pr
+        ? t("factory.retry.runAgainReplacing", { number: pr.number })
+        : t("factory.retry.runAgain")
+      : t("factory.retry.sendBack", { number: pr.number });
   return (
     <Button
       size={size}
@@ -51,7 +55,7 @@ export function RetryButton({
       }}
     >
       {mode === "rebuild" ? <Hammer /> : <RotateCcw />}
-      {mode === "rebuild" ? "Rebuild" : "Retry"}
+      {mode === "rebuild" ? t("factory.retry.rebuild") : t("factory.retry.retry")}
     </Button>
   );
 }

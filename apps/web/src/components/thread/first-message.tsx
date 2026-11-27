@@ -1,6 +1,7 @@
 import { type Session, UserInput, type UserInputInit } from "@codeden/contracts";
 import { Loader2 } from "lucide-react";
 import { useMemo } from "react";
+import { useTranslation } from "@/lib/i18n";
 import { UserMessage } from "./messages";
 
 /**
@@ -16,11 +17,12 @@ export function FirstMessage({
   /** The session's status: a note says what it waits for while it is starting or queued. */
   status: Session["status"];
 }) {
+  const { t } = useTranslation();
   const note =
     status === "starting"
-      ? "Starting the session…"
+      ? t("workbench.firstMessage.starting")
       : status === "queued"
-        ? "Queued behind running work…"
+        ? t("workbench.firstMessage.queued")
         : null;
   const item = useMemo(
     () => ({

@@ -46,6 +46,7 @@ import {
   TranscriptSearchResponse,
   UpdateStatus,
 } from "@codeden/contracts";
+import { i18n } from "@/lib/i18n";
 import { httpAutomationsApi } from "./automations-api";
 import type { CodeDenClient, SendMode } from "./client";
 import { httpFactoryApi } from "./factory-api";
@@ -307,6 +308,6 @@ async function fetchStart(origin: string, input: unknown): Promise<StartSessionR
   if (parsed.success) return parsed.data;
   const message =
     (json as { error?: { message?: string } } | null)?.error?.message ??
-    `Couldn't start the session (${res.status})`;
+    i18n.t("messages.api.startFailed", { status: res.status });
   throw new Error(message);
 }

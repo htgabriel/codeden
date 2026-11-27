@@ -23,6 +23,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useClient } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { HookDialog, hookTarget, PROVIDER_LABELS, SCOPE_LABELS } from "./hook-dialog";
 import { hookSummary, isEditableHook } from "./hook-form";
@@ -45,6 +46,7 @@ interface Pending {
 
 /** Hooks from each provider's settings files, by file (§12.4). */
 export function HooksList({ projectId }: { projectId: string | null }) {
+  const { t } = useTranslation();
   const client = useClient();
   const queryClient = useQueryClient();
   const queryKey = ["agent-config-hooks", projectId];
@@ -75,24 +77,29 @@ export function HooksList({ projectId }: { projectId: string | null }) {
       setForgetting(null);
       setHooks(res.hooks);
       toast.success(p.done, {
-        description: res.backupPath ? `Backup: ${res.backupPath}` : (res.file ?? undefined),
+        description: res.backupPath
+          ? t("shell.configEditor.backup", { path: res.backupPath })
+          : (res.file ?? undefined),
       });
     },
-    onError: (e) => toast.error("Not changed", { description: e.message }),
+    onError: (e) => toast.error(t("shell.hooks.notChanged"), { description: e.message }),
   });
 
   const sources = list.data?.sources ?? [];
   const hooks = list.data?.hooks ?? [];
-  const label = (h: HookEntry) => `${h.event} hook${h.matcher ? ` (${h.matcher})` : ""}`;
+  const label = (h: HookEntry) =>
+    h.matcher
+      ? t("shell.hooks.labelMatcher", { event: h.event, matcher: h.matcher })
+      : t("shell.hooks.label", { event: h.event });
   const remove = (h: HookEntry) => {
     if (h.shelfId) {
       setForgetting(h);
       return;
     }
     void ask({
-      title: `Delete the ${label(h)}`,
-      confirmLabel: "Delete hook",
-      done: `Deleted the ${label(h)}`,
+      title: t("shell.hooks.deleteTitle", { hook: label(h) }),
+      confirmLabel: t("shell.hooks.deleteHook"),
+      done: t("shell.hooks.deleted", { hook: label(h) }),
       req: { action: "remove", target: hookTarget(h), ...view },
     });
   };
@@ -100,15 +107,15 @@ export function HooksList({ projectId }: { projectId: string | null }) {
     void ask(
       h.shelfId
         ? {
-            title: `Enable the ${label(h)}`,
-            confirmLabel: "Enable hook",
-            done: `Enabled the ${label(h)}`,
+            title: t("shell.hooks.enableTitle", { hook: label(h) }),
+            confirmLabel: t("shell.hooks.enableHook"),
+            done: t("shell.hooks.enabled", { hook: label(h) }),
             req: { action: "enable", target: { shelfId: h.shelfId }, ...view },
           }
         : {
-            title: `Disable the ${label(h)}`,
-            confirmLabel: "Disable hook",
-            done: `Disabled the ${label(h)}`,
+            title: t("shell.hooks.disableTitle", { hook: label(h) }),
+            confirmLabel: t("shell.hooks.disableHook"),
+            done: t("shell.hooks.disabled", { hook: label(h) }),
             req: { action: "disable", target: hookTarget(h), ...view },
           },
     );
@@ -117,11 +124,8 @@ export function HooksList({ projectId }: { projectId: string | null }) {
     <div data-testid="hooks-list">
       <div className="mb-3 flex items-end justify-between gap-4">
         <div>
-          <h2 className="text-[15px] font-semibold tracking-tight">Hooks</h2>
-          <p className="text-[13px] text-muted-foreground">
-            Commands your agents run on lifecycle events, from each settings file's hooks key,
-            edited in place.
-          </p>
+          <h2 className="text-[15px] font-semibold tracking-tight">{t("shell.hooks.title")}</h2>
+          <p className="text-[13px] text-muted-foreground">{t("shell.hooks.description")}</p>
         </div>
         <Button
           size="sm"
@@ -129,16 +133,15 @@ export function HooksList({ projectId }: { projectId: string | null }) {
           disabled={!sources.some((s) => !s.error)}
           onClick={() => setDialog({ editing: null })}
         >
-          <Plus /> Add hook
+          <Plus /> {t("shell.hookDialog.addTitle")}
         </Button>
       </div>
       {list.isLoading && <Skeleton className="h-24 rounded-xl" />}
       {list.error && <p className="p-4 text-xs text-status-failed">{list.error.message}</p>}
       {list.data && hooks.length === 0 && sources.every((s) => !s.error) && (
         <div className="rounded-xl border border-border bg-card">
-          <EmptyState icon={<Webhook />} title="No hooks configured">
-            Add one to run a command before or after a tool call, when a prompt is sent or when the
-            agent stops.
+          <EmptyState icon={<Webhook />} title={t("shell.hooks.emptyTitle")}>
+            {t("shell.hooks.emptyBody")}
           </EmptyState>
         </div>
       )}
@@ -172,13 +175,12 @@ export function HooksList({ projectId }: { projectId: string | null }) {
               )}
               {source.disableAllHooks && (
                 <p className="flex items-center gap-2 border-b border-border px-4 py-2 text-xs text-status-waiting">
-                  <AlertTriangle className="size-3.5 shrink-0" /> This file sets disableAllHooks:
-                  none of its hooks run.
+                  <AlertTriangle className="size-3.5 shrink-0" /> {t("shell.hooks.disableAll")}
                 </p>
               )}
               {!source.error && own.length === 0 && (
                 <p className="px-4 py-3 text-xs text-muted-foreground">
-                  No hooks in this file{source.exists ? "" : " (it doesn't exist yet)"}.
+                  {source.exists ? t("shell.hooks.noneInFile") : t("shell.hooks.noneInMissingFile")}
                 </p>
               )}
               {own.map((h) => (
@@ -216,14 +218,15 @@ export function HooksList({ projectId }: { projectId: string | null }) {
       <AlertDialog open={forgetting !== null} onOpenChange={(open) => !open && setForgetting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this disabled hook?</AlertDialogTitle>
+            <AlertDialogTitle>{t("shell.hooks.forgetTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              It is no longer in {forgetting?.file ?? "its settings file"}, so only CodeDen's copy
-              is removed. This can't be undone.
+              {t("shell.hooks.forgetBody", {
+                file: forgetting?.file ?? t("shell.hooks.itsSettingsFile"),
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
               onClick={() =>
@@ -231,12 +234,12 @@ export function HooksList({ projectId }: { projectId: string | null }) {
                 change.mutate({
                   title: "",
                   confirmLabel: "",
-                  done: `Deleted the ${label(forgetting)}`,
+                  done: t("shell.hooks.deleted", { hook: label(forgetting) }),
                   req: { action: "remove", target: { shelfId: forgetting.shelfId }, ...view },
                 })
               }
             >
-              Delete
+              {t("shell.configEditor.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -258,6 +261,7 @@ function HookRow({
   onToggle: () => void;
   onRemove: () => void;
 }) {
+  const { t } = useTranslation();
   const off = !h.enabled || offByFile;
   const name = `${h.event} ${h.matcher ?? ""}`.trim();
   return (
@@ -272,11 +276,11 @@ function HookRow({
             {h.event}
           </span>
           <span className="rounded bg-muted px-1.5 py-px font-mono text-3xs font-normal text-muted-foreground">
-            {h.matcher ?? "all"}
+            {h.matcher ?? t("shell.hooks.all")}
           </span>
           <span className={chip}>{h.handler.type}</span>
           {h.handler.timeout !== undefined && <span className={chip}>{h.handler.timeout}s</span>}
-          {!h.enabled && <span className={chip}>disabled</span>}
+          {!h.enabled && <span className={chip}>{t("shell.hooks.disabledChip")}</span>}
         </div>
         <div className="truncate font-mono text-3xs text-muted-foreground">
           {hookSummary(h.handler)}
@@ -284,20 +288,34 @@ function HookRow({
       </div>
       <div className="flex gap-1">
         {h.enabled && isEditableHook(h.handler) && (
-          <Button size="icon-sm" variant="ghost" aria-label={`Edit ${name}`} onClick={onEdit}>
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            aria-label={t("shell.hooks.edit", { name })}
+            onClick={onEdit}
+          >
             <Pencil />
           </Button>
         )}
         <Button
           size="icon-sm"
           variant="ghost"
-          aria-label={`${h.enabled ? "Disable" : "Enable"} ${name}`}
-          title={h.enabled ? "Disable (keeps a copy in CodeDen)" : "Enable"}
+          aria-label={
+            h.enabled
+              ? t("shell.hooks.disableName", { name })
+              : t("shell.hooks.enableName", { name })
+          }
+          title={h.enabled ? t("shell.hooks.disableTip") : t("shell.hooks.enable")}
           onClick={onToggle}
         >
           {h.enabled ? <PowerOff /> : <Power />}
         </Button>
-        <Button size="icon-sm" variant="ghost" aria-label={`Delete ${name}`} onClick={onRemove}>
+        <Button
+          size="icon-sm"
+          variant="ghost"
+          aria-label={t("shell.configEditor.deleteLabel", { name })}
+          onClick={onRemove}
+        >
           <Trash2 />
         </Button>
       </div>

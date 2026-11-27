@@ -2,6 +2,7 @@ import { Loader2, Mic } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useClient } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { transcribeRecording } from "@/lib/voice/cloud-stt";
 import { recordClip } from "@/lib/voice/recorder";
@@ -31,6 +32,7 @@ export function WhisperTest({
   language: string | null;
   className?: string;
 }) {
+  const { t } = useTranslation();
   const client = useClient();
   const [phase, setPhase] = useState<"idle" | "recording" | "transcribing">("idle");
   const [left, setLeft] = useState(TEST_SECONDS);
@@ -76,25 +78,27 @@ export function WhisperTest({
         >
           {phase === "idle" ? <Mic /> : <Loader2 className="animate-spin" />}
           {phase === "recording"
-            ? `Listening… ${left}s`
+            ? t("prefs.whisper.listening", { left })
             : phase === "transcribing"
-              ? "Transcribing…"
-              : "Test"}
+              ? t("prefs.whisper.transcribing")
+              : t("prefs.whisper.test")}
         </Button>
         {phase === "idle" && !result && !error && (
           <span className="text-2xs text-muted-foreground">
-            Records {TEST_SECONDS} seconds, then transcribes them on this machine.
+            {t("prefs.whisper.testHint", { count: TEST_SECONDS })}
           </span>
         )}
       </div>
       {result && (
         <div className="rounded-lg border border-border bg-background/50 px-3 py-2 text-[13px]">
           <div className={cn(!result.text && "text-muted-foreground italic")}>
-            {result.text ? `“${result.text}”` : "No speech was heard."}
+            {result.text ? `“${result.text}”` : t("prefs.whisper.noSpeech")}
           </div>
           <div className="mt-1 text-2xs text-muted-foreground">
-            {result.elapsedMs !== null ? `Transcribed in ${seconds(result.elapsedMs)} · ` : ""}
-            {seconds(result.roundTripMs)} round trip
+            {result.elapsedMs !== null
+              ? t("prefs.whisper.transcribedIn", { time: seconds(result.elapsedMs) })
+              : ""}
+            {t("prefs.whisper.roundTrip", { time: seconds(result.roundTripMs) })}
           </div>
         </div>
       )}

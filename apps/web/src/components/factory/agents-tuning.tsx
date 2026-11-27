@@ -7,6 +7,7 @@ import {
   providerOptionLabel,
   TOO_OLD,
 } from "@/components/composer/model-picker/logic";
+import { useTranslation } from "@/lib/i18n";
 import { useSetupStatus, useSnapshotData } from "@/lib/queries";
 
 /** The agent knobs of the factory's tuning: who builds and who reviews, on which model. */
@@ -21,18 +22,9 @@ export type AgentsDraft = Pick<
   | "reviewerFallback"
 >;
 
-const FALLBACKS: Array<{ id: ReviewerFallback; label: string }> = [
-  { id: "builder", label: "Review on the builder's provider and model" },
-  { id: "any", label: "Review on any available provider" },
-  { id: "wait", label: "Wait until it is available again" },
-];
-
-/** What a review does while its chosen provider can't run, by `reviewerFallback`. */
-const REVIEWS_MEANWHILE: Record<ReviewerFallback, string> = {
-  builder: "reviews run on the builder's provider and model",
-  any: "reviews run on any available provider",
-  wait: "reviews wait",
-};
+/** The fallbacks in menu order (`factory.agents.fallback.<id>`); `factory.agents.meanwhile.<id>`
+ * says what a review does while its chosen provider can't run. */
+const FALLBACKS: ReviewerFallback[] = ["builder", "any", "wait"];
 
 const SELECT =
   "h-9 w-full rounded-md border border-border bg-background px-2.5 text-[13px] disabled:opacity-60";
@@ -51,57 +43,54 @@ export function AgentsTuning({
   value: AgentsDraft;
   onChange: (next: AgentsDraft) => void;
 }) {
+  const { t } = useTranslation();
   const id = useId();
   return (
     <div className="space-y-3 border-t border-border pt-4" data-testid="agents-tuning">
       <div>
-        <p className="text-[13px] font-medium">Agents</p>
-        <p className="text-3xs text-muted-foreground">
-          A reviewer on a different provider from the builder gives the most independent review.
-          Docs builds can run on a cheaper model. Providers that aren't signed in, are too old to
-          run or are at their usage limit are skipped.
-        </p>
+        <p className="text-[13px] font-medium">{t("factory.agents.title")}</p>
+        <p className="text-3xs text-muted-foreground">{t("factory.agents.intro")}</p>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <AgentPicker
           id={`${id}-b`}
-          label="Builder"
+          label={t("factory.agents.builder")}
           provider={value.builderProvider}
           model={value.builderModel}
-          meanwhile="builders start on another available provider"
+          meanwhile={t("factory.agents.builderMeanwhile")}
           onChange={(builderProvider, builderModel) =>
             onChange({ ...value, builderProvider, builderModel })
           }
         />
         <AgentPicker
           id={`${id}-d`}
-          label="Docs builder"
+          label={t("factory.agents.docsBuilder")}
           provider={value.docsBuilderProvider ?? ""}
           model={value.docsBuilderModel}
           autoValue=""
-          autoLabel="Same as builders"
-          hint="Builds of docs items (READMEs, guides, comments). Same as builders: they build on the builder's provider and model. Feature and bug builds always use the builder's."
-          meanwhile="docs builds start on another available provider"
+          autoLabel={t("factory.agents.sameAsBuilders")}
+          hint={t("factory.agents.docsHint")}
+          meanwhile={t("factory.agents.docsMeanwhile")}
           onChange={(provider, docsBuilderModel) =>
             onChange({ ...value, docsBuilderProvider: provider || null, docsBuilderModel })
           }
         />
         <AgentPicker
           id={`${id}-r`}
-          label="Reviewer"
+          label={t("factory.agents.reviewer")}
           provider={value.reviewerProvider}
           model={value.reviewerModel}
-          autoLabel="Automatic (a different provider from the builder)"
-          meanwhile={REVIEWS_MEANWHILE[value.reviewerFallback]}
+          autoLabel={t("factory.agents.reviewerAuto")}
+          meanwhile={t(`factory.agents.meanwhile.${value.reviewerFallback}`)}
           onChange={(reviewerProvider, reviewerModel) =>
             onChange({ ...value, reviewerProvider, reviewerModel })
           }
         />
       </div>
       <Field
-        label="When the reviewer's provider is unavailable"
+        label={t("factory.agents.fallbackLabel")}
         htmlFor={`${id}-fb`}
-        hint="Unavailable means not installed, not signed in, at its usage limit, or failing to start. With no provider available at all, the review waits."
+        hint={t("factory.agents.fallbackHint")}
       >
         <select
           id={`${id}-fb`}
@@ -112,8 +101,8 @@ export function AgentsTuning({
           }
         >
           {FALLBACKS.map((f) => (
-            <option key={f.id} value={f.id}>
-              {f.label}
+            <option key={f} value={f}>
+              {t(`factory.agents.fallback.${f}`)}
             </option>
           ))}
         </select>
@@ -150,13 +139,14 @@ export function AgentPicker({
   meanwhile: string;
   onChange: (provider: string, model: string | null) => void;
 }) {
+  const { t } = useTranslation();
   const providers = useSnapshotData((s) => s.runner.providers, []);
   const checks = useSetupStatus({ staleTime: 60_000 }).data?.checks;
   return (
     <>
       <ProviderSelect
         id={`${id}p`}
-        label={`${label} provider`}
+        label={t("factory.agents.providerLabel", { label })}
         providers={providers}
         checks={checks}
         value={provider}
@@ -168,7 +158,7 @@ export function AgentPicker({
       />
       <ModelSelect
         id={`${id}m`}
-        label={`${label} model`}
+        label={t("factory.agents.modelLabel", { label })}
         provider={providers.find((p) => p.id === provider)}
         value={model}
         onChange={(next) => onChange(provider, next)}
@@ -184,7 +174,7 @@ function ProviderSelect({
   checks,
   value,
   autoValue = "auto",
-  autoLabel = "Automatic",
+  autoLabel,
   hint,
   meanwhile,
   onChange,
@@ -201,6 +191,7 @@ function ProviderSelect({
   meanwhile: string;
   onChange: (provider: string) => void;
 }) {
+  const { t } = useTranslation();
   const chosen = providers.find((p) => p.id === value);
   const availability = chosen ? providerAvailability(chosen.id, checks) : null;
   let help: ReactNode;
@@ -209,30 +200,33 @@ function ProviderSelect({
     const why =
       availability.reason === TOO_OLD && availability.detail
         ? availability.detail
-        : `${chosen.displayName}: ${lowerFirst(availability.reason ?? "Not ready")}`;
+        : `${chosen.displayName}: ${lowerFirst(availability.reason ?? t("factory.agents.notReady"))}`;
     help = (
       <span className="text-status-waiting">
         {why}
         {availability.command && (
           <>
             {" "}
-            (run <code className="rounded bg-muted px-1 font-mono">{availability.command}</code>)
+            {t("factory.agents.runPrefix")}{" "}
+            <code className="rounded bg-muted px-1 font-mono">{availability.command}</code>)
           </>
         )}
-        . Until it can run, {meanwhile}.
+        {t("factory.agents.untilRun", { meanwhile })}
       </span>
     );
   }
   return (
     <Field label={label} htmlFor={id} hint={hint} help={help}>
       <select id={id} className={SELECT} value={value} onChange={(e) => onChange(e.target.value)}>
-        <option value={autoValue}>{autoLabel}</option>
+        <option value={autoValue}>{autoLabel ?? t("factory.agents.automatic")}</option>
         {providers.map((p) => (
           <option key={p.id} value={p.id}>
             {providerOptionLabel(p.displayName, providerAvailability(p.id, checks))}
           </option>
         ))}
-        {!chosen && value !== autoValue && <option value={value}>{value} (not connected)</option>}
+        {!chosen && value !== autoValue && (
+          <option value={value}>{t("factory.agents.notConnected", { value })}</option>
+        )}
       </select>
     </Field>
   );
@@ -251,6 +245,7 @@ function ModelSelect({
   value: string | null;
   onChange: (model: string | null) => void;
 }) {
+  const { t } = useTranslation();
   const models = provider?.models ?? [];
   const known = value === null || models.some((m) => m.id === value);
   return (
@@ -262,7 +257,9 @@ function ModelSelect({
         disabled={!provider}
         onChange={(e) => onChange(e.target.value || null)}
       >
-        <option value="">{provider ? "Provider default" : "Choose a provider first"}</option>
+        <option value="">
+          {provider ? t("factory.agents.providerDefault") : t("factory.agents.chooseProvider")}
+        </option>
         {models.map((m) => (
           <option key={m.id} value={m.id}>
             {m.label}

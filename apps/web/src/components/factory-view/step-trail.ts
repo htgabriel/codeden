@@ -1,4 +1,5 @@
 import type { FactoryItemStage, PipelineStep, WorkType } from "@codeden/contracts";
+import { i18n } from "@/lib/i18n";
 
 /** The steps of each pipeline, in order (§10.1). */
 const PIPELINE_STEPS: Record<WorkType, PipelineStep[]> = {
@@ -35,10 +36,10 @@ export function stepTrail(item: {
   if (item.stage === "merged" || item.step === "done") at = steps.length;
   else if (item.stage === "watching") {
     at = steps.indexOf("merge");
-    note = "Merged; watching CI on the default branch";
+    note = i18n.t("factoryView.trail.watching");
   } else if (item.step === "queued") {
     at = 1;
-    note = "Waiting for a free agent";
+    note = i18n.t("factoryView.trail.queued");
   } else if (item.step === "stopped" || item.step === "ignored") at = -1;
   else at = steps.indexOf(item.step);
   return steps.map((step, i) => {

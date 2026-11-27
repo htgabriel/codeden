@@ -8,6 +8,7 @@ import { CheckCircle2, Loader2, X, XCircle } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useClient } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 /** A connection test in flight, its result, or why it could not run (runner offline, ...). */
@@ -19,11 +20,11 @@ export type McpTestState =
 /** Tool names shown before "show all". */
 const COLLAPSED_TOOLS = 12;
 
-const STAGE_LABEL: Record<McpTestStage, string> = {
-  start: "Couldn't start or reach the server",
-  connect: "Handshake failed",
-  list_tools: "Couldn't list its tools",
-};
+const STAGE_KEY = {
+  start: "shell.mcpTest.stage.start",
+  connect: "shell.mcpTest.stage.connect",
+  list_tools: "shell.mcpTest.stage.list_tools",
+} as const satisfies Record<McpTestStage, string>;
 
 const duration = (ms: number) => (ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(1)} s`);
 
@@ -66,6 +67,7 @@ export function McpTestResultView({
   onDismiss?: () => void;
   className?: string;
 }) {
+  const { t } = useTranslation();
   const [showAll, setShowAll] = useState(false);
   let icon: React.ReactNode;
   let headline: React.ReactNode;
@@ -73,10 +75,10 @@ export function McpTestResultView({
 
   if (state.status === "running") {
     icon = <Loader2 className="size-4 animate-spin text-muted-foreground" />;
-    headline = <span className="text-muted-foreground">Connecting and listing tools…</span>;
+    headline = <span className="text-muted-foreground">{t("shell.mcpTest.running")}</span>;
   } else if (state.status === "error") {
     icon = <XCircle className="size-4 text-status-failed" />;
-    headline = <span>The test didn't run</span>;
+    headline = <span>{t("shell.mcpTest.didntRun")}</span>;
     body = <p className="text-2xs text-status-failed/90">{state.message}</p>;
   } else if (state.result.ok) {
     const r = state.result;
@@ -85,35 +87,35 @@ export function McpTestResultView({
     icon = <CheckCircle2 className="size-4 text-status-done" />;
     headline = (
       <span>
-        Connected ·{" "}
-        <span className="font-medium">{r.server.title || r.server.name || "server"}</span>
+        {t("shell.mcpTest.connected")} ·{" "}
+        <span className="font-medium">
+          {r.server.title || r.server.name || t("shell.mcpDialog.server")}
+        </span>
         {r.server.version && <span className="text-muted-foreground"> {r.server.version}</span>}
         {" · "}
         {r.morePages
-          ? `more than ${r.toolCount} tools`
-          : r.toolCount === 1
-            ? "1 tool"
-            : `${r.toolCount} tools`}
+          ? t("shell.mcpTest.moreThan", { count: r.toolCount })
+          : t("shell.mcpTest.tools", { count: r.toolCount })}
         <span className="text-muted-foreground"> · {duration(r.durationMs)}</span>
       </span>
     );
     body =
       r.toolCount === 0 && !r.morePages ? (
-        <p className="text-2xs text-muted-foreground">The server offers no tools.</p>
+        <p className="text-2xs text-muted-foreground">{t("shell.mcpTest.noTools")}</p>
       ) : (
         <div className="flex flex-wrap gap-1">
           {r.morePages && (
             <p className="w-full text-2xs text-muted-foreground">
-              The test read the first {MCP_TEST_MAX_PAGES} pages of tools; the server has more.
+              {t("shell.mcpTest.morePages", { pages: MCP_TEST_MAX_PAGES })}
             </p>
           )}
-          {tools.map((t) => (
+          {tools.map((tool) => (
             <span
-              key={t.name}
-              title={t.description}
+              key={tool.name}
+              title={tool.description}
               className="rounded bg-muted px-1.5 py-px font-mono text-3xs text-muted-foreground"
             >
-              {t.name}
+              {tool.name}
             </span>
           ))}
           {hidden > 0 && (
@@ -122,13 +124,14 @@ export function McpTestResultView({
               className="px-1 text-3xs text-primary hover:underline"
               onClick={() => setShowAll(true)}
             >
-              +{hidden} more
+              {t("shell.mcpTest.more", { count: hidden })}
             </button>
           )}
           {showAll && r.toolCount > r.tools.length && (
             <span className="px-1 text-3xs text-muted-foreground">
-              and {r.toolCount - r.tools.length}
-              {r.morePages ? "+" : ""} not listed
+              {t("shell.mcpTest.notListed", {
+                n: `${r.toolCount - r.tools.length}${r.morePages ? "+" : ""}`,
+              })}
             </span>
           )}
         </div>
@@ -138,7 +141,7 @@ export function McpTestResultView({
     icon = <XCircle className="size-4 text-status-failed" />;
     headline = (
       <span>
-        {r.timedOut ? "Timed out" : STAGE_LABEL[r.stage]}
+        {r.timedOut ? t("shell.mcpTest.timedOut") : t(STAGE_KEY[r.stage])}
         <span className="text-muted-foreground"> · {duration(r.durationMs)}</span>
       </span>
     );
@@ -170,7 +173,7 @@ export function McpTestResultView({
           <Button
             size="icon-xs"
             variant="ghost"
-            aria-label="Dismiss test result"
+            aria-label={t("shell.mcpTest.dismiss")}
             onClick={onDismiss}
           >
             <X />

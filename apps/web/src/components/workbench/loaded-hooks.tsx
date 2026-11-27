@@ -2,6 +2,7 @@ import type { LoadedHooks } from "@codeden/contracts";
 import { AlertTriangle } from "lucide-react";
 import type { ReactNode } from "react";
 import { hookSummary } from "@/components/agents/hook-form";
+import { i18n, Trans } from "@/lib/i18n";
 
 /** One row of a What's loaded list. */
 export interface LoadedRow {
@@ -25,13 +26,13 @@ export function hookRows(loaded: LoadedHooks): LoadedRow[] {
   const off = loaded.disabledBy !== null;
   return loaded.hooks.map((h, i) => ({
     key: `${h.file}:${h.event}:${h.groupIndex ?? i}:${h.handlerIndex ?? i}`,
-    label: `${h.event} · ${h.matcher || "all"}`,
+    label: `${h.event} · ${h.matcher || i18n.t("workbench.loaded.all")}`,
     detail: h.scope,
     sub:
       h.handler.type === "command"
         ? hookSummary(h.handler)
         : `${h.handler.type}: ${hookSummary(h.handler)}`,
-    title: `${h.file}${off ? "\nNot running: disableAllHooks is on" : ""}`,
+    title: `${h.file}${off ? `\n${i18n.t("workbench.loaded.notRunning")}` : ""}`,
     dim: off,
   }));
 }
@@ -51,9 +52,11 @@ export function hookNotices(loaded: LoadedHooks): ReactNode {
       key: "off",
       tone: "warn",
       text: (
-        <>
-          Hooks are off for this session: <Path file={winner} /> sets disableAllHooks.
-        </>
+        <Trans
+          i18nKey="workbench.loaded.hooksOff"
+          values={{ file: winner }}
+          components={{ path: <Path file={winner} /> }}
+        />
       ),
     });
   }
@@ -65,14 +68,17 @@ export function hookNotices(loaded: LoadedHooks): ReactNode {
         key: `sets:${s.file}`,
         tone: "warn",
         text: winner ? (
-          <>
-            <Path file={s.file} /> also sets disableAllHooks.
-          </>
+          <Trans
+            i18nKey="workbench.loaded.alsoSets"
+            values={{ file: s.file }}
+            components={{ path: <Path file={s.file} /> }}
+          />
         ) : (
-          <>
-            <Path file={s.file} /> sets disableAllHooks, but a file with higher precedence sets it
-            to false, so hooks run.
-          </>
+          <Trans
+            i18nKey="workbench.loaded.overridden"
+            values={{ file: s.file }}
+            components={{ path: <Path file={s.file} /> }}
+          />
         ),
       });
     }

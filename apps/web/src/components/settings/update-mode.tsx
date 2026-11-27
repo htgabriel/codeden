@@ -6,43 +6,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { i18n, useTranslation } from "@/lib/i18n";
 import { useUpdates } from "@/lib/updates";
 import { SettingRow, useSettings } from "./settings-ui";
 
-const NPM_HELP: Record<UpdateMode, string> = {
-  off: "Never asks the npm registry for new versions.",
-  notify:
-    "Asks the npm registry for the latest version on start and every 6 hours (nothing else is sent) and offers a one-click update.",
-  auto: "Also downloads new versions in the background; they start the next time you open CodeDen.",
-};
-
-const DESKTOP_HELP: Record<UpdateMode, string> = {
-  off: "Never asks GitHub Releases for new versions.",
-  notify:
-    "Asks GitHub Releases for the latest version on start and every 6 hours (nothing else is sent) and offers a one-click update.",
-  auto: "Also downloads new versions in the background; they install when you quit CodeDen.",
-};
-
-/** Help text for where this install gets its updates from. */
+/** Help text for where this install gets its updates from (in the UI language). */
 export function updateModeHelp(mode: UpdateMode, source: InstallSource | undefined): string {
-  return (source === "desktop" ? DESKTOP_HELP : NPM_HELP)[mode];
+  return i18n.t(`prefs.updates.mode.${source === "desktop" ? "desktop" : "npm"}.${mode}`);
 }
 
 /** Settings > General > Updates (§16, §17): off, notify, or install automatically. */
 export function UpdateModeSetting() {
+  const { t } = useTranslation();
   const { settings, update } = useSettings();
   const { data } = useUpdates();
   const mode = settings.updates.mode;
   return (
-    <SettingRow label="Updates" help={updateModeHelp(mode, data?.source)}>
+    <SettingRow label={t("prefs.updates.label")} help={updateModeHelp(mode, data?.source)}>
       <Select value={mode} onValueChange={(v) => update({ updates: { mode: v as UpdateMode } })}>
         <SelectTrigger size="sm" className="w-44" data-testid="update-mode">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="off">Off</SelectItem>
-          <SelectItem value="notify">Notify me</SelectItem>
-          <SelectItem value="auto">Install automatically</SelectItem>
+          <SelectItem value="off">{t("prefs.updates.modeOff")}</SelectItem>
+          <SelectItem value="notify">{t("prefs.updates.modeNotify")}</SelectItem>
+          <SelectItem value="auto">{t("prefs.updates.modeAuto")}</SelectItem>
         </SelectContent>
       </Select>
     </SettingRow>

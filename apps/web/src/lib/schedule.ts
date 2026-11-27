@@ -1,3 +1,4 @@
+import { i18n } from "@/lib/i18n";
 import { cronError, describeCron, nextRuns } from "./cron";
 
 /**
@@ -15,30 +16,28 @@ export type ScheduleChoice =
 
 export type ScheduleKind = ScheduleChoice["kind"];
 
-export const SCHEDULE_KINDS: { id: ScheduleKind; label: string }[] = [
-  { id: "minutes", label: "Every few minutes" },
-  { id: "hours", label: "Every few hours" },
-  { id: "daily", label: "Daily" },
-  { id: "weekdays", label: "Weekdays" },
-  { id: "weekly", label: "Weekly" },
-  { id: "monthly", label: "Monthly" },
-  { id: "custom", label: "Custom (cron)" },
+const KIND_IDS: ScheduleKind[] = [
+  "minutes",
+  "hours",
+  "daily",
+  "weekdays",
+  "weekly",
+  "monthly",
+  "custom",
 ];
+
+/** The schedule choices in the editor's order, labels read in the UI language. */
+export const SCHEDULE_KINDS: { id: ScheduleKind; label: string }[] = KIND_IDS.map((id) => ({
+  id,
+  get label() {
+    return i18n.t(`automations.schedule.kind.${id}`);
+  },
+}));
 
 /** Minute intervals that divide an hour, so `*\/N` runs evenly. */
 export const MINUTE_STEPS = [5, 10, 15, 20, 30];
 /** Hour intervals that divide a day. */
 export const HOUR_STEPS = [1, 2, 3, 4, 6, 8, 12];
-export const DAY_NAMES = [
-  "Sunday",
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-];
-
 const TIME = /^([01]\d|2[0-3]):([0-5]\d)$/;
 const num = (s: string | undefined) => (s !== undefined && /^\d+$/.test(s) ? Number(s) : null);
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -150,7 +149,7 @@ export function schedulePreview(
   after?: Date,
 ): { summary: string; next: Date[]; error: string | null } {
   const error = cronError(expression, timezone);
-  if (error) return { summary: "Invalid schedule", next: [], error };
+  if (error) return { summary: i18n.t("automations.schedule.invalid"), next: [], error };
   return {
     summary: describeCron(expression),
     next: nextRuns(expression, timezone, count, after),

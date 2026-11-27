@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { useClient } from "@/lib/api";
 import { copyWithFeedback } from "@/lib/copy";
+import { useTranslation } from "@/lib/i18n";
 import { platform } from "@/lib/platform";
 import { useSetupStatus, useSnapshotData } from "@/lib/queries";
 import { cn } from "@/lib/utils";
@@ -31,7 +32,7 @@ import { ClaudeSupportRow } from "./claude-support";
 
 type RowState = SetupCheck["state"] | "checking";
 
-/** Placeholder rows while the first detection runs. */
+/** Placeholder rows while the first detection runs (the server's check labels, in English). */
 const PENDING: { id: string; label: string }[] = [
   { id: "claude", label: "Claude Code" },
   { id: "codex", label: "Codex" },
@@ -42,13 +43,6 @@ const PENDING: { id: string; label: string }[] = [
   { id: "git", label: "git identity" },
   { id: "browser", label: "Browser for agents" },
 ];
-
-const fixLabel: Record<NonNullable<SetupCheck["fix"]>["kind"], string> = {
-  install: "Install",
-  login: "Sign in",
-  upgrade: "Upgrade",
-  configure: "Set up",
-};
 
 function StateIcon({ state }: { state: RowState }) {
   const base =
@@ -84,10 +78,11 @@ function StateIcon({ state }: { state: RowState }) {
  */
 function CheckDetails({ check }: { check: SetupCheck }) {
   const broken = check.broken ?? [];
+  const { t } = useTranslation();
   if (broken.length === 0 && !check.detail) return null;
   return (
     <details className="mt-1 text-2xs text-muted-foreground" data-testid="check-details">
-      <summary className="cursor-pointer select-none">Details</summary>
+      <summary className="cursor-pointer select-none">{t("prefs.setup.details")}</summary>
       {broken.length > 0 && (
         <ul className="mt-1 space-y-1">
           {broken.map((b) => (
@@ -116,6 +111,8 @@ export { useSetupStatus };
 
 /** First-run checklist (§14): parallel checks with live ticks; one fix per failed check. */
 export function SetupChecklist() {
+  const { t } = useTranslation();
+  const fixLabel = (kind: NonNullable<SetupCheck["fix"]>["kind"]) => t(`prefs.setup.fix.${kind}`);
   const client = useClient();
   const queryClient = useQueryClient();
   const [fixing, setFixing] = useState<SetupCheck | null>(null);
@@ -131,9 +128,10 @@ export function SetupChecklist() {
       const next = await client.getSetupStatus({ refresh: true });
       queryClient.setQueryData<SetupStatus>(["setup"], next);
       const after = focus && next.checks.find((c) => c.id === focus.id);
-      if (focus && after?.state === "ok") toast.success(`${focus.label} is ready`);
+      if (focus && after?.state === "ok")
+        toast.success(t("prefs.setup.ready", { label: focus.label }));
     } catch (e) {
-      toast.error("Couldn't re-check", { description: (e as Error).message });
+      toast.error(t("prefs.setup.recheckFailed"), { description: (e as Error).message });
     } finally {
       setRechecking(false);
     }
@@ -170,7 +168,9 @@ export function SetupChecklist() {
                   <div className="flex items-center gap-2 text-[13.5px] font-medium">
                     {label}
                     {providerIds.has(id) ? (
-                      <span className="text-3xs font-normal text-muted-foreground">provider</span>
+                      <span className="text-3xs font-normal text-muted-foreground">
+                        {t("prefs.setup.provider")}
+                      </span>
                     ) : null}
                   </div>
                   <div
@@ -183,7 +183,7 @@ export function SetupChecklist() {
                     )}
                     title={c?.message}
                   >
-                    {state === "checking" ? "Checking…" : c?.message}
+                    {state === "checking" ? t("prefs.setup.checking") : c?.message}
                   </div>
                   {c && needsAttention && <CheckDetails check={c} />}
                 </div>
@@ -194,7 +194,9 @@ export function SetupChecklist() {
                       variant="ghost"
                       className="min-w-0 max-w-56 shrink font-mono text-muted-foreground"
                       title={c.fix.command}
-                      onClick={() => void copyWithFeedback(c.fix?.command ?? "", "Command copied")}
+                      onClick={() =>
+                        void copyWithFeedback(c.fix?.command ?? "", t("prefs.setup.commandCopied"))
+                      }
                     >
                       <Copy /> <span className="truncate">{c.fix.command}</span>
                     </Button>
@@ -206,7 +208,7 @@ export function SetupChecklist() {
                       ) : (
                         <Wrench />
                       )}
-                      {fixLabel[c.fix.kind]}
+                      {fixLabel(c.fix.kind)}
                     </Button>
                   </div>
                 )}
@@ -217,10 +219,7 @@ export function SetupChecklist() {
         })}
       </div>
       <div className="mt-2 flex items-start gap-3">
-        <p className="flex-1 text-2xs text-muted-foreground">
-          CodeDen reuses your existing logins and never stores provider or GitHub credentials. At
-          least one agent provider is required; GitHub is recommended.
-        </p>
+        <p className="flex-1 text-2xs text-muted-foreground">{t("prefs.setup.credentials")}</p>
         <Button
           size="xs"
           variant="ghost"
@@ -228,19 +227,19 @@ export function SetupChecklist() {
           disabled={rechecking}
           onClick={() => void recheck()}
         >
-          <RefreshCw className={cn(rechecking && "animate-spin")} /> Re-check
+          <RefreshCw className={cn(rechecking && "animate-spin")} /> {t("prefs.github.recheck")}
         </Button>
       </div>
       <Dialog open={fixing !== null} onOpenChange={(o) => !o && closeFix()}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>
-              {fixing?.fix ? fixLabel[fixing.fix.kind] : ""} · {fixing?.label}
+              {fixing?.fix ? fixLabel(fixing.fix.kind) : ""} · {fixing?.label}
             </DialogTitle>
             <DialogDescription>
               {fixing?.fix?.kind === "login"
-                ? "Runs the tool's own login. Finish in your browser, then close this window."
-                : "Runs the command in a terminal on this machine. Close this window when it's done."}
+                ? t("prefs.setup.loginHelp")
+                : t("prefs.setup.commandHelp")}
             </DialogDescription>
           </DialogHeader>
           <div className="h-64 overflow-hidden rounded-lg border border-border">
@@ -253,12 +252,12 @@ export function SetupChecklist() {
                 size="sm"
                 onClick={() => fixing.fix?.url && platform.openExternal(fixing.fix.url)}
               >
-                Install guide
+                {t("prefs.setup.installGuide")}
               </Button>
             ) : (
               <span />
             )}
-            <Button onClick={closeFix}>Done, re-check</Button>
+            <Button onClick={closeFix}>{t("prefs.setup.doneRecheck")}</Button>
           </div>
         </DialogContent>
       </Dialog>

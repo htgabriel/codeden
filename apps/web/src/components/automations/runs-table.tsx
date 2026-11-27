@@ -7,17 +7,12 @@ import { StatusDot } from "@/components/common/status-dot";
 import { Button } from "@/components/ui/button";
 import { useAutomationRuns, useAutomations } from "@/lib/automations";
 import { ago, duration } from "@/lib/format";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { RUN_STATUS, SKIP_REASON, TRIGGERED_BY } from "./meta";
 import { useAutomationActions } from "./use-automation-actions";
 
-const FILTERS: { id: AutomationRunStatus | "all"; label: string }[] = [
-  { id: "all", label: "All" },
-  { id: "running", label: "Running" },
-  { id: "queued", label: "Queued" },
-  { id: "skipped", label: "Skipped" },
-  { id: "failed", label: "Failed" },
-];
+const FILTERS: (AutomationRunStatus | "all")[] = ["all", "running", "queued", "skipped", "failed"];
 
 function RunRow({
   run,
@@ -32,6 +27,7 @@ function RunRow({
   onCancel: () => void;
   showAutomation: boolean;
 }) {
+  const { t } = useTranslation();
   const status = RUN_STATUS[run.status];
   const took =
     run.finishedAt && run.status !== "skipped"
@@ -88,7 +84,7 @@ function RunRow({
       <span className="flex justify-end">
         {run.status === "queued" ? (
           <Button size="xs" variant="ghost" className="text-muted-foreground" onClick={onCancel}>
-            <X /> Cancel
+            <X /> {t("common.cancel")}
           </Button>
         ) : run.sessionId ? (
           <Link
@@ -97,7 +93,7 @@ function RunRow({
             className="flex items-center gap-0.5 text-2xs text-primary hover:underline"
             data-testid="run-session-link"
           >
-            Session <ArrowUpRight className="size-3" />
+            {t("automations.runs.session")} <ArrowUpRight className="size-3" />
           </Link>
         ) : null}
       </span>
@@ -115,6 +111,7 @@ export function RunsTable({
   automationId?: string;
   limit?: number;
 }) {
+  const { t } = useTranslation();
   const [filter, setFilter] = useState<AutomationRunStatus | "all">("all");
   const runs = useAutomationRuns({
     projectId,
@@ -138,23 +135,22 @@ export function RunsTable({
       >
         {FILTERS.map((f) => (
           <button
-            key={f.id}
+            key={f}
             type="button"
-            onClick={() => setFilter(f.id)}
+            onClick={() => setFilter(f)}
             className={cn(
               "h-6 rounded-md px-2.5 text-muted-foreground transition-colors hover:text-foreground",
-              filter === f.id && "bg-accent text-foreground",
+              filter === f && "bg-accent text-foreground",
             )}
           >
-            {f.label}
+            {f === "all" ? t("automations.runs.all") : RUN_STATUS[f].label}
           </button>
         ))}
       </div>
       {list.length === 0 && !runs.isLoading ? (
         <div className="rounded-xl border border-dashed border-border">
-          <EmptyState icon={<History />} title="No runs yet">
-            Runs appear here when a schedule, an event or Run now fires, including skipped ones with
-            the reason.
+          <EmptyState icon={<History />} title={t("automations.runs.emptyTitle")}>
+            {t("automations.runs.emptyBody")}
           </EmptyState>
         </div>
       ) : (

@@ -5,7 +5,7 @@ import {
   canOfferNotifications,
   markNotificationOfferAnswered,
 } from "@/lib/attention/notification-offer";
-import { countedTitle, createTitleFlasher, WAITING_TITLE } from "@/lib/attention/title";
+import { countedTitle, createTitleFlasher, waitingTitle } from "@/lib/attention/title";
 
 // ---------------------------------------------------------------- chime
 
@@ -242,13 +242,13 @@ describe("title flasher", () => {
   it("alternates with the waiting title, keeping the count", () => {
     const flasher = createTitleFlasher({ intervalMs: 1500 });
     flasher.update({ count: 2, flashing: true });
-    expect(document.title).toBe(`(2) ${WAITING_TITLE}`);
+    expect(document.title).toBe(`(2) ${waitingTitle()}`);
     vi.advanceTimersByTime(1500);
     expect(document.title).toBe("(2) CodeDen");
     vi.advanceTimersByTime(1500);
-    expect(document.title).toBe(`(2) ${WAITING_TITLE}`);
+    expect(document.title).toBe(`(2) ${waitingTitle()}`);
     flasher.update({ count: 3, flashing: true });
-    expect(document.title).toBe(`(3) ${WAITING_TITLE}`);
+    expect(document.title).toBe(`(3) ${waitingTitle()}`);
   });
 
   it("restores the usual title when flashing stops and stays still", () => {
@@ -270,7 +270,7 @@ describe("title flasher", () => {
 
   it("drops the count when nothing is open", () => {
     expect(countedTitle(0)).toBe("CodeDen");
-    expect(countedTitle(0, WAITING_TITLE)).toBe(WAITING_TITLE);
+    expect(countedTitle(0, waitingTitle())).toBe(waitingTitle());
     expect(countedTitle(5)).toBe("(5) CodeDen");
   });
 });

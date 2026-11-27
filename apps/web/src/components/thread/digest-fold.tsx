@@ -1,5 +1,6 @@
 import { AlarmClock, ChevronRight, Gauge } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "@/lib/i18n";
 import type { FoldedMessage } from "@/lib/orchestration";
 import { cn } from "@/lib/utils";
 
@@ -8,6 +9,7 @@ import { cn } from "@/lib/utils";
  * and PMs (§8.4), folded into a small disclosure instead of raw text.
  */
 export function DigestDisclosure({ folded }: { folded: FoldedMessage }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   if (!folded.status && !folded.updates) return null;
   // One notice per `- (type)` entry; a quoted notice text can span several lines.
@@ -21,11 +23,9 @@ export function DigestDisclosure({ folded }: { folded: FoldedMessage }) {
         className="inline-flex h-6 items-center gap-1 rounded-full border border-border/70 bg-muted/30 px-2 text-3xs text-muted-foreground transition-colors hover:text-foreground"
       >
         <Gauge className="size-3" />
-        Status sent to agent
+        {t("workbench.digest.statusSent")}
         {updates > 0 && (
-          <span className="opacity-70">
-            · {updates} {updates === 1 ? "update" : "updates"}
-          </span>
+          <span className="opacity-70">· {t("workbench.digest.updates", { count: updates })}</span>
         )}
         <ChevronRight className={cn("size-3 transition-transform", open && "rotate-90")} />
       </button>
@@ -40,10 +40,11 @@ export function DigestDisclosure({ folded }: { folded: FoldedMessage }) {
 
 /** An automatic wake-up turn: a quiet divider instead of a user bubble. */
 export function WakeLine({ folded }: { folded: FoldedMessage }) {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-col items-center gap-1.5" data-testid="wake-line">
       <span className="inline-flex items-center gap-1.5 text-3xs text-muted-foreground">
-        <AlarmClock className="size-3" /> Woken by new updates
+        <AlarmClock className="size-3" /> {t("workbench.digest.woken")}
       </span>
       <DigestDisclosure folded={folded} />
     </div>

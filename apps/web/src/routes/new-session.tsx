@@ -8,6 +8,7 @@ import { useProjectProviders } from "@/components/composer/model-picker/use-proj
 import { ConflictCard } from "@/components/project/conflict-card";
 import { NewSessionHeader } from "@/components/project/new-session-header";
 import { useStartDraft } from "@/components/project/use-start-draft";
+import { useTranslation } from "@/lib/i18n";
 import { resolveDraftChoice } from "@/lib/new-session";
 import { useProject, useProjectChecks, useSnapshot, useSnapshotData } from "@/lib/queries";
 import { newSessionDraftKey, useComposerStore } from "@/stores/composer";
@@ -19,6 +20,7 @@ import { getNewSessionDraft, useNewSessionStore } from "@/stores/new-session";
  * the session; the draft (text, options, work key) is kept in the browser until then.
  */
 export function NewSessionPage({ projectId }: { projectId: string }) {
+  const { t } = useTranslation();
   const loaded = useSnapshot().data !== undefined;
   const project = useProject(projectId);
   const runnerProviders = useSnapshotData((s) => s.runner.providers, []);
@@ -52,8 +54,12 @@ export function NewSessionPage({ projectId }: { projectId: string }) {
   if (!loaded) return null;
   if (!project) {
     return (
-      <EmptyState icon={<FolderX />} title="Project not found" className="flex-1">
-        It may have been archived.
+      <EmptyState
+        icon={<FolderX />}
+        title={t("pages.newSession.projectNotFound")}
+        className="flex-1"
+      >
+        {t("pages.newSession.maybeArchived")}
       </EmptyState>
     );
   }
@@ -66,11 +72,15 @@ export function NewSessionPage({ projectId }: { projectId: string }) {
         onWorkKey={(key) => setWorkKey(projectId, key)}
       />
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-        <EmptyState icon={<MessageSquareDashed />} title="New session" className="flex-1">
+        <EmptyState
+          icon={<MessageSquareDashed />}
+          title={t("pages.newSession.title")}
+          className="flex-1"
+        >
           {resolved.workspace === "repo_root"
-            ? "Describe the task. The agent works in the project folder itself: it isn't a git repository, so there is no worktree."
-            : "Describe the task. The agent works in its own worktree and branch."}{" "}
-          Nothing is created until you send.
+            ? t("pages.newSession.repoRootHint")
+            : t("pages.session.worktreeHint")}{" "}
+          {t("pages.newSession.nothingCreated")}
         </EmptyState>
       </div>
       {start.conflict && (
@@ -87,7 +97,7 @@ export function NewSessionPage({ projectId }: { projectId: string }) {
       <Composer
         draftKey={newSessionDraftKey(projectId)}
         source={{ kind: "project", projectId, provider: resolved.provider?.id ?? null }}
-        placeholder="Describe the task — @ to mention files, / for commands and skills"
+        placeholder={t("pages.newSession.placeholder")}
         options={
           <DraftOptions
             // The runner's lists: the picker swaps in the project's own itself.

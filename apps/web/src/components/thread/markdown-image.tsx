@@ -2,6 +2,7 @@ import { ImageOff } from "lucide-react";
 import { type ComponentProps, useState } from "react";
 import { defaultComponents, type ExtraProps } from "streamdown";
 import { serverOrigin, useClient } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n";
 import { imageSource } from "@/lib/markdown-images";
 
 const DefaultImage = defaultComponents.img;
@@ -25,6 +26,7 @@ type Attempt = { url: string; state: "loading" | "failed" | "loaded" };
  * from a single-use address the click asked for (#341).
  */
 export function MarkdownImage({ srcSet: _srcSet, sizes: _sizes, ...props }: ImageProps) {
+  const { t } = useTranslation();
   const client = useClient();
   const source = imageSource(props.src, [window.location.origin, serverOrigin]);
   const [attempt, setAttempt] = useState<Attempt | null>(null);
@@ -62,22 +64,26 @@ export function MarkdownImage({ srcSet: _srcSet, sizes: _sizes, ...props }: Imag
         {alt ? `${alt} · ` : ""}
         {remote ? (
           <>
-            {state === "failed" ? "Couldn't load image from " : "Image from "}
+            {state === "failed" ? t("workbench.image.couldntLoadFrom") : t("workbench.image.from")}
             <span className="font-medium text-foreground">{remote.host}</span>
           </>
         ) : (
-          "Image not shown"
+          t("workbench.image.notShown")
         )}
       </span>
       {remote && (
         <button
           type="button"
-          aria-label={`Load image from ${remote.host}`}
+          aria-label={t("workbench.image.loadFrom", { host: remote.host })}
           disabled={state === "loading"}
           className="shrink-0 rounded px-1.5 py-0.5 font-medium text-primary hover:bg-primary/10 focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-60"
           onClick={() => void load(remote.url)}
         >
-          {state === "loading" ? "Loading…" : state === "failed" ? "Try again" : "Load image"}
+          {state === "loading"
+            ? t("workbench.image.loading")
+            : state === "failed"
+              ? t("workbench.image.tryAgain")
+              : t("workbench.image.load")}
         </button>
       )}
     </span>

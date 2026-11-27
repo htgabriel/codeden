@@ -33,6 +33,7 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/ui/command";
+import { useTranslation } from "@/lib/i18n";
 import { useSnapshot } from "@/lib/queries";
 import { canMakeAutomation, useSessionActions } from "@/lib/session-actions";
 import { formatCombo, type ShortcutId, shortcut } from "@/lib/shortcuts";
@@ -52,7 +53,7 @@ const SETTINGS = [
   "notifications",
   "shortcuts",
   "about",
-];
+] as const;
 
 function Row({
   icon,
@@ -97,12 +98,13 @@ function Row({
  * while a turn runs or before it has a conversation.
  */
 function ForkCurrentSession({ session, close }: { session: Session; close: () => void }) {
+  const { t } = useTranslation();
   const actions = useSessionActions(session);
   if (!actions.canFork) return null;
   return (
     <Row
       icon={<GitFork />}
-      label="Fork this session"
+      label={t("shell.palette.fork")}
       hint={actions.forkBlocked ?? session.title ?? session.purpose}
       value="fork this session new worktree branch"
       disabled={actions.forkBlocked !== null}
@@ -119,13 +121,14 @@ function ForkCurrentSession({ session, close }: { session: Session; close: () =>
  * on any provider. Disabled, with the reason, while a turn runs or before it has done anything.
  */
 function HandoffCurrentSession({ session, close }: { session: Session; close: () => void }) {
+  const { t } = useTranslation();
   const actions = useSessionActions(session);
   if (!actions.canHandoff) return null;
   return (
     <Row
       icon={<ArrowRightLeft />}
-      label="Hand off this session…"
-      hint={actions.handoffBlocked ?? "Continue in a new session, on any provider"}
+      label={t("shell.palette.handoff")}
+      hint={actions.handoffBlocked ?? t("shell.palette.handoffHint")}
       value="hand off this session handoff continue another provider switch"
       disabled={actions.handoffBlocked !== null}
       onSelect={() => {
@@ -142,13 +145,14 @@ function HandoffCurrentSession({ session, close }: { session: Session; close: ()
  * done anything; not offered for a review itself.
  */
 function ReviewCurrentSession({ session, close }: { session: Session; close: () => void }) {
+  const { t } = useTranslation();
   const actions = useSessionActions(session);
   if (!actions.canReview) return null;
   return (
     <Row
       icon={<ScanSearch />}
-      label="Review this session with another agent…"
-      hint={actions.reviewBlocked ?? "A read-only second opinion on its changes"}
+      label={t("shell.palette.review")}
+      hint={actions.reviewBlocked ?? t("shell.palette.reviewHint")}
       value="review this session another agent second opinion code review read-only"
       disabled={actions.reviewBlocked !== null}
       onSelect={() => {
@@ -161,6 +165,7 @@ function ReviewCurrentSession({ session, close }: { session: Session; close: () 
 
 /** Ctrl K: jump to any session or project, find what was said in a transcript, or run an action. */
 export function CommandPalette() {
+  const { t } = useTranslation();
   const open = useUiStore((s) => s.paletteOpen);
   const setOpen = useUiStore((s) => s.setPaletteOpen);
   const [search, setSearch] = useState("");
@@ -188,34 +193,34 @@ export function CommandPalette() {
     <CommandDialog
       open={open}
       onOpenChange={setOpen}
-      title="Command palette"
+      title={t("shell.palette.title")}
       className="sm:max-w-xl"
     >
       <Command filter={paletteFilter}>
         <CommandInput
-          placeholder="Search sessions, transcripts, projects and actions…"
+          placeholder={t("shell.palette.placeholder")}
           value={search}
           onValueChange={setSearch}
         />
         <CommandList className="max-h-[min(440px,60dvh)]">
-          <CommandEmpty>No results.</CommandEmpty>
-          <CommandGroup heading="Go to">
+          <CommandEmpty>{t("shell.palette.noResults")}</CommandEmpty>
+          <CommandGroup heading={t("shell.palette.goTo")}>
             <Row
               icon={<Bot className="text-primary" />}
-              label="Orchestrator"
+              label={t("sidebar.orchestrator")}
               keys="orchestrator"
               onSelect={run(() => navigate({ to: "/" }))}
             />
             <Row
               icon={<Inbox />}
-              label="Inbox"
+              label={t("sidebar.inbox")}
               keys="inbox"
               onSelect={run(() => navigate({ to: "/inbox" }))}
             />
             <Row
               icon={<TextSearch />}
-              label="Search transcripts"
-              hint="What was asked, answered or run"
+              label={t("shell.palette.searchTranscripts")}
+              hint={t("shell.palette.searchTranscriptsHint")}
               value="search transcripts find messages commands"
               onSelect={run(() => navigate({ to: "/search" }))}
             />
@@ -224,7 +229,7 @@ export function CommandPalette() {
                 key={p.id}
                 icon={<ProjectTile project={p} />}
                 label={p.name}
-                hint="Project home"
+                hint={t("shell.palette.projectHome")}
                 onSelect={run(() =>
                   navigate({ to: "/projects/$projectId", params: { projectId: p.id } }),
                 )}
@@ -236,8 +241,8 @@ export function CommandPalette() {
                 <Row
                   key={`factory-view:${p.id}`}
                   icon={<MonitorPlay />}
-                  label={`Factory view · ${p.name}`}
-                  hint="Full screen, live"
+                  label={t("shell.palette.factoryView", { name: p.name })}
+                  hint={t("shell.palette.factoryViewHint")}
                   value={`factory view ${p.name} pipeline full screen`}
                   onSelect={run(() =>
                     navigate({
@@ -248,7 +253,7 @@ export function CommandPalette() {
                 />
               ))}
           </CommandGroup>
-          <CommandGroup heading="Sessions">
+          <CommandGroup heading={t("shell.palette.sessions")}>
             {data?.sessions
               .filter((s) => s.role === "agent")
               .map((s) => (
@@ -258,7 +263,7 @@ export function CommandPalette() {
                   icon={<StatusDot status={s.status} />}
                   label={s.title ?? s.purpose}
                   hint={projectName(s.projectId)}
-                  badge={s.archivedAt ? "Archived" : undefined}
+                  badge={s.archivedAt ? t("shell.palette.archived") : undefined}
                   onSelect={run(() =>
                     navigate({ to: "/sessions/$sessionId", params: { sessionId: s.id } }),
                   )}
@@ -267,14 +272,14 @@ export function CommandPalette() {
           </CommandGroup>
           <PaletteTranscripts search={search} close={() => setOpen(false)} />
           <CommandSeparator />
-          <CommandGroup heading="Actions">
+          <CommandGroup heading={t("shell.palette.actions")}>
             {current && <ForkCurrentSession session={current} close={() => setOpen(false)} />}
             {current && <HandoffCurrentSession session={current} close={() => setOpen(false)} />}
             {current && <ReviewCurrentSession session={current} close={() => setOpen(false)} />}
             {automationSource?.projectId && (
               <Row
                 icon={<Workflow />}
-                label="Make an automation from this session…"
+                label={t("shell.palette.makeAutomation")}
                 hint={automationSource.title ?? automationSource.purpose}
                 onSelect={run(
                   () =>
@@ -289,7 +294,7 @@ export function CommandPalette() {
             )}
             <Row
               icon={<MessageSquarePlus />}
-              label="New session…"
+              label={t("shell.palette.newSession")}
               onSelect={run(
                 () =>
                   data?.projects[0] &&
@@ -301,57 +306,59 @@ export function CommandPalette() {
             />
             <Row
               icon={<FolderPlus />}
-              label="Add project…"
+              label={t("shell.palette.addProject")}
               onSelect={run(() => useUiStore.getState().setAddProjectOpen(true))}
             />
             <Row
               icon={<PanelLeft />}
-              label="Toggle sidebar"
+              label={t("shell.palette.toggleSidebar")}
               keys="sidebar"
               onSelect={run(layout.toggleSidebar)}
             />
             <Row
               icon={<PanelRight />}
-              label="Toggle right panel"
+              label={t("shell.palette.toggleRight")}
               keys="rightPanel"
               onSelect={run(() => layout.toggleRight())}
             />
             <Row
               icon={<SquareTerminal />}
-              label="Toggle terminal drawer"
+              label={t("shell.palette.toggleTerminal")}
               keys="terminal"
               onSelect={run(() => layout.toggleDrawer())}
             />
             <Row
               icon={<Moon />}
-              label="Toggle light / dark theme"
+              label={t("shell.palette.toggleTheme")}
               keys="theme"
               onSelect={run(toggleTheme)}
             />
             <Row
               icon={<Keyboard />}
-              label="Keyboard shortcuts"
+              label={t("sidebar.keyboardShortcuts")}
               keys="help"
               onSelect={run(() => useUiStore.getState().setShortcutsOpen(true))}
             />
             <Row
               icon={<SlidersHorizontal />}
-              label="Agent configuration"
-              hint="Memory, skills, subagents, MCP"
+              label={t("sidebar.agentConfiguration")}
+              hint={t("shell.palette.agentConfigHint")}
               onSelect={run(() => navigate({ to: "/agents" }))}
             />
             <Row
               icon={<Rocket />}
-              label="First-run setup"
+              label={t("settings.firstRunSetup")}
               onSelect={run(() => navigate({ to: "/setup" }))}
             />
           </CommandGroup>
-          <CommandGroup heading="Settings">
+          <CommandGroup heading={t("common.settings")}>
             {SETTINGS.map((section) => (
               <Row
                 key={section}
                 icon={<Settings />}
-                label={`Settings: ${section[0]?.toUpperCase()}${section.slice(1)}`}
+                label={t("shell.palette.settingsSection", {
+                  section: t(`shell.palette.settingsSections.${section}`),
+                })}
                 onSelect={run(() => navigate({ to: "/settings/$section", params: { section } }))}
               />
             ))}

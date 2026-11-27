@@ -7,6 +7,7 @@ import {
   MeshStandardMaterial,
   PlaneGeometry,
 } from "three";
+import { i18n } from "@/lib/i18n";
 import type { Rgb } from "@/lib/oklch";
 import type { WorkshopLayout } from "../scene/layout";
 import type { BayCrate } from "../scene/repair-bay";
@@ -123,7 +124,7 @@ export function buildProps(
   add(
     display(
       kit,
-      displayCanvas(String(scene.tickets.ids.length), "IN INTAKE", p),
+      displayCanvas(String(scene.tickets.ids.length), i18n.t("factoryView.canvas.inIntake"), p),
       0.56,
       0.28,
       layout.countSign.x,

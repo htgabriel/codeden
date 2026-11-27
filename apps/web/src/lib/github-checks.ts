@@ -1,4 +1,5 @@
 import type { GithubCheck, GithubChecksSummary } from "@codeden/contracts";
+import { i18n } from "@/lib/i18n";
 
 /**
  * What one GitHub check (a check run or a commit status) looks like to the user. Every raw
@@ -28,16 +29,76 @@ export interface CheckStateInfo {
 }
 
 export const CHECK_STATES: Record<CheckState, CheckStateInfo> = {
-  running: { label: "Running", tone: "running", active: true },
-  queued: { label: "Queued", tone: "waiting", active: true },
-  passed: { label: "Passed", tone: "done", active: false },
-  failed: { label: "Failed", tone: "failed", active: false },
-  skipped: { label: "Skipped", tone: "muted", active: false },
-  neutral: { label: "Neutral", tone: "muted", active: false },
-  cancelled: { label: "Cancelled", tone: "muted", active: false },
-  timed_out: { label: "Timed out", tone: "failed", active: false },
-  action_required: { label: "Action required", tone: "waiting", active: false },
-  stale: { label: "Stale", tone: "muted", active: false },
+  running: {
+    get label() {
+      return i18n.t("messages.checks.states.running");
+    },
+    tone: "running",
+    active: true,
+  },
+  queued: {
+    get label() {
+      return i18n.t("messages.checks.states.queued");
+    },
+    tone: "waiting",
+    active: true,
+  },
+  passed: {
+    get label() {
+      return i18n.t("messages.checks.states.passed");
+    },
+    tone: "done",
+    active: false,
+  },
+  failed: {
+    get label() {
+      return i18n.t("messages.checks.states.failed");
+    },
+    tone: "failed",
+    active: false,
+  },
+  skipped: {
+    get label() {
+      return i18n.t("messages.checks.states.skipped");
+    },
+    tone: "muted",
+    active: false,
+  },
+  neutral: {
+    get label() {
+      return i18n.t("messages.checks.states.neutral");
+    },
+    tone: "muted",
+    active: false,
+  },
+  cancelled: {
+    get label() {
+      return i18n.t("messages.checks.states.cancelled");
+    },
+    tone: "muted",
+    active: false,
+  },
+  timed_out: {
+    get label() {
+      return i18n.t("messages.checks.states.timed_out");
+    },
+    tone: "failed",
+    active: false,
+  },
+  action_required: {
+    get label() {
+      return i18n.t("messages.checks.states.action_required");
+    },
+    tone: "waiting",
+    active: false,
+  },
+  stale: {
+    get label() {
+      return i18n.t("messages.checks.states.stale");
+    },
+    tone: "muted",
+    active: false,
+  },
 };
 
 /** Check-run statuses that mean "waiting to start". */
@@ -114,11 +175,14 @@ export function summaryState(summary: GithubChecksSummary): CheckState | null {
 
 /** One-line description of a PR's checks for tooltips and screen readers. */
 export function summaryLabel(summary: GithubChecksSummary): string {
-  if (summary.state === "none" || summary.total === 0) return "No checks";
+  const t = i18n.t;
+  if (summary.state === "none" || summary.total === 0) return t("messages.checks.none");
   const b = checksBreakdown(summary.checks);
-  const parts = [`${summary.passed}/${summary.total} checks passed`];
-  if (summary.failed) parts.push(`${summary.failed} failed`);
-  if (b.running) parts.push(`${b.running} running`);
-  if (b.queued) parts.push(`${b.queued} queued`);
+  const parts: string[] = [
+    t("messages.checks.passed", { passed: summary.passed, total: summary.total }),
+  ];
+  if (summary.failed) parts.push(t("messages.checks.failed", { count: summary.failed }));
+  if (b.running) parts.push(t("messages.checks.running", { count: b.running }));
+  if (b.queued) parts.push(t("messages.checks.queued", { count: b.queued }));
   return parts.join(", ");
 }

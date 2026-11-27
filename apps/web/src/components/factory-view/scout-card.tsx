@@ -4,20 +4,15 @@ import { Check, Radar } from "lucide-react";
 import { HeldFollowUps } from "@/components/factory/held-follow-ups";
 import { AREA_LABEL } from "@/components/factory/meta";
 import { until } from "@/lib/format";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-
-const PHASE_LABEL: Record<ScoutStatus["phase"], string> = {
-  idle: "Idle",
-  planning: "Planning the round",
-  reviewing: "Area reviewers at work",
-  filing: "Filing issues",
-};
 
 /**
  * The dark factory's scout on the Intake stage: its round, its area reviewers, its findings and
  * the review follow-ups held for it.
  */
 export function ScoutCard({ scout, projectId }: { scout: ScoutStatus; projectId: string }) {
+  const { t } = useTranslation();
   const active = scout.phase !== "idle";
   return (
     <div
@@ -35,22 +30,30 @@ export function ScoutCard({ scout, projectId }: { scout: ScoutStatus; projectId:
             params={{ sessionId: scout.sessionId }}
             className="text-[12px] font-medium hover:underline"
           >
-            Scout
+            {t("factoryView.scout.name")}
           </Link>
         ) : (
-          <span className="text-[12px] font-medium">Scout</span>
+          <span className="text-[12px] font-medium">{t("factoryView.scout.name")}</span>
         )}
         <span className="text-muted-foreground">
-          {active ? `round ${scout.rounds}` : `${scout.rounds} rounds`}
+          {active
+            ? t("factoryView.scout.round", { round: scout.rounds })
+            : t("factoryView.scout.rounds", { count: scout.rounds })}
         </span>
       </div>
       <div className="mt-0.5 text-muted-foreground">
-        {PHASE_LABEL[scout.phase]}
-        {active && ` · ${scout.findings} found · ${scout.filed} filed`}
-        {!active && scout.nextRoundAt && ` · next ${until(scout.nextRoundAt)}`}
+        {t(`factoryView.scout.phase.${scout.phase}`)}
+        {active &&
+          ` · ${t("factoryView.scout.found", { found: scout.findings, filed: scout.filed })}`}
+        {!active &&
+          scout.nextRoundAt &&
+          ` · ${t("factoryView.scout.next", { when: until(scout.nextRoundAt) })}`}
       </div>
       {scout.lenses.length > 0 && (
-        <ul className="mt-1.5 flex flex-wrap gap-1" aria-label="Area reviewers">
+        <ul
+          className="mt-1.5 flex flex-wrap gap-1"
+          aria-label={t("factoryView.scout.areaReviewers")}
+        >
           {scout.lenses.map((l) => (
             <li key={l.area}>
               <Link
@@ -59,10 +62,10 @@ export function ScoutCard({ scout, projectId }: { scout: ScoutStatus; projectId:
                 className="flex items-center gap-1 rounded-full border border-border bg-surface px-1.5 text-[10px] leading-4 hover:border-primary/50"
                 title={
                   l.reported
-                    ? "Reported its findings"
+                    ? t("factoryView.scout.reported")
                     : l.active
-                      ? "Reviewing now"
-                      : "Waiting to start"
+                      ? t("factoryView.scout.reviewingNow")
+                      : t("factoryView.scout.waitingToStart")
                 }
               >
                 {l.reported ? (

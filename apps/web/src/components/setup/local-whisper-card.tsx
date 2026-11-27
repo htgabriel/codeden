@@ -8,6 +8,7 @@ import {
 import { WhisperTest } from "@/components/settings/local-whisper-test";
 import { useSettings } from "@/components/settings/settings-ui";
 import { Switch } from "@/components/ui/switch";
+import { useTranslation } from "@/lib/i18n";
 
 /**
  * First-run setup (§14): optional local Whisper for dictation. Turning it on picks the
@@ -15,6 +16,7 @@ import { Switch } from "@/components/ui/switch";
  * nothing here blocks finishing setup.
  */
 export function LocalWhisperCard({ recommended }: { recommended: boolean }) {
+  const { t } = useTranslation();
   const { settings, update } = useSettings();
   const local = useLocalStt();
   const actions = useLocalSttActions();
@@ -27,17 +29,17 @@ export function LocalWhisperCard({ recommended }: { recommended: boolean }) {
       <div className="flex items-center gap-3">
         <Cpu className="size-4 text-muted-foreground" />
         <div className="flex-1">
-          <div className="text-[13.5px] font-medium">Use local Whisper for dictation</div>
+          <div className="text-[13.5px] font-medium">{t("prefs.setup.whisper.title")}</div>
           <div className="text-2xs text-muted-foreground">
             {!supported
-              ? (local.data?.unsupportedReason ?? "Not available on this machine.")
+              ? (local.data?.unsupportedReason ?? t("prefs.setup.whisper.unsupported"))
               : recommended
-                ? "Recommended here: this browser has no speech recognition. Runs offline on this machine."
-                : "Optional. Private and offline: transcribes on this machine and works in any browser."}
+                ? t("prefs.setup.whisper.recommended")
+                : t("prefs.setup.whisper.optional")}
           </div>
         </div>
         <Switch
-          aria-label="Use local Whisper for dictation"
+          aria-label={t("prefs.setup.whisper.title")}
           checked={using}
           disabled={!supported}
           onCheckedChange={(on) => {

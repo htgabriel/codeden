@@ -1,6 +1,6 @@
 import { type Attachment, ImageMediaType, MAX_ATTACHMENT_BYTES } from "@codeden/contracts";
 import { FileText, X } from "lucide-react";
-import { useTranslation } from "@/lib/i18n";
+import { i18n, useTranslation } from "@/lib/i18n";
 import type { ComposerAttachment } from "@/stores/composer";
 
 let n = 0;
@@ -54,7 +54,7 @@ export async function filesToAttachments(
   const tooLarge: string[] = [];
   for (const file of files) {
     if (file.size > MAX_ATTACHMENT_BYTES) {
-      tooLarge.push(file.name || "A pasted file");
+      tooLarge.push(file.name || i18n.t("workbench.composer.pastedFile"));
       continue;
     }
     const dataUrl = await readDataUrl(file);

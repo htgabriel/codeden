@@ -1,3 +1,4 @@
+import { i18n } from "@/lib/i18n";
 import { type DiffSide, type PatchRow, parsePatchRows, type ReviewRange } from "./diff-review";
 
 /**
@@ -42,7 +43,7 @@ export function pickerLines(patch: string): PickerLine[] {
     const side: DiffSide = row.marker === "-" ? "deletions" : "additions";
     const line = (side === "additions" ? row.newLine : row.oldLine) ?? 0;
     const kind = kinds[row.marker];
-    const words = row.text.trim() || "blank";
+    const words = row.text.trim() || i18n.t("messages.diffLine.blank");
     return {
       side,
       line,
@@ -52,7 +53,11 @@ export function pickerLines(patch: string): PickerLine[] {
       ...(row.newLine !== undefined ? { newLine: row.newLine } : {}),
       text: row.text,
       gapBefore,
-      label: `${side === "additions" ? "new" : "old"} line ${line}, ${kind}: ${words}`,
+      label: i18n.t(side === "additions" ? "messages.diffLine.new" : "messages.diffLine.old", {
+        line,
+        kind: i18n.t(`messages.diffLine.${kind}`),
+        words,
+      }),
     };
   });
 }

@@ -3,6 +3,7 @@ import { useId } from "react";
 import { NumberField } from "@/components/common/number-field";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { useTranslation } from "@/lib/i18n";
 import { Field, Segmented } from "./form-bits";
 import { OVERLAP_HELP, OVERLAP_LABEL } from "./meta";
 
@@ -23,13 +24,14 @@ export function GuardsEditor({
   disabled?: boolean;
   projectTimezone: string;
 }) {
+  const { t } = useTranslation();
   const id = useId();
   const quiet = guards.quietHours;
   return (
     <div className="space-y-4">
-      <Field label="When matching work is still running" help={OVERLAP_HELP[guards.overlapPolicy]}>
+      <Field label={t("automations.guards.whenMatching")} help={OVERLAP_HELP[guards.overlapPolicy]}>
         <Segmented
-          label="Overlap policy"
+          label={t("automations.guards.overlapPolicy")}
           value={guards.overlapPolicy}
           disabled={disabled}
           onChange={(overlapPolicy) => onChange({ ...guards, overlapPolicy })}
@@ -38,9 +40,9 @@ export function GuardsEditor({
       </Field>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field
-          label="Concurrent runs"
+          label={t("automations.guards.concurrent")}
           htmlFor={`${id}-conc`}
-          help="Runs of this automation at once in a project."
+          help={t("automations.guards.concurrentHelp")}
         >
           <NumberField
             id={`${id}-conc`}
@@ -52,16 +54,16 @@ export function GuardsEditor({
           />
         </Field>
         <Field
-          label="Most runs per day"
+          label={t("automations.guards.perDay")}
           htmlFor={`${id}-day`}
-          help="Leave empty for no limit. Skipped runs don't count."
+          help={t("automations.guards.perDayHelp")}
         >
           <NumberField
             id={`${id}-day`}
             optional
             min={1}
             value={guards.maxPerDay}
-            placeholder="No limit"
+            placeholder={t("automations.guards.noLimit")}
             disabled={disabled}
             onChange={(maxPerDay) => onChange({ ...guards, maxPerDay })}
             className="w-28 text-[13px]"
@@ -69,14 +71,14 @@ export function GuardsEditor({
         </Field>
       </div>
       <Field
-        label="Quiet hours"
-        help={`No scheduled or event runs inside this window (runs are recorded as skipped). Times in ${quiet?.timezone ?? projectTimezone}.`}
+        label={t("automations.guards.quietHours")}
+        help={t("automations.guards.quietHelp", { tz: quiet?.timezone ?? projectTimezone })}
       >
         <div className="flex flex-wrap items-center gap-2">
           <Switch
             checked={quiet !== null}
             disabled={disabled}
-            aria-label="Quiet hours"
+            aria-label={t("automations.guards.quietHours")}
             onCheckedChange={(on) =>
               onChange({ ...guards, quietHours: on ? { start: "22:00", end: "07:00" } : null })
             }
@@ -85,7 +87,7 @@ export function GuardsEditor({
             <>
               <Input
                 type="time"
-                aria-label="Quiet from"
+                aria-label={t("automations.guards.quietFrom")}
                 value={quiet.start}
                 disabled={disabled}
                 onChange={(e) =>
@@ -93,10 +95,10 @@ export function GuardsEditor({
                 }
                 className="w-28 text-[13px]"
               />
-              <span className="text-2xs text-muted-foreground">to</span>
+              <span className="text-2xs text-muted-foreground">{t("automations.guards.to")}</span>
               <Input
                 type="time"
-                aria-label="Quiet until"
+                aria-label={t("automations.guards.quietUntil")}
                 value={quiet.end}
                 disabled={disabled}
                 onChange={(e) =>
@@ -111,15 +113,15 @@ export function GuardsEditor({
       <div className="flex items-start gap-2.5 text-xs">
         <Switch
           checked={guards.catchUpMissed}
-          aria-label="Catch up a missed run"
+          aria-label={t("automations.guards.catchUp")}
           disabled={disabled}
           onCheckedChange={(catchUpMissed) => onChange({ ...guards, catchUpMissed })}
           className="mt-0.5"
         />
         <span>
-          Catch up a missed run
+          {t("automations.guards.catchUp")}
           <span className="block text-3xs text-muted-foreground">
-            When CodeDen was off or asleep at the scheduled time, run once when it is back.
+            {t("automations.guards.catchUpHelp")}
           </span>
         </span>
       </div>

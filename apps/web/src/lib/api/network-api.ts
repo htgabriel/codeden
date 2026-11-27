@@ -6,6 +6,7 @@ import {
   SetNetworkPasswordResponse,
   SignInError,
 } from "@codeden/contracts";
+import { i18n } from "@/lib/i18n";
 import { ApiRequestError, type Fetcher } from "./http";
 
 /** Network access (§15.1): the switch, the password and signed-in devices. */
@@ -75,7 +76,7 @@ export function httpAuthApi(origin: string): AuthApi {
           body: JSON.stringify({ password }),
         });
       } catch {
-        throw new SignInFailure("network", "Can't reach CodeDen. Is the computer awake?", null);
+        throw new SignInFailure("network", i18n.t("messages.api.signInUnreachable"), null);
       }
       if (res.ok) return;
       const body = SignInError.safeParse(await res.json().catch(() => null));
@@ -83,7 +84,11 @@ export function httpAuthApi(origin: string): AuthApi {
         const { code, message, retryAfterSec } = body.data.error;
         throw new SignInFailure(code, message, retryAfterSec);
       }
-      throw new ApiRequestError(res.status, "http_error", `Sign-in failed (${res.status})`);
+      throw new ApiRequestError(
+        res.status,
+        "http_error",
+        i18n.t("messages.api.signInFailed", { status: res.status }),
+      );
     },
     async signOut() {
       await fetch(`${base}/sign-out`, { method: "POST", credentials: "include" });

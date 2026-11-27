@@ -5,6 +5,7 @@ import type {
   ScorecardDays,
 } from "@codeden/contracts";
 import { type QueryClient, useQuery } from "@tanstack/react-query";
+import { i18n } from "@/lib/i18n";
 import { useClient } from "./api";
 import { ApiRequestError } from "./api/http";
 
@@ -135,15 +136,20 @@ export function useVision(projectId: string) {
   });
 }
 
-const MODE_ERRORS: Record<string, string> = {
-  not_a_github_project: "The software and dark factory need a GitHub project.",
-  vision_required: "Write and save the vision file first.",
-  limits_required: "Set the factory limits first.",
-  budget_required: "Set a daily budget (dollars or tokens).",
-};
+const MODE_ERRORS = [
+  "not_a_github_project",
+  "vision_required",
+  "limits_required",
+  "budget_required",
+] as const;
+
+const isModeError = (code: string): code is (typeof MODE_ERRORS)[number] =>
+  (MODE_ERRORS as readonly string[]).includes(code);
 
 /** A readable reason for a refused mode switch. */
 export function modeErrorText(error: Error): string {
-  if (error instanceof ApiRequestError) return MODE_ERRORS[error.code] ?? error.message;
+  if (error instanceof ApiRequestError && isModeError(error.code)) {
+    return i18n.t(`messages.factoryModes.${error.code}`);
+  }
   return error.message;
 }

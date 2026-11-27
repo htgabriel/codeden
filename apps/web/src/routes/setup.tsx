@@ -14,13 +14,15 @@ import { Logo } from "@/components/shell/logo";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useClient } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n";
 import { snapshotKey } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 import { stt, tts } from "@/lib/voice/engines";
 
-const STEPS = ["Check your tools", "Voice & notifications", "First project"];
+const STEPS = ["tools", "extras", "project"] as const;
 
 function Extras() {
+  const { t } = useTranslation();
   const { settings, update } = useSettings();
   const readAloudId = useId();
   const row = "flex items-center gap-3 px-4 py-3.5";
@@ -30,15 +32,15 @@ function Extras() {
       <div className={row}>
         <Mic className="size-4 text-muted-foreground" />
         <div className="flex-1">
-          <div className="text-[13.5px] font-medium">Dictation</div>
+          <div className="text-[13.5px] font-medium">{t("prefs.voice.dictation")}</div>
           <div className="text-2xs text-muted-foreground">
             {browserStt
-              ? "Your browser supports speech to text. Press Ctrl Shift M in the composer."
-              : "This browser has no speech recognition. Use local Whisper below, or a cloud engine in Settings."}
+              ? t("prefs.setup.extras.dictationAvailable")
+              : t("prefs.setup.extras.dictationUnavailable")}
           </div>
         </div>
         <span className={cn("text-2xs", browserStt ? "text-status-done" : "text-muted-foreground")}>
-          {browserStt ? "Available" : "Unavailable"}
+          {browserStt ? t("prefs.setup.extras.available") : t("prefs.images.unavailable")}
         </span>
       </div>
       <LocalWhisperCard recommended={!browserStt} />
@@ -46,19 +48,19 @@ function Extras() {
         <Volume2 className="size-4 text-muted-foreground" />
         <div className="flex-1">
           <div id={`${readAloudId}-label`} className="text-[13.5px] font-medium">
-            Read final messages aloud
+            {t("prefs.voice.readFinal")}
           </div>
           <div id={`${readAloudId}-hint`} className="text-2xs text-muted-foreground">
-            When a turn completes and you're in another tab.
+            {t("prefs.setup.extras.readAloudHint")}
           </div>
         </div>
         <Button
           size="xs"
           variant="ghost"
           disabled={!tts.supported}
-          onClick={() => tts.speak("Hi! I'll read agent summaries like this.")}
+          onClick={() => tts.speak(t("prefs.setup.extras.readAloudSample"))}
         >
-          Test
+          {t("prefs.voice.test")}
         </Button>
         <Switch
           aria-labelledby={`${readAloudId}-label`}
@@ -74,6 +76,7 @@ function Extras() {
 
 /** First-run setup (§14): from `npx codeden` to a first session in under a minute. */
 export function SetupPage() {
+  const { t } = useTranslation();
   const client = useClient();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -116,7 +119,7 @@ export function SetupPage() {
       const settings = await client.updateSettings({ setup: { completed: true, completedAt } });
       queryClient.setQueryData<Snapshot>(snapshotKey, (s) => (s ? { ...s, settings } : s));
     } catch (error) {
-      toast.error("Setup wasn't saved", {
+      toast.error(t("prefs.setup.notSaved"), {
         description: error instanceof Error ? error.message : String(error),
       });
     }
@@ -135,16 +138,13 @@ export function SetupPage() {
       <div className="relative w-full max-w-2xl">
         <div className="mb-8 flex flex-col items-center text-center">
           <Logo className="mb-4 size-12" />
-          <h1 className="text-2xl font-semibold tracking-tight">Welcome to CodeDen</h1>
-          <p className="mt-1.5 max-w-md text-sm text-muted-foreground">
-            We'll reuse what's already set up on this machine. Nothing to type if you're already
-            signed in.
-          </p>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("prefs.setup.welcome")}</h1>
+          <p className="mt-1.5 max-w-md text-sm text-muted-foreground">{t("prefs.setup.intro")}</p>
         </div>
 
         <ol className="mb-6 flex items-center justify-center gap-2">
-          {STEPS.map((label, i) => (
-            <li key={label} className="flex items-center gap-2">
+          {STEPS.map((id, i) => (
+            <li key={id} className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => i <= step && setStep(i)}
@@ -165,7 +165,7 @@ export function SetupPage() {
                 >
                   {i < step ? <Check className="size-3" strokeWidth={3} /> : i + 1}
                 </span>
-                {label}
+                {t(`prefs.setup.steps.${id}`)}
               </button>
               {i < STEPS.length - 1 && <span className="h-px w-6 bg-border" />}
             </li>
@@ -176,29 +176,29 @@ export function SetupPage() {
         {step === 1 && <Extras />}
         {step === 2 && (
           <ProjectSourcePicker
-            submitLabel="Add project & finish"
+            submitLabel={t("prefs.setup.addAndFinish")}
             onCreated={(id) => void finish(id)}
           />
         )}
 
         <div className="mt-6 flex items-center justify-between">
           <Button variant="ghost" className="text-muted-foreground" onClick={() => void finish()}>
-            Skip setup
+            {t("prefs.setup.skip")}
           </Button>
           {step < 2 ? (
             <Button disabled={(step === 0 && !ready) || waitingForSdk} onClick={() => void next()}>
               {waitingForSdk
-                ? "Installing Claude Code support…"
+                ? t("prefs.setup.installingSdk")
                 : step === 0 && claudeInstalled && sdk?.state === "failed"
-                  ? "Continue anyway"
+                  ? t("prefs.setup.continueAnyway")
                   : step === 1 || ready
-                    ? "Continue"
-                    : "Waiting for a provider…"}{" "}
+                    ? t("prefs.setup.continue")
+                    : t("prefs.setup.waitingProvider")}{" "}
               {waitingForSdk ? <Loader2 className="animate-spin" /> : <ArrowRight />}
             </Button>
           ) : (
             <Button variant="outline" onClick={() => void finish()}>
-              I'll add a project later
+              {t("prefs.setup.later")}
             </Button>
           )}
         </div>

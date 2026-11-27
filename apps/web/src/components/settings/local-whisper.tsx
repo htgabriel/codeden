@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { useClient } from "@/lib/api";
 import { formatBytes } from "@/lib/format";
+import { i18n, useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 export const LOCAL_STT_KEY = ["voice", "local"] as const;
@@ -39,6 +40,7 @@ export function useLocalStt(enabled = true) {
 
 /** Download and delete, with the returned status written straight into the query. */
 export function useLocalSttActions() {
+  const { t } = useTranslation();
   const client = useClient();
   const queryClient = useQueryClient();
   const run = useCallback(
@@ -53,9 +55,9 @@ export function useLocalSttActions() {
   );
   return {
     download: (id: WhisperModelId) =>
-      run("Couldn't start the download", () => client.voice.downloadLocalModel(id)),
+      run(t("prefs.whisper.downloadFailed"), () => client.voice.downloadLocalModel(id)),
     remove: (id: WhisperModelId) =>
-      run("Couldn't delete the model", () => client.voice.deleteLocalModel(id)),
+      run(t("prefs.whisper.deleteFailed"), () => client.voice.deleteLocalModel(id)),
   };
 }
 
@@ -64,22 +66,33 @@ const percent = (received: number, total: number) =>
 
 /** One line describing where a model stands, e.g. `Downloading 42% of 57.0 MB`. */
 export function modelStatusText(status: LocalSttStatus, model: LocalSttModel): string {
-  if (!status.supported) return status.unsupportedReason ?? "Not available on this machine";
+  const t = i18n.t;
+  if (!status.supported) return status.unsupportedReason ?? t("prefs.whisper.unsupported");
   if (model.state === "downloading") {
     if (status.runtime.state === "downloading") {
-      return `Downloading the Whisper runtime… ${percent(status.runtime.receivedBytes, status.runtime.totalBytes)}%`;
+      return t("prefs.whisper.downloadingRuntime", {
+        percent: percent(status.runtime.receivedBytes, status.runtime.totalBytes),
+      });
     }
-    return `Downloading ${percent(model.receivedBytes, model.totalBytes)}% of ${formatBytes(model.totalBytes)}`;
+    return t("prefs.whisper.downloading", {
+      percent: percent(model.receivedBytes, model.totalBytes),
+      size: formatBytes(model.totalBytes),
+    });
   }
   if (model.state === "installed") {
     const onDisk = (model.sizeOnDisk ?? 0) + (status.runtime.sizeOnDisk ?? 0);
-    return `Installed · ${formatBytes(onDisk)} on disk`;
+    return t("prefs.whisper.installed", { size: formatBytes(onDisk) });
   }
-  if (model.state === "failed") return model.error ?? "The download failed";
+  if (model.state === "failed") return model.error ?? t("prefs.whisper.failed");
   const runtime = status.runtime.state === "installed" ? 0 : status.runtime.totalBytes;
   const resume =
-    model.receivedBytes > 0 ? ` (${percent(model.receivedBytes, model.totalBytes)}% done)` : "";
-  return `Not downloaded · ${formatBytes(model.totalBytes + runtime)} download${resume}`;
+    model.receivedBytes > 0
+      ? t("prefs.whisper.resumeDone", { percent: percent(model.receivedBytes, model.totalBytes) })
+      : "";
+  return t("prefs.whisper.notDownloaded", {
+    size: formatBytes(model.totalBytes + runtime),
+    resume,
+  });
 }
 
 /** The model picker: name, download size, speed and accuracy hint, and whether it is on disk. */
@@ -94,10 +107,15 @@ export function WhisperModelSelect({
   onChange: (id: WhisperModelId) => void;
   className?: string;
 }) {
+  const { t } = useTranslation();
   const current = status?.models.find((m) => m.id === value);
   return (
     <Select value={value} onValueChange={(v) => onChange(v as WhisperModelId)}>
-      <SelectTrigger size="sm" className={cn("w-60", className)} aria-label="Whisper model">
+      <SelectTrigger
+        size="sm"
+        className={cn("w-60", className)}
+        aria-label={t("prefs.whisper.modelLabel")}
+      >
         <SelectValue>
           {current ? `${current.label} · ${formatBytes(current.totalBytes)}` : value}
         </SelectValue>
@@ -109,7 +127,7 @@ export function WhisperModelSelect({
               <span>{m.label}</span>
               <span className="text-2xs text-muted-foreground">
                 {formatBytes(m.totalBytes)} · {m.hint}
-                {m.recommended ? " · recommended" : ""}
+                {m.recommended ? t("prefs.whisper.recommended") : ""}
               </span>
               {m.state === "installed" && <Check className="ml-auto size-3 text-status-done" />}
             </span>
@@ -128,10 +146,11 @@ export function WhisperModelStatus({
   status: LocalSttStatus | undefined;
   modelId: WhisperModelId;
 }) {
+  const { t } = useTranslation();
   const actions = useLocalSttActions();
   const model = status?.models.find((m) => m.id === modelId);
   if (!status || !model) {
-    return <div className="text-2xs text-muted-foreground">Checking local Whisper…</div>;
+    return <div className="text-2xs text-muted-foreground">{t("prefs.whisper.checking")}</div>;
   }
   const downloading = model.state === "downloading";
   const progress =
@@ -165,17 +184,18 @@ export function WhisperModelStatus({
       </div>
       {status.supported && model.state === "missing" && (
         <Button size="sm" variant="outline" onClick={() => void actions.download(model.id)}>
-          <Download /> {model.receivedBytes > 0 ? "Resume" : "Download"}
+          <Download />{" "}
+          {model.receivedBytes > 0 ? t("prefs.whisper.resume") : t("prefs.whisper.download")}
         </Button>
       )}
       {status.supported && model.state === "failed" && (
         <Button size="sm" variant="outline" onClick={() => void actions.download(model.id)}>
-          <RotateCw /> Retry
+          <RotateCw /> {t("prefs.whisper.retry")}
         </Button>
       )}
       {downloading && (
         <Button size="sm" variant="ghost" onClick={() => void actions.remove(model.id)}>
-          <Loader2 className="animate-spin" /> Cancel
+          <Loader2 className="animate-spin" /> {t("common.cancel")}
         </Button>
       )}
       {model.state === "installed" && (
@@ -183,10 +203,10 @@ export function WhisperModelStatus({
           size="sm"
           variant="ghost"
           className="text-muted-foreground"
-          aria-label={`Delete the ${model.label} model`}
+          aria-label={t("prefs.whisper.deleteLabel", { model: model.label })}
           onClick={() => void actions.remove(model.id)}
         >
-          <Trash2 /> Delete
+          <Trash2 /> {t("prefs.whisper.delete")}
         </Button>
       )}
     </div>

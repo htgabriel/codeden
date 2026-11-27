@@ -1,4 +1,5 @@
 import type { KeyboardEvent } from "react";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import type { StoreyFocus, StoreyTab } from "./scene/storeys";
 
@@ -16,6 +17,7 @@ export function StoreyTabs({
   focus: StoreyFocus;
   onFocus: (focus: StoreyFocus) => void;
 }) {
+  const { t: tr } = useTranslation();
   if (tabs.length === 0) return null;
   const pick = (id: StoreyFocus, group: HTMLElement | null) => {
     onFocus(id);
@@ -37,7 +39,7 @@ export function StoreyTabs({
   return (
     <div
       role="radiogroup"
-      aria-label="Storey"
+      aria-label={tr("factoryView.storeys.label")}
       className="inline-flex items-center rounded-md border border-border bg-muted/40 p-0.5"
       onKeyDown={onKeyDown}
       data-testid="factory-view-storeys"
@@ -51,7 +53,10 @@ export function StoreyTabs({
             type="button"
             role="radio"
             aria-checked={on}
-            aria-label={`${t.label}: ${t.count} ${t.count === 1 ? "agent" : "agents"}${t.waiting ? ", someone waits on you" : ""}`}
+            aria-label={tr(
+              t.waiting ? "factoryView.storeys.tabWaiting" : "factoryView.storeys.tab",
+              { label: t.label, count: t.count },
+            )}
             tabIndex={on ? 0 : -1}
             onClick={() => onFocus(t.id)}
             data-storey={t.id}

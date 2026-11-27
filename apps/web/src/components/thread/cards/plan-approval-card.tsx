@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useClient } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { Markdown } from "../markdown";
 
@@ -27,6 +28,7 @@ export function PlanApprovalCard({
   compact?: boolean;
   plan?: string;
 }) {
+  const { t } = useTranslation();
   const client = useClient();
   /** Feedback being written for "Keep planning"; null while the box is closed. */
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -37,7 +39,7 @@ export function PlanApprovalCard({
         decision,
         ...(message ? { message } : {}),
       }),
-    onError: (e) => toast.error("Couldn't send the decision", { description: e.message }),
+    onError: (e) => toast.error(t("workbench.planApproval.sendFailed"), { description: e.message }),
   });
 
   if (item.status !== "in_progress") {
@@ -49,10 +51,16 @@ export function PlanApprovalCard({
           className={cn("size-4 shrink-0", approved ? "text-status-done" : "text-muted-foreground")}
         />
         <span className="min-w-0 truncate">
-          {approved ? "Plan approved" : item.decision ? "Kept planning" : "Plan review cancelled"}
+          {approved
+            ? t("workbench.planApproval.approved")
+            : item.decision
+              ? t("workbench.planApproval.keptPlanning")
+              : t("workbench.planApproval.cancelled")}
         </span>
         {item.decidedBy && item.decidedBy !== "user" && (
-          <span className="ml-auto shrink-0 text-2xs">by {item.decidedBy}</span>
+          <span className="ml-auto shrink-0 text-2xs">
+            {t("workbench.planApproval.by", { name: item.decidedBy })}
+          </span>
         )}
       </div>
     );
@@ -68,15 +76,14 @@ export function PlanApprovalCard({
       <div className="flex items-center gap-2 border-b border-primary/15 bg-primary/[0.07] px-3.5 py-2">
         <ClipboardCheck className="size-4 text-primary" />
         <span className="text-2xs font-semibold tracking-wider text-primary uppercase">
-          Plan ready
+          {t("workbench.planApproval.ready")}
         </span>
       </div>
       <div className="space-y-2.5 px-3.5 py-3 wrap-break-word">
-        <p className="text-[14px] font-medium">Start implementing this plan?</p>
+        <p className="text-[14px] font-medium">{t("workbench.planApproval.question")}</p>
         {!compact && (
           <p className="text-[13px] leading-relaxed text-muted-foreground">
-            Approve to let the agent make the changes with this session's permissions, or keep it
-            planning and say what to change.
+            {t("workbench.planApproval.hint")}
           </p>
         )}
         {compact && plan && (
@@ -95,8 +102,8 @@ export function PlanApprovalCard({
                 keepPlanning();
               }
             }}
-            placeholder="What should change in the plan? (optional)"
-            aria-label="Feedback on the plan"
+            placeholder={t("workbench.planApproval.feedbackPlaceholder")}
+            aria-label={t("workbench.planApproval.feedbackLabel")}
             className="min-h-20 text-[13px]"
           />
         )}
@@ -108,16 +115,16 @@ export function PlanApprovalCard({
                 disabled={busy}
                 onClick={() => decide.mutate({ decision: "allow_once" })}
               >
-                <Check /> Approve plan
+                <Check /> {t("workbench.planApproval.approve")}
               </Button>
               <Button size="sm" variant="outline" disabled={busy} onClick={() => setFeedback("")}>
-                <PencilLine /> Keep planning
+                <PencilLine /> {t("workbench.planApproval.keepPlanning")}
               </Button>
             </>
           ) : (
             <>
               <Button size="sm" disabled={busy} onClick={keepPlanning}>
-                <PencilLine /> Keep planning
+                <PencilLine /> {t("workbench.planApproval.keepPlanning")}
               </Button>
               <Button
                 size="sm"
@@ -126,7 +133,7 @@ export function PlanApprovalCard({
                 className="text-muted-foreground"
                 onClick={() => setFeedback(null)}
               >
-                Cancel
+                {t("common.cancel")}
               </Button>
             </>
           )}

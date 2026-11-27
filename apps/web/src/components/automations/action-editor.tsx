@@ -2,6 +2,7 @@ import type { AutomationAction, TriagePolicy } from "@codeden/contracts";
 import { Bot, Filter, MessageSquare } from "lucide-react";
 import { ModelPicker } from "@/components/composer/model-picker/model-picker";
 import { Switch } from "@/components/ui/switch";
+import { useTranslation } from "@/lib/i18n";
 import { useSnapshotData } from "@/lib/queries";
 import { Segmented } from "./form-bits";
 
@@ -27,6 +28,7 @@ export function AgentPicker({
   onChange: (a: SessionAction) => void;
   disabled?: boolean;
 }) {
+  const { t } = useTranslation();
   const { providers, provider } = useSessionProvider(action);
   const custom = Boolean(action.provider || action.model || action.effort);
   return (
@@ -51,7 +53,9 @@ export function AgentPicker({
         />
       ) : (
         <span className="px-2 text-xs text-muted-foreground">
-          {action.provider ?? "Default provider"} (not connected)
+          {t("automations.agent.notConnected", {
+            provider: action.provider ?? t("automations.agent.defaultProvider"),
+          })}
         </span>
       )}
       {custom && !disabled && (
@@ -62,7 +66,7 @@ export function AgentPicker({
             onChange({ ...action, provider: undefined, model: undefined, effort: undefined })
           }
         >
-          Use the default agent
+          {t("automations.agent.useDefault")}
         </button>
       )}
     </div>
@@ -79,20 +83,21 @@ export function TriagePolicyFields({
   onChange: (p: Partial<TriagePolicy>) => void;
   disabled?: boolean;
 }) {
+  const { t } = useTranslation();
   const rows: { key: "comment" | "closeRejected" | "autoStart"; label: string; on: boolean }[] = [
     {
       key: "comment",
-      label: "Comment on the issue with the decision",
+      label: t("automations.triagePolicy.comment"),
       on: policy?.comment ?? true,
     },
     {
       key: "closeRejected",
-      label: "Close duplicates and out-of-scope issues",
+      label: t("automations.triagePolicy.closeRejected"),
       on: policy?.closeRejected ?? false,
     },
     {
       key: "autoStart",
-      label: "Start a session for ready issues without asking",
+      label: t("automations.triagePolicy.autoStart"),
       on: policy?.autoStart ?? false,
     },
   ];
@@ -110,10 +115,7 @@ export function TriagePolicyFields({
           {r.label}
         </div>
       ))}
-      <p className="text-3xs text-muted-foreground">
-        Without auto-start (and always in manual projects) ready issues become a "Should I take this
-        on?" decision in your inbox.
-      </p>
+      <p className="text-3xs text-muted-foreground">{t("automations.triagePolicy.note")}</p>
     </div>
   );
 }
@@ -142,6 +144,7 @@ export function ActionKindPicker({
   onChange: (a: AutomationAction) => void;
   disabled?: boolean;
 }) {
+  const { t } = useTranslation();
   const switchTo = (type: AutomationAction["type"]) => {
     if (type === action.type) return;
     const text = actionText(action);
@@ -151,14 +154,14 @@ export function ActionKindPicker({
   };
   return (
     <Segmented
-      label="What it does"
+      label={t("automations.form.whatItDoes")}
       value={action.type}
       disabled={disabled}
       onChange={switchTo}
       options={[
-        { id: "start_session", label: "Start an agent session", icon: <Bot /> },
-        { id: "message_pm", label: "Message the PM", icon: <MessageSquare /> },
-        { id: "triage", label: "Triage the issue", icon: <Filter /> },
+        { id: "start_session", label: t("automations.action.start_session"), icon: <Bot /> },
+        { id: "message_pm", label: t("automations.action.message_pm"), icon: <MessageSquare /> },
+        { id: "triage", label: t("automations.action.triage"), icon: <Filter /> },
       ]}
     />
   );

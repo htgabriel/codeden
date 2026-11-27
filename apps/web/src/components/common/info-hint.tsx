@@ -1,6 +1,7 @@
 import { CircleHelp } from "lucide-react";
 import type { ReactNode } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { useTapTooltip } from "./tap-tooltip";
 
@@ -26,13 +27,14 @@ export function InfoHint({
   side?: "top" | "right" | "bottom" | "left";
   className?: string;
 }) {
+  const { t } = useTranslation();
   const tip = useTapTooltip();
   return (
     <Tooltip {...tip.root}>
       <TooltipTrigger asChild>
         <button
           type="button"
-          aria-label={term ? undefined : `About ${label}`}
+          aria-label={term ? undefined : t("shell.common.about", { label })}
           data-testid="info-hint"
           {...tip.trigger}
           className={cn(

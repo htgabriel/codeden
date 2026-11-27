@@ -1,6 +1,7 @@
 import { ChevronRight, CircleX, FileDiff, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { duration } from "@/lib/format";
+import { useTranslation } from "@/lib/i18n";
 import type { WorkEntry } from "@/lib/transcript/timeline";
 import { cn } from "@/lib/utils";
 import { useLayoutStore } from "@/stores/layout";
@@ -9,6 +10,7 @@ import { useShownOutput } from "./cut-output";
 import { entryIcon, entryLabel } from "./tool-meta";
 
 function Details({ sessionId, entry }: { sessionId: string; entry: WorkEntry }) {
+  const { t } = useTranslation();
   const openTab = useLayoutStore((s) => s.openRightTab);
   const shown = useShownOutput(sessionId, entry);
   if (entry.kind === "reasoning") {
@@ -60,7 +62,7 @@ function Details({ sessionId, entry }: { sessionId: string; entry: WorkEntry }) 
             onClick={() => openTab("diff")}
             className="flex w-full items-center gap-1.5 bg-muted/40 px-3 py-1.5 text-2xs text-muted-foreground hover:text-foreground"
           >
-            <FileDiff className="size-3.5" /> Open in diff panel
+            <FileDiff className="size-3.5" /> {t("workbench.work.openInDiff")}
           </button>
         </div>
       );

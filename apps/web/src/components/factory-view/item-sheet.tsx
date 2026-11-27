@@ -16,6 +16,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFactoryItem } from "@/lib/factory";
 import { ago } from "@/lib/format";
+import { useTranslation } from "@/lib/i18n";
 import { platform } from "@/lib/platform";
 import { cn } from "@/lib/utils";
 import { NeedActions } from "./need-actions";
@@ -24,9 +25,10 @@ import { stepTrail } from "./step-trail";
 import { StateMarker, TypeBadge } from "./view-card";
 
 function Trail({ item, card }: { item: FactoryItem; card: ViewCard }) {
+  const { t } = useTranslation();
   const trail = stepTrail({ type: item.type, step: card.item.step, stage: card.item.stage });
   return (
-    <ol className="flex flex-col gap-1" aria-label="Pipeline steps">
+    <ol className="flex flex-col gap-1" aria-label={t("factoryView.sheet.pipelineSteps")}>
       {trail.map(({ step, mark, note }) => (
         <li
           key={step}
@@ -54,7 +56,9 @@ function Trail({ item, card }: { item: FactoryItem; card: ViewCard }) {
               <span className="block text-2xs font-normal text-muted-foreground">{note}</span>
             )}
           </span>
-          {mark === "current" && <span className="sr-only">(current step)</span>}
+          {mark === "current" && (
+            <span className="sr-only">{t("factoryView.sheet.currentStep")}</span>
+          )}
         </li>
       ))}
     </ol>
@@ -83,6 +87,7 @@ function ExternalButton({ url, children }: { url: string; children: ReactNode })
 }
 
 function Body({ projectId, card }: { projectId: string; card: ViewCard }) {
+  const { t } = useTranslation();
   const { data, error } = useFactoryItem(projectId, card.item.id);
   if (error) return <p className="px-4 text-2xs text-muted-foreground">{error.message}</p>;
   if (!data) return <Skeleton className="mx-4 h-48 rounded-xl" />;
@@ -117,11 +122,11 @@ function Body({ projectId, card }: { projectId: string; card: ViewCard }) {
         />
       )}
       <section>
-        <SectionLabel className="mb-1.5">Steps</SectionLabel>
+        <SectionLabel className="mb-1.5">{t("factoryView.sheet.steps")}</SectionLabel>
         <Trail item={item} card={card} />
       </section>
       <section className="space-y-2 rounded-xl border border-border bg-card p-3">
-        <Fact label="Issue">
+        <Fact label={t("factoryView.sheet.issue")}>
           {item.issue ? (
             <ExternalButton url={item.issue.url}>
               <CircleDot className="size-3" />#{item.issue.number}
@@ -130,7 +135,7 @@ function Body({ projectId, card }: { projectId: string; card: ViewCard }) {
             "—"
           )}
         </Fact>
-        <Fact label={!item.pr && pr ? "Pull request (rebuilt)" : "Pull request"}>
+        <Fact label={!item.pr && pr ? t("factoryView.sheet.prRebuilt") : t("factoryView.sheet.pr")}>
           {pr ? (
             <ExternalButton url={pr.url}>
               <GitPullRequest className="size-3" />#{pr.number}
@@ -142,30 +147,37 @@ function Body({ projectId, card }: { projectId: string; card: ViewCard }) {
             "—"
           )}
         </Fact>
-        <Fact label="Builder">
-          <SessionLink id={item.builderSessionId} label={item.builderProvider ?? "session"} />
+        <Fact label={t("factoryView.sheet.builder")}>
+          <SessionLink
+            id={item.builderSessionId}
+            label={item.builderProvider ?? t("factoryView.sheet.session")}
+          />
         </Fact>
-        <Fact label="Reviewer">
-          <SessionLink id={item.reviewerSessionId} label={item.reviewerProvider ?? "session"} />
+        <Fact label={t("factoryView.sheet.reviewer")}>
+          <SessionLink
+            id={item.reviewerSessionId}
+            label={item.reviewerProvider ?? t("factoryView.sheet.session")}
+          />
         </Fact>
-        <Fact label="Stage">{STAGE_LABEL[item.stage].label}</Fact>
-        {item.attempts > 0 && <Fact label="Revise rounds">{item.attempts}</Fact>}
-        <Fact label="Cost">
+        <Fact label={t("factoryView.sheet.stage")}>{STAGE_LABEL[item.stage].label}</Fact>
+        {item.attempts > 0 && (
+          <Fact label={t("factoryView.sheet.reviseRounds")}>{item.attempts}</Fact>
+        )}
+        <Fact label={t("factoryView.sheet.cost")}>
           <CostValue cost={cost} />
         </Fact>
-        {cap && <Fact label="Spend cap">{cap}</Fact>}
-        <Fact label="In this step">{ago(card.since)}</Fact>
+        {cap && <Fact label={t("factoryView.sheet.spendCap")}>{cap}</Fact>}
+        <Fact label={t("factoryView.sheet.inThisStep")}>{ago(card.since)}</Fact>
       </section>
       <section>
         <SectionLabel className="mb-1.5">
-          Merge checks
-          {item.checks.length > 0 && ` · ${passed} of ${item.checks.length} passed`}
+          {t("factoryView.sheet.mergeChecks")}
+          {item.checks.length > 0 &&
+            ` · ${t("factoryView.sheet.passedOf", { passed, total: item.checks.length })}`}
         </SectionLabel>
         {item.checks.length === 0 ? (
           <p className="text-2xs text-muted-foreground">
-            {item.pr
-              ? "No merge checks recorded yet."
-              : "Checks run once the builder opens a pull request."}
+            {item.pr ? t("factoryView.sheet.noChecks") : t("factoryView.sheet.checksLater")}
           </p>
         ) : (
           <div className="overflow-hidden rounded-xl border border-border bg-card">
@@ -177,7 +189,7 @@ function Body({ projectId, card }: { projectId: string; card: ViewCard }) {
       </section>
       {item.review && (
         <section>
-          <SectionLabel className="mb-1.5">Review</SectionLabel>
+          <SectionLabel className="mb-1.5">{t("factoryView.sheet.review")}</SectionLabel>
           <p className="text-2xs leading-relaxed">
             <span className="font-medium capitalize">{item.review.verdict.replace("_", " ")}</span>
             {" · "}
@@ -192,7 +204,7 @@ function Body({ projectId, card }: { projectId: string; card: ViewCard }) {
         params={{ projectId, itemId: item.id }}
         className="inline-flex items-center gap-1 text-2xs text-primary hover:underline"
       >
-        <ExternalLink className="size-3" /> Open the full item page
+        <ExternalLink className="size-3" /> {t("factoryView.sheet.openFull")}
       </Link>
     </div>
   );

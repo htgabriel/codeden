@@ -35,6 +35,7 @@ import { SpotCheckSection } from "@/components/factory/spot-check-section";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFactoryItem } from "@/lib/factory";
 import { ago } from "@/lib/format";
+import { useTranslation } from "@/lib/i18n";
 import { platform } from "@/lib/platform";
 import { useProject } from "@/lib/queries";
 import { cn } from "@/lib/utils";
@@ -50,6 +51,7 @@ function Fact({ label, children }: { label: string; children: ReactNode }) {
 }
 
 function Verdict({ review, item }: { review: ReviewVerdict; item: FactoryItem }) {
+  const { t } = useTranslation();
   const tone =
     review.verdict === "approve"
       ? "text-status-done"
@@ -69,24 +71,28 @@ function Verdict({ review, item }: { review: ReviewVerdict; item: FactoryItem })
           {review.verdict.replace("_", " ")}
         </span>
         <span className="text-2xs text-muted-foreground">
-          by the reviewer on {item.reviewerProvider ?? "another provider"}
+          {t("factoryView.item.byReviewer", {
+            provider: item.reviewerProvider ?? t("factoryView.item.anotherProvider"),
+          })}
           {item.reviewerNote && ` · ${item.reviewerNote}`}
         </span>
       </div>
       <p className="mt-2 text-[13px] leading-relaxed">{review.summary}</p>
       <div className="mt-3 grid gap-1.5 text-2xs sm:grid-cols-3">
         <span className="flex items-center gap-1.5">
-          {yes(review.vision.aligned)} Fits the vision
+          {yes(review.vision.aligned)} {t("factoryView.item.fitsVision")}
         </span>
         <span className="flex items-center gap-1.5">
           {yes(review.tests.adequate)}{" "}
-          {review.tests.notNeeded ? "No tests needed" : "Tests adequate"}
+          {review.tests.notNeeded
+            ? t("factoryView.item.noTestsNeeded")
+            : t("factoryView.item.testsAdequate")}
         </span>
         <span className="flex items-center gap-1.5">
           {yes(review.security.concerns.length === 0)}{" "}
           {review.security.concerns.length
-            ? `${review.security.concerns.length} security concerns`
-            : "No security concerns"}
+            ? t("factoryView.item.securityConcerns", { count: review.security.concerns.length })
+            : t("factoryView.item.noSecurityConcerns")}
         </span>
       </div>
       {review.security.concerns.length > 0 && (
@@ -100,7 +106,9 @@ function Verdict({ review, item }: { review: ReviewVerdict; item: FactoryItem })
         <div className="mt-3 text-2xs" data-testid="review-lessons">
           <p className="flex items-center gap-1.5 font-medium text-muted-foreground">
             <Lightbulb className="size-3.5" aria-hidden />{" "}
-            {item.lessonsNote ? "Lessons not kept" : "Lessons recorded"}
+            {item.lessonsNote
+              ? t("factoryView.item.lessonsNotKept")
+              : t("factoryView.item.lessonsRecorded")}
           </p>
           {item.lessonsNote && (
             <p className="mt-0.5 text-status-waiting" data-testid="review-lessons-note">
@@ -123,6 +131,7 @@ function Verdict({ review, item }: { review: ReviewVerdict; item: FactoryItem })
  * it cost.
  */
 export function FactoryItemPage({ projectId, itemId }: { projectId: string; itemId: string }) {
+  const { t } = useTranslation();
   const project = useProject(projectId);
   const { data, error } = useFactoryItem(projectId, itemId);
   if (error) return <div className="p-8 text-sm text-muted-foreground">{error.message}</div>;
@@ -154,7 +163,8 @@ export function FactoryItemPage({ projectId, itemId }: { projectId: string; item
             <StatusDot tone={stage.tone} /> {stage.label}
             {item.type && (
               <span className="text-muted-foreground">
-                · {TYPE_LABEL[item.type]} pipeline · {stepLabel(step, item.type)}
+                · {t("factoryView.item.pipelineOf", { type: TYPE_LABEL[item.type] })} ·{" "}
+                {stepLabel(step, item.type)}
               </span>
             )}
           </span>
@@ -173,13 +183,17 @@ export function FactoryItemPage({ projectId, itemId }: { projectId: string; item
                 <ShieldAlert className="mt-px size-3.5 shrink-0 text-status-waiting" />
                 <span>
                   {item.trust === "untrusted"
-                    ? `@${item.author ?? "unknown"} is not a trusted author, so the factory ignores this issue. Let it in only if you want it done; a person then merges the result.`
-                    : `Let in by ${item.admittedBy === "pm" ? "the PM" : "you"} from an untrusted author: it is never merged automatically.`}
+                    ? t("factoryView.item.untrusted", {
+                        author: item.author ?? t("factoryView.item.unknown"),
+                      })
+                    : item.admittedBy === "pm"
+                      ? t("factoryView.item.admittedByPm")
+                      : t("factoryView.item.admittedByYou")}
                 </span>
               </div>
             )}
             <section>
-              <SectionLabel className="mb-2">The issue</SectionLabel>
+              <SectionLabel className="mb-2">{t("factoryView.item.theIssue")}</SectionLabel>
               <p className="text-[13px] leading-relaxed whitespace-pre-wrap">
                 {item.summary || item.title}
               </p>
@@ -187,7 +201,7 @@ export function FactoryItemPage({ projectId, itemId }: { projectId: string; item
             <InvestigationCard item={item} />
             {item.acceptanceCriteria.length > 0 && (
               <section>
-                <SectionLabel className="mb-2">Acceptance criteria</SectionLabel>
+                <SectionLabel className="mb-2">{t("factoryView.item.criteria")}</SectionLabel>
                 <ul className="space-y-1.5">
                   {item.acceptanceCriteria.map((c) => {
                     const r = met.get(c);
@@ -219,16 +233,23 @@ export function FactoryItemPage({ projectId, itemId }: { projectId: string; item
             {item.stage !== "ignored" && (
               <section>
                 <SectionLabel className="mb-2">
-                  Merge checks · {item.checks.filter((c) => c.state === "pass").length} passed
+                  {t("factoryView.item.checksPassed", {
+                    n: item.checks.filter((c) => c.state === "pass").length,
+                  })}
                   {item.checks.some((c) => c.state === "skipped") &&
-                    `, ${item.checks.filter((c) => c.state === "skipped").length} skipped`}
+                    t("factoryView.item.checksSkipped", {
+                      n: item.checks.filter((c) => c.state === "skipped").length,
+                    })}
                   {item.checks.some((c) => c.state === "fail") &&
-                    `, ${item.checks.filter((c) => c.state === "fail").length} failed`}
+                    t("factoryView.item.checksFailed", {
+                      n: item.checks.filter((c) => c.state === "fail").length,
+                    })}
                 </SectionLabel>
                 {item.checks.length === 0 ? (
                   <p className="text-2xs text-muted-foreground">
-                    Checks run once the builder opens a pull request:{" "}
-                    {Object.values(CHECK_LABEL).join(", ")}.
+                    {t("factoryView.item.checksLater", {
+                      checks: Object.values(CHECK_LABEL).join(", "),
+                    })}
                   </p>
                 ) : (
                   <div
@@ -244,7 +265,9 @@ export function FactoryItemPage({ projectId, itemId }: { projectId: string; item
             )}
             {item.review && (
               <section>
-                <SectionLabel className="mb-2">Independent review</SectionLabel>
+                <SectionLabel className="mb-2">
+                  {t("factoryView.item.independentReview")}
+                </SectionLabel>
                 <Verdict review={item.review} item={item} />
               </section>
             )}
@@ -253,25 +276,30 @@ export function FactoryItemPage({ projectId, itemId }: { projectId: string; item
           </div>
           <aside className="space-y-3 rounded-xl border border-border bg-card p-4 self-start">
             <ItemActions item={item} projectId={projectId} />
-            <Fact label="Source">
+            <Fact label={t("factoryView.item.source")}>
               {SOURCE_LABEL[item.source]}
               {item.area && ` · ${item.area.replace("_", " ")}`}
             </Fact>
-            <Fact label="Pipeline">
-              {item.type ? TYPE_LABEL[item.type] : "Not classified yet"}
+            <Fact label={t("factoryView.item.pipeline")}>
+              {item.type ? TYPE_LABEL[item.type] : t("factoryView.item.notClassified")}
               {item.classification && (
-                <span className="text-muted-foreground"> · by {item.classification.by}</span>
+                <span className="text-muted-foreground">
+                  {" "}
+                  · {t("factoryView.item.by", { who: item.classification.by })}
+                </span>
               )}
             </Fact>
-            <Fact label="Author">
+            <Fact label={t("factoryView.item.author")}>
               {item.author ? `@${item.author}` : "—"}
               <span className="text-muted-foreground"> · {item.trust}</span>
             </Fact>
-            {item.score !== null && <Fact label="Priority">{item.score.toFixed(2)}</Fact>}
-            <Fact label="Work key">
+            {item.score !== null && (
+              <Fact label={t("factoryView.item.priority")}>{item.score.toFixed(2)}</Fact>
+            )}
+            <Fact label={t("factoryView.item.workKey")}>
               <code className="font-mono text-2xs">{item.workKey}</code>
             </Fact>
-            <Fact label="Issue">
+            <Fact label={t("factoryView.sheet.issue")}>
               {item.issue ? (
                 <button
                   type="button"
@@ -284,7 +312,7 @@ export function FactoryItemPage({ projectId, itemId }: { projectId: string; item
                 "—"
               )}
             </Fact>
-            <Fact label="Pull request">
+            <Fact label={t("factoryView.sheet.pr")}>
               {item.pr ? (
                 <button
                   type="button"
@@ -297,38 +325,46 @@ export function FactoryItemPage({ projectId, itemId }: { projectId: string; item
                 "—"
               )}
             </Fact>
-            <Fact label="Builder">
-              <SessionLink id={item.builderSessionId} label={item.builderProvider ?? "session"} />
+            <Fact label={t("factoryView.sheet.builder")}>
+              <SessionLink
+                id={item.builderSessionId}
+                label={item.builderProvider ?? t("factoryView.sheet.session")}
+              />
             </Fact>
-            <Fact label="Reviewer">
-              <SessionLink id={item.reviewerSessionId} label={item.reviewerProvider ?? "session"} />
+            <Fact label={t("factoryView.sheet.reviewer")}>
+              <SessionLink
+                id={item.reviewerSessionId}
+                label={item.reviewerProvider ?? t("factoryView.sheet.session")}
+              />
             </Fact>
             <EarlierSessions item={item} />
-            <Fact label="Revise rounds">{item.attempts}</Fact>
-            <Fact label="Cost">
+            <Fact label={t("factoryView.sheet.reviseRounds")}>{item.attempts}</Fact>
+            <Fact label={t("factoryView.sheet.cost")}>
               <CostValue cost={cost} />
             </Fact>
-            {cap && <Fact label="Spend cap">{cap}</Fact>}
+            {cap && <Fact label={t("factoryView.sheet.spendCap")}>{cap}</Fact>}
             {item.mergeSha && (
-              <Fact label="Merge commit">
+              <Fact label={t("factoryView.item.mergeCommit")}>
                 <code className="font-mono text-2xs">{item.mergeSha.slice(0, 10)}</code>
               </Fact>
             )}
             {item.revertOf && (
-              <Fact label="Reverts">
+              <Fact label={t("factoryView.item.reverts")}>
                 <Link
                   to="/projects/$projectId/factory/$itemId"
                   params={{ projectId, itemId: item.revertOf }}
                   className="text-primary hover:underline"
                 >
-                  the original item
+                  {t("factoryView.item.originalItem")}
                 </Link>
               </Fact>
             )}
             <div className="space-y-1 border-t border-border pt-3 text-3xs text-muted-foreground">
-              <p>Found {ago(item.createdAt)}</p>
-              {item.mergedAt && <p>Merged {ago(item.mergedAt)}</p>}
-              {item.finishedAt && <p>Finished {ago(item.finishedAt)}</p>}
+              <p>{t("factoryView.item.found", { when: ago(item.createdAt) })}</p>
+              {item.mergedAt && <p>{t("factoryView.item.merged", { when: ago(item.mergedAt) })}</p>}
+              {item.finishedAt && (
+                <p>{t("factoryView.item.finished", { when: ago(item.finishedAt) })}</p>
+              )}
             </div>
           </aside>
         </div>

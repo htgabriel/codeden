@@ -2,6 +2,7 @@ import type { EventEnvelope, QueuedMessage, QueueSender } from "@codeden/contrac
 import { type QueryClient, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { toast } from "sonner";
+import { i18n } from "@/lib/i18n";
 import { getDraft, useComposerStore } from "@/stores/composer";
 import { usePrRequestsStore } from "@/stores/pr-requests";
 import { useClient } from "./api";
@@ -22,24 +23,18 @@ export function queueEventSession(env: EventEnvelope): string | undefined {
 
 /** "Next", "2nd", "3rd", "4th"… for a queue position (0-based). */
 export function queuePosition(index: number): string {
-  if (index === 0) return "Next";
+  const t = i18n.t;
+  if (index === 0) return t("messages.queue.next");
   const n = index + 1;
   const tens = n % 100;
-  const suffix = tens >= 11 && tens <= 13 ? "th" : ({ 1: "st", 2: "nd", 3: "rd" }[n % 10] ?? "th");
-  return `${n}${suffix}`;
+  const suffix =
+    tens >= 11 && tens <= 13 ? "th" : (({ 1: "st", 2: "nd", 3: "rd" } as const)[n % 10] ?? "th");
+  return `${n}${t(`messages.queue.${suffix}`)}`;
 }
 
-const SENDERS: Record<QueueSender, string | null> = {
-  user: null,
-  orchestrator: "From the orchestrator",
-  pm: "From the PM",
-  factory: "From the factory",
-  automation: "From an automation",
-  codeden: "From CodeDen",
-};
-
 /** Who queued a message, for its label; `null` for the user's own messages. */
-export const senderLabel = (from: QueueSender) => SENDERS[from];
+export const senderLabel = (from: QueueSender): string | null =>
+  from === "user" ? null : i18n.t(`messages.queue.senders.${from}`);
 
 /**
  * A session's queued messages, kept live from the `message.*` events. When an interrupt or
@@ -86,9 +81,9 @@ function droppedRestorer(queryClient: QueryClient, sessionId: string) {
     const current = getDraft(store, sessionId).text.trim();
     store.setText(sessionId, [...texts, current].filter(Boolean).join("\n\n"));
     const lostFiles = dropped.some((m) => m.input.attachments.length > 0);
-    toast("Queued messages moved back to the composer", {
-      description: `The turn stopped before ${texts.length === 1 ? "it was" : "they were"} sent.${
-        lostFiles ? " Attachments were not kept." : ""
+    toast(i18n.t("messages.queue.restored"), {
+      description: `${i18n.t("messages.queue.restoredDescription", { count: texts.length })}${
+        lostFiles ? i18n.t("messages.queue.attachmentsLost") : ""
       }`,
     });
   };

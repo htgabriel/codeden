@@ -6,6 +6,7 @@ import {
 } from "@codeden/contracts";
 import { keepPreviousData, useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { i18n } from "@/lib/i18n";
 import { useClient } from "./api";
 
 /** True when the query has a term long enough to search transcripts with (3+ characters). */
@@ -123,46 +124,43 @@ export function hitLinkSearch(
 
 /** What kind of transcript entry matched, in a word. */
 export function hitKindLabel(hit: Pick<TranscriptSearchHit, "kind" | "toolKind">): string {
+  const t = i18n.t;
   switch (hit.kind) {
     case "user_message":
-      return "Prompt";
     case "assistant_message":
-      return "Reply";
     case "plan":
-      return "Plan";
     case "subagent":
-      return "Subagent";
     case "user_question":
-      return "Question";
     case "approval_request":
-      return "Approval";
     case "notice":
-      return "Notice";
     case "hook_run":
-      return "Hook";
     case "error":
-      return "Error";
-    case "tool_call":
-      return TOOL_LABELS[hit.toolKind ?? "other"] ?? "Tool";
+      return t(`messages.hitKinds.${hit.kind}`);
+    case "tool_call": {
+      const tool = hit.toolKind ?? "other";
+      return tool in TOOL_KINDS
+        ? t(`messages.hitTools.${tool as keyof typeof TOOL_KINDS}`)
+        : t("messages.hitTools.other");
+    }
     default:
-      return "Item";
+      return t("messages.hitKinds.item");
   }
 }
 
-const TOOL_LABELS: Record<string, string> = {
-  command: "Command",
-  file_edit: "Edit",
-  file_read: "Read",
-  search: "Search",
-  web: "Web",
-  mcp: "Tool",
-  browser: "Browser",
-  other: "Tool",
-};
+const TOOL_KINDS = {
+  command: true,
+  file_edit: true,
+  file_read: true,
+  search: true,
+  web: true,
+  mcp: true,
+  browser: true,
+  other: true,
+} as const;
 
 /** "PM" and "Orchestrator" for role sessions; null for ordinary agent sessions. */
 export function roleBadge(role: Session["role"]): string | null {
   if (role === "pm") return "PM";
-  if (role === "orchestrator") return "Orchestrator";
+  if (role === "orchestrator") return i18n.t("orchestrator.roleBadge.orchestrator");
   return null;
 }

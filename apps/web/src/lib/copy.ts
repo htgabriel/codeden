@@ -1,9 +1,10 @@
 import { toast } from "sonner";
+import { i18n } from "@/lib/i18n";
 import { platform } from "./platform";
 
 /** Told to the user when nothing reached the clipboard. */
 export function notifyCopyFailed(): void {
-  toast.error("Couldn't copy. Select the text and copy it manually.");
+  toast.error(i18n.t("messages.copyFailed"));
 }
 
 /**

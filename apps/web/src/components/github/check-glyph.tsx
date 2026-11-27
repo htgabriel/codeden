@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { CHECK_STATES, type CheckState, type CheckTone } from "@/lib/github-checks";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 const toneClass: Record<CheckTone, string> = {
@@ -156,12 +157,13 @@ export function CheckGlyph({
   className?: string;
   title?: string;
 }) {
+  const { t } = useTranslation();
   const finished = useJustFinished(state);
   return (
     <svg
       viewBox="0 0 16 16"
       role="img"
-      aria-label={title ?? (state ? CHECK_STATES[state].label : "No checks")}
+      aria-label={title ?? (state ? CHECK_STATES[state].label : t("shell.github.noChecks"))}
       data-check-state={state ?? "none"}
       data-finished={finished || undefined}
       className={cn(

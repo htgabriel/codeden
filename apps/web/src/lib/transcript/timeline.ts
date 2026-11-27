@@ -1,4 +1,5 @@
 import type { FollowupSuggestion, Item, ItemOf, ToolCallItem, ToolKind } from "@codeden/contracts";
+import { i18n } from "@/lib/i18n";
 import type { ItemEntry, TranscriptState, TurnState } from "./reducer";
 import { threadItems } from "./reducer";
 
@@ -190,17 +191,6 @@ export function finalAssistantText(state: TranscriptState, turnId: string): stri
   return null;
 }
 
-const KIND_VERBS: Record<ToolKind, [string, string, string]> = {
-  command: ["Ran", "command", "commands"],
-  file_edit: ["Edited", "file", "files"],
-  file_read: ["Read", "file", "files"],
-  search: ["Searched", "time", "times"],
-  web: ["Fetched", "page", "pages"],
-  mcp: ["Called", "tool", "tools"],
-  browser: ["Used the browser", "time", "times"],
-  other: ["Ran", "action", "actions"],
-};
-
 const KIND_PRIORITY: ToolKind[] = [
   "file_edit",
   "command",
@@ -227,24 +217,23 @@ export function summarizeWork(steps: WorkStep[]): string {
       counts.set("file_edit", (counts.get("file_edit") ?? 0) + Math.max(1, e.changes.length));
     } else counts.set(e.toolKind, (counts.get(e.toolKind) ?? 0) + 1);
   }
-  if (counts.size === 0) return thoughts > 1 ? `Thought ${thoughts} times` : "Thought";
+  const t = i18n.t;
+  if (counts.size === 0) return t("messages.work.thought", { count: Math.max(thoughts, 1) });
   const kinds = KIND_PRIORITY.filter((k) => counts.has(k));
   const parts = kinds.slice(0, 2).map((k, i) => {
-    const n = counts.get(k) ?? 0;
-    const [verb, one, many] = KIND_VERBS[k];
-    const v = i === 0 ? verb : verb.toLowerCase();
-    return k === "browser"
-      ? `${v} ${n > 1 ? `${n} ${many}` : ""}`.trim()
-      : `${v} ${n} ${n === 1 ? one : many}`;
+    const text = t(`messages.work.${k}`, { count: counts.get(k) ?? 0 });
+    return i === 0 ? text : text.charAt(0).toLowerCase() + text.slice(1);
   });
   const rest = kinds.slice(2).reduce((sum, k) => sum + (counts.get(k) ?? 0), 0);
-  if (rest > 0) return `${parts.join(", ")} and ${rest} more`;
-  return parts.join(" and ").replace(/^(\w)/, (m) => m.toUpperCase());
+  const [a = "", b] = parts;
+  if (rest > 0) return t("messages.work.twoAndMore", { a, b: b ?? "", count: rest });
+  const text = b === undefined ? a : t("messages.work.two", { a, b });
+  return text.replace(/^(\w)/, (m) => m.toUpperCase());
 }
 
 /** "1 hook ran", "3 hooks ran". */
 export function hooksRan(n: number): string {
-  return `${n} ${n === 1 ? "hook" : "hooks"} ran`;
+  return i18n.t("messages.work.hooks", { count: n });
 }
 
 /** What a work group shows, in order: a step, or a run of hooks that succeeded one after another. */

@@ -5,6 +5,7 @@ import { Bot, FileText, Plug, Sparkles, Webhook } from "lucide-react";
 import type { ReactNode } from "react";
 import { skillStateLabel, skillStateTitle } from "@/components/agents/skill-state";
 import { useClient } from "@/lib/api";
+import { i18n, useTranslation } from "@/lib/i18n";
 import {
   type McpRow,
   mcpRows,
@@ -20,7 +21,7 @@ import { hookNotices, hookRows, type LoadedRow } from "./loaded-hooks";
 const fileRow = (f: AgentConfigFile): LoadedRow => ({
   key: f.absolutePath,
   label: f.kind === "skill" || f.kind === "subagent" ? f.name : f.path,
-  detail: `${f.scope}${f.onDemand ? " · on demand" : ""}`,
+  detail: `${f.scope}${f.onDemand ? i18n.t("workbench.loaded.onDemand") : ""}`,
   title: f.absolutePath,
 });
 
@@ -55,6 +56,7 @@ function mcpRow(m: McpRow): LoadedRow {
  * each MCP server's live state where the provider reports it (`capabilities.mcpStatus`).
  */
 export function LoadedConfig({ session }: { session: Session }) {
+  const { t } = useTranslation();
   const client = useClient();
   const sessionId = session.id;
   const loaded = useQuery({
@@ -74,14 +76,14 @@ export function LoadedConfig({ session }: { session: Session }) {
     <section className="space-y-2" data-testid="loaded-config">
       <div className="flex items-baseline justify-between">
         <h3 className="text-2xs font-medium tracking-wider text-muted-foreground uppercase">
-          What's loaded
+          {t("workbench.loaded.title")}
         </h3>
         <Link
           to="/agents"
           search={{ tab: "memory", project }}
           className="text-3xs text-muted-foreground hover:text-foreground"
         >
-          Edit configuration
+          {t("workbench.loaded.editConfig")}
         </Link>
       </div>
       {loaded.error && (
@@ -89,18 +91,18 @@ export function LoadedConfig({ session }: { session: Session }) {
       )}
       {d && (
         <p className="truncate font-mono text-3xs text-muted-foreground" title={d.cwd}>
-          {d.provider} · from {d.cwd}
+          {t("workbench.loaded.from", { provider: d.provider, cwd: d.cwd })}
         </p>
       )}
       <LoadedList
         icon={<FileText />}
-        title="Memory"
+        title={t("workbench.loaded.memory")}
         loading={loaded.isLoading}
         rows={(d?.memory ?? []).map(fileRow)}
       />
       <LoadedList
         icon={<Sparkles />}
-        title="Skills"
+        title={t("workbench.loaded.skills")}
         loading={loaded.isLoading}
         rows={(d?.skills ?? []).map(skillRow)}
         testId="loaded-skills"
@@ -110,19 +112,19 @@ export function LoadedConfig({ session }: { session: Session }) {
             search={{ tab: "skills", project }}
             className="text-3xs hover:text-foreground"
           >
-            Switch skills
+            {t("workbench.loaded.switchSkills")}
           </Link>
         }
       />
       <LoadedList
         icon={<Bot />}
-        title="Subagents"
+        title={t("workbench.loaded.subagents")}
         loading={loaded.isLoading}
         rows={(d?.subagents ?? []).map(fileRow)}
       />
       <LoadedList
         icon={<Plug />}
-        title="MCP servers"
+        title={t("workbench.loaded.mcp")}
         loading={loaded.isLoading}
         rows={mcpRows(d?.mcpServers ?? [], live).map(mcpRow)}
         testId="loaded-mcp"
@@ -131,11 +133,11 @@ export function LoadedConfig({ session }: { session: Session }) {
       {d?.hooks && (
         <LoadedList
           icon={<Webhook />}
-          title="Hooks"
+          title={t("workbench.loaded.hooks")}
           loading={false}
           rows={hookRows(d.hooks)}
           notices={hookNotices(d.hooks)}
-          hint={hookRuns ? "Each run shows in the transcript, with its outcome." : undefined}
+          hint={hookRuns ? t("workbench.loaded.hookRunsHint") : undefined}
           testId="loaded-hooks"
           action={
             <Link
@@ -143,7 +145,7 @@ export function LoadedConfig({ session }: { session: Session }) {
               search={{ tab: "hooks", project }}
               className="text-3xs hover:text-foreground"
             >
-              Edit hooks
+              {t("workbench.loaded.editHooks")}
             </Link>
           }
         />
@@ -174,6 +176,7 @@ function LoadedList({
   action?: ReactNode;
   testId?: string;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="rounded-lg border border-border" data-testid={testId}>
       <div className="flex items-center gap-2 border-b border-border px-3 py-1.5 text-2xs text-muted-foreground [&_svg]:size-3.5">
@@ -186,7 +189,9 @@ function LoadedList({
       {notices}
       <div className="px-3 py-1.5">
         {!loading && rows.length === 0 && (
-          <div className="py-0.5 text-[11.5px] text-muted-foreground">None</div>
+          <div className="py-0.5 text-[11.5px] text-muted-foreground">
+            {t("workbench.loaded.none")}
+          </div>
         )}
         {rows.map((r) => (
           <div key={r.key} className={cn("py-0.5", r.dim && "opacity-50")} title={r.title}>

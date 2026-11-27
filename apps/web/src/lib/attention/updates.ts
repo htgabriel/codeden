@@ -1,4 +1,5 @@
 import type { InboxItem, InboxNotify, Settings } from "@codeden/contracts";
+import { i18n } from "@/lib/i18n";
 import { isBlockingKind } from "./blocking";
 
 /**
@@ -68,12 +69,15 @@ export function updateLine(item: Pick<InboxItem, "title" | "body">): string | un
   return undefined;
 }
 
-const GROUP_TITLE: Record<InboxNotify, (n: number) => string> = {
-  needs_you: (n) => `${n} things need you`,
-  failure: (n) => `${n} failures need a look`,
-  factory: (n) => `${n} updates from the factory`,
-  automation: (n) => `${n} automation results`,
-};
+const GROUP_KEY = {
+  needs_you: "needsYou",
+  failure: "failure",
+  factory: "factory",
+  automation: "automation",
+} as const satisfies Record<InboxNotify, string>;
+
+const groupTitle = (notify: InboxNotify, n: number) =>
+  i18n.t(`messages.updates.${GROUP_KEY[notify]}`, { n });
 
 /** What an update toast (or notification) shows. */
 export interface UpdateView {
@@ -81,7 +85,8 @@ export interface UpdateView {
   description: string | undefined;
   /** Failures show as errors. */
   tone: "default" | "error";
-  action: "Open" | "Open inbox";
+  /** The action button's label: "Open" or "Open inbox". */
+  action: string;
   target: UpdateTarget;
 }
 
@@ -96,17 +101,19 @@ export function describeUpdates(items: readonly InboxItem[]): UpdateView {
       title: latest.title,
       description: updateLine(latest),
       tone,
-      action: "Open",
+      action: i18n.t("messages.updates.open"),
       target: updateTarget(latest),
     };
   }
   const categories = new Set(items.map((i) => i.notify));
   const only = categories.size === 1 ? latest.notify : null;
   return {
-    title: only ? GROUP_TITLE[only](items.length) : `${items.length} new inbox items`,
-    description: `Latest: ${latest.title}`,
+    title: only
+      ? groupTitle(only, items.length)
+      : i18n.t("messages.updates.newItems", { n: items.length }),
+    description: i18n.t("messages.updates.latest", { title: latest.title }),
     tone,
-    action: "Open inbox",
+    action: i18n.t("messages.updates.openInbox"),
     target: { to: "/inbox", search: {} },
   };
 }

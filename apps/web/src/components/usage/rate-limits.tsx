@@ -2,6 +2,7 @@ import type { RateLimitsResponse, RateLimitWindow } from "@codeden/contracts";
 import { AlertTriangle, Gauge, OctagonX } from "lucide-react";
 import { ProviderMark } from "@/components/common/bits";
 import { ago, until } from "@/lib/format";
+import { i18n, useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { PROVIDER_NAMES } from "./format";
 
@@ -28,20 +29,18 @@ export function usedText(p: number | null): string {
   return `${Math.round(p)}%`;
 }
 
-/** What the provider said about a window whose percentage is not known. */
-const STATUS_TEXT: Record<RateLimitWindow["status"], string> = {
-  ok: "Within limit",
-  warning: "Close to the limit",
-  limited: "Limit reached",
-};
-
 function headline(w: RateLimitWindow, tone: Tone): string {
-  if (tone === "stale") return "reset since";
-  if (w.usedPercent === null) return STATUS_TEXT[w.status];
-  return tone === "limited" ? "Limit reached" : `${usedText(w.usedPercent)} used`;
+  const t = i18n.t;
+  if (tone === "stale") return t("shell.limits.resetSince");
+  // What the provider said about a window whose percentage is not known.
+  if (w.usedPercent === null) return t(`shell.limits.status.${w.status}`);
+  return tone === "limited"
+    ? t("shell.limits.status.limited")
+    : t("shell.limits.used", { percent: usedText(w.usedPercent) });
 }
 
 function WindowMeter({ w, warnPercent }: { w: RateLimitWindow; warnPercent: number }) {
+  const { t } = useTranslation();
   const tone = toneOf(w, warnPercent);
   const used = w.usedPercent;
   // "as of" dates the figure shown: the percentage's own reading when there is one.
@@ -66,7 +65,7 @@ function WindowMeter({ w, warnPercent }: { w: RateLimitWindow; warnPercent: numb
         // biome-ignore lint/a11y/useSemanticElements: a native <meter> cannot be themed consistently across browsers.
         <div
           role="meter"
-          aria-label={`${w.label} used`}
+          aria-label={t("shell.limits.meterLabel", { label: w.label })}
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={Math.round(used)}
@@ -82,11 +81,13 @@ function WindowMeter({ w, warnPercent }: { w: RateLimitWindow; warnPercent: numb
         <span>
           {w.resetsAt
             ? tone === "stale"
-              ? `Reset ${ago(w.resetsAt)}`
-              : `Resets ${until(w.resetsAt)}`
-            : "Reset time not reported"}
+              ? t("shell.limits.reset", { when: ago(w.resetsAt) })
+              : t("shell.limits.resets", { when: until(w.resetsAt) })
+            : t("shell.limits.noReset")}
         </span>
-        <span title={new Date(asOf).toLocaleString()}>as of {ago(asOf)}</span>
+        <span title={new Date(asOf).toLocaleString()}>
+          {t("shell.limits.asOf", { when: ago(asOf) })}
+        </span>
       </div>
     </div>
   );
@@ -94,17 +95,14 @@ function WindowMeter({ w, warnPercent }: { w: RateLimitWindow; warnPercent: numb
 
 /** Subscription windows per provider, as each provider last reported them. */
 export function RateLimitMeters({ data }: { data: RateLimitsResponse | undefined }) {
+  const { t } = useTranslation();
   const windows = data?.windows ?? [];
   const providers = [...new Set(windows.map((w) => w.provider))];
   if (!data || providers.length === 0) {
     return (
       <div className="flex items-start gap-3 rounded-xl border border-dashed border-border p-4 text-xs text-muted-foreground">
         <Gauge className="mt-0.5 size-4 shrink-0" />
-        <p>
-          No limit readings yet. Claude reports its 5-hour and weekly windows while it runs, and
-          Codex sends a snapshot with each turn, so they appear after the next session. API keys pay
-          per token and have no such windows.
-        </p>
+        <p>{t("shell.limits.none")}</p>
       </div>
     );
   }
@@ -119,10 +117,10 @@ export function RateLimitMeters({ data }: { data: RateLimitsResponse | undefined
               <span className="text-sm font-medium">{PROVIDER_NAMES[provider] ?? provider}</span>
               <span className="ml-auto text-2xs text-muted-foreground">
                 {billing === "subscription"
-                  ? "Subscription login"
+                  ? t("shell.limits.subscription")
                   : billing === "api"
-                    ? "API key"
-                    : "Login type unknown"}
+                    ? t("shell.limits.apiKey")
+                    : t("shell.limits.unknownLogin")}
               </span>
             </div>
             {windows

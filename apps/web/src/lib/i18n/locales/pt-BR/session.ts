@@ -58,15 +58,15 @@ export const sessionBR: Catalog<typeof session> = {
   empty: {
     review: {
       title: "Sessão de revisão",
-      body: "Revisa as mudanças de <link>{{source}}</link>, só leitura, na sua própria worktree com o código daquela sessão. Quando a worktree estiver pronta, o CodeDen manda ao agente um resumo da revisão como primeira mensagem. A sessão original não muda.",
+      body: "Revisa as mudanças de <l>{{source}}</l>, só leitura, na sua própria worktree com o código daquela sessão. Quando a worktree estiver pronta, o CodeDen manda ao agente um resumo da revisão como primeira mensagem. A sessão original não muda.",
     },
     handoff: {
       title: "Sessão passada adiante",
-      body: "Continua <link>{{source}}</link> com o código até agora, na sua própria worktree e branch. Quando a worktree estiver pronta, o CodeDen manda ao agente um resumo do trabalho como primeira mensagem. A sessão original não muda.",
+      body: "Continua <l>{{source}}</l> com o código até agora, na sua própria worktree e branch. Quando a worktree estiver pronta, o CodeDen manda ao agente um resumo do trabalho como primeira mensagem. A sessão original não muda.",
     },
     fork: {
       title: "Sessão com fork",
-      body: "Fork de <link>{{source}}</link>. O agente tem a conversa e o código {{upTo}}, na sua própria worktree e branch. Mande uma mensagem para continuar; a sessão original não muda.",
+      body: "Fork de <l>{{source}}</l>. O agente tem a conversa e o código {{upTo}}, na sua própria worktree e branch. Mande uma mensagem para continuar; a sessão original não muda.",
     },
   },
   origin: {

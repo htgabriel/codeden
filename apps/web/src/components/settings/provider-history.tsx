@@ -13,10 +13,9 @@ import {
 } from "@/components/ui/dialog";
 import { useClient } from "@/lib/api";
 import { ago } from "@/lib/format";
+import { useTranslation } from "@/lib/i18n";
 import { useSnapshotData } from "@/lib/queries";
 import { SettingRow, SettingsSection } from "./settings-ui";
-
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 /**
  * Settings > Providers: for providers whose own apps list every conversation on the machine as
@@ -25,13 +24,14 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
  * user confirms it.
  */
 export function ProviderHistorySettings() {
+  const { t } = useTranslation();
   const providers = useSnapshotData((s) => s.runner.providers, []);
   const withHistory = providers.filter((p) => p.capabilities.vendorHistory);
   if (withHistory.length === 0) return null;
   return (
     <SettingsSection
-      title="Provider apps"
-      description="Some providers' own apps list every conversation on this machine as yours. CodeDen keeps the sessions it starts out of those lists."
+      title={t("prefs.providerHistory.title")}
+      description={t("prefs.providerHistory.description")}
     >
       {withHistory.map((p) => (
         <HideHistoryRow key={p.id} provider={p} />
@@ -41,14 +41,15 @@ export function ProviderHistorySettings() {
 }
 
 function HideHistoryRow({ provider }: { provider: ProviderInfo }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   return (
     <SettingRow
-      label={`Hide CodeDen's sessions from the ${provider.displayName} app`}
-      help="New sessions are hidden when each turn ends. This hides the ones from before: only sessions CodeDen started, never your own. They are archived, not deleted, and CodeDen can still resume them."
+      label={t("prefs.providerHistory.rowLabel", { provider: provider.displayName })}
+      help={t("prefs.providerHistory.rowHelp")}
     >
       <Button size="xs" variant="outline" onClick={() => setOpen(true)}>
-        <EyeOff /> Review
+        <EyeOff /> {t("prefs.providerHistory.review")}
       </Button>
       {open && <HideHistoryDialog provider={provider} onClose={() => setOpen(false)} />}
     </SettingRow>
@@ -56,8 +57,9 @@ function HideHistoryRow({ provider }: { provider: ProviderInfo }) {
 }
 
 function HideHistoryDialog({ provider, onClose }: { provider: ProviderInfo; onClose: () => void }) {
+  const { t } = useTranslation();
   const client = useClient();
-  const app = `the ${provider.displayName} app`;
+  const app = provider.displayName;
   const preview = useQuery({
     queryKey: ["provider-history", provider.id],
     queryFn: () => client.getProviderHistory(provider.id),
@@ -72,45 +74,42 @@ function HideHistoryDialog({ provider, onClose }: { provider: ProviderInfo; onCl
     <Dialog open onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="sm:max-w-xl" data-testid="hide-provider-history">
         <DialogHeader>
-          <DialogTitle>Hide CodeDen's sessions from {app}</DialogTitle>
+          <DialogTitle>{t("prefs.providerHistory.dialogTitle", { app })}</DialogTitle>
           <DialogDescription>
-            Only sessions CodeDen started, found by its own record of them. They are archived in{" "}
-            {app}, not deleted.
+            {t("prefs.providerHistory.dialogDescription", { app })}
           </DialogDescription>
         </DialogHeader>
 
         {done ? (
           <div className="space-y-1 text-[13px]" data-testid="hide-provider-history-result">
-            <p>
-              Hid {plural(done.hidden.length, "session")} from {app}.
-            </p>
+            <p>{t("prefs.providerHistory.hid", { count: done.hidden.length, app })}</p>
             {done.missing.length > 0 && (
               <p className="text-2xs text-muted-foreground">
-                {plural(done.missing.length, "session")} had already gone from it.
+                {t("prefs.providerHistory.missing", { count: done.missing.length })}
               </p>
             )}
             {done.failed.length > 0 && (
               <p className="text-2xs text-status-failed">
-                {plural(done.failed.length, "session")} couldn't be hidden:{" "}
+                {t("prefs.providerHistory.failed", { count: done.failed.length })}{" "}
                 {done.failed[0]?.message}
               </p>
             )}
           </div>
         ) : preview.isPending ? (
           <p className="flex items-center gap-2 text-[13px] text-muted-foreground">
-            <Loader2 className="size-4 animate-spin" /> Looking for CodeDen's sessions in {app}...
+            <Loader2 className="size-4 animate-spin" />{" "}
+            {t("prefs.providerHistory.looking", { app })}
           </p>
         ) : preview.isError ? (
           <p className="text-[13px] text-status-failed">{preview.error.message}</p>
         ) : entries.length === 0 ? (
           <p className="text-[13px] text-muted-foreground">
-            None of CodeDen's sessions are listed in {app}.
+            {t("prefs.providerHistory.none", { app })}
           </p>
         ) : (
           <div className="space-y-2">
             <p className="text-[13px]">
-              {plural(entries.length, "session")} CodeDen started{" "}
-              {entries.length === 1 ? "is" : "are"} listed in {app}:
+              {t("prefs.providerHistory.listed", { count: entries.length, app })}
             </p>
             <ul
               className="max-h-72 overflow-y-auto rounded-lg border border-border"
@@ -140,7 +139,7 @@ function HideHistoryDialog({ provider, onClose }: { provider: ProviderInfo; onCl
 
         <DialogFooter>
           <Button variant="ghost" size="sm" onClick={onClose}>
-            {done ? "Close" : "Cancel"}
+            {done ? t("prefs.providerHistory.close") : t("common.cancel")}
           </Button>
           {!done && (
             <Button
@@ -149,7 +148,7 @@ function HideHistoryDialog({ provider, onClose }: { provider: ProviderInfo; onCl
               onClick={() => hide.mutate()}
             >
               {hide.isPending && <Loader2 className="animate-spin" />}
-              Hide {plural(entries.length, "session")}
+              {t("prefs.providerHistory.hide", { count: entries.length })}
             </Button>
           )}
         </DialogFooter>

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useClient } from "@/lib/api";
 import { ago } from "@/lib/format";
+import { useTranslation } from "@/lib/i18n";
 import { platform } from "@/lib/platform";
 import { useSession } from "@/lib/queries";
 import { cn } from "@/lib/utils";
@@ -45,17 +46,18 @@ function Section({
 
 /** Merge (squash) when the PR is open, not conflicting and checks did not fail. */
 function MergeButton({ pr }: { pr: GithubPrDetails }) {
+  const { t } = useTranslation();
   const client = useClient();
   const queryClient = useQueryClient();
   const merge = useMutation({
     mutationFn: () =>
       client.github.merge(pr.id, { method: "squash", sha: pr.headSha ?? undefined }),
     onSuccess: (r) => {
-      if (r.merged) toast.success(`Merged #${pr.number}`);
-      else toast.error("GitHub did not merge the pull request");
+      if (r.merged) toast.success(t("shell.pr.merged", { number: pr.number }));
+      else toast.error(t("shell.pr.notMerged"));
       void queryClient.invalidateQueries({ queryKey: ["github"] });
     },
-    onError: (e) => toast.error("Couldn't merge", { description: e.message }),
+    onError: (e) => toast.error(t("shell.pr.mergeFailed"), { description: e.message }),
   });
   if (pr.state !== "open") return null;
   const blocked =
@@ -64,12 +66,12 @@ function MergeButton({ pr }: { pr: GithubPrDetails }) {
     pr.checks.state === "pending";
   const why =
     pr.mergeable === "conflicting"
-      ? "Has merge conflicts"
+      ? t("shell.pr.hasConflicts")
       : pr.checks.state === "failure"
-        ? "Checks failed"
+        ? t("shell.pr.checksFailed")
         : pr.checks.state === "pending"
-          ? "Checks are still running"
-          : "Squash and merge";
+          ? t("shell.pr.checksRunning")
+          : t("shell.pr.squash");
   return (
     <Button
       size="sm"
@@ -77,12 +79,13 @@ function MergeButton({ pr }: { pr: GithubPrDetails }) {
       disabled={blocked || merge.isPending}
       title={why}
     >
-      <GitMerge /> {merge.isPending ? "Merging…" : "Squash and merge"}
+      <GitMerge /> {merge.isPending ? t("shell.pr.merging") : t("shell.pr.squash")}
     </Button>
   );
 }
 
 function LinkedSession({ sessionId }: { sessionId: string }) {
+  const { t } = useTranslation();
   const session = useSession(sessionId);
   return (
     <Link
@@ -90,7 +93,9 @@ function LinkedSession({ sessionId }: { sessionId: string }) {
       params={{ sessionId }}
       className="inline-flex items-center gap-1 text-2xs text-primary hover:underline"
     >
-      Session: {session?.title ?? session?.purpose ?? sessionId.slice(0, 8)}
+      {t("shell.pr.session", {
+        title: session?.title ?? session?.purpose ?? sessionId.slice(0, 8),
+      })}
       <ArrowUpRight className="size-3" />
     </Link>
   );
@@ -107,6 +112,7 @@ export function PrDetailsView({
   prId: string;
   showSession?: boolean;
 }) {
+  const { t } = useTranslation();
   const client = useClient();
   const files = useOpenFiles();
   const {
@@ -126,7 +132,7 @@ export function PrDetailsView({
       </div>
     );
   if (error || !pr)
-    return <p className="text-xs text-status-failed">{error?.message ?? "PR not found"}</p>;
+    return <p className="text-xs text-status-failed">{error?.message ?? t("shell.pr.notFound")}</p>;
 
   return (
     <div className="space-y-5" data-testid="pr-details">
@@ -154,20 +160,20 @@ export function PrDetailsView({
         <div className="flex flex-wrap items-center gap-2">
           <MergeButton pr={pr} />
           {pr.mergeable === "conflicting" && (
-            <span className="text-2xs text-status-failed">Merge conflicts</span>
+            <span className="text-2xs text-status-failed">{t("shell.pr.conflicts")}</span>
           )}
           {showSession && pr.sessionId && <LinkedSession sessionId={pr.sessionId} />}
           {pr.linkedIssues.length > 0 && (
             <span className="text-2xs text-muted-foreground">
-              Closes {pr.linkedIssues.map((n) => `#${n}`).join(", ")}
+              {t("shell.pr.closes", { issues: pr.linkedIssues.map((n) => `#${n}`).join(", ") })}
             </span>
           )}
         </div>
       </div>
 
-      <Section title={`Checks · ${pr.checks.total}`}>
+      <Section title={t("shell.pr.checks", { n: pr.checks.total })}>
         {pr.checks.total === 0 ? (
-          <p className="text-xs text-muted-foreground">No checks on the head commit.</p>
+          <p className="text-xs text-muted-foreground">{t("shell.pr.noChecks")}</p>
         ) : (
           <div className="divide-y divide-border rounded-lg border border-border">
             {pr.checks.checks.map((c) => (
@@ -187,16 +193,16 @@ export function PrDetailsView({
         )}
       </Section>
 
-      <Section title={`Reviews · ${pr.reviews.length}`}>
+      <Section title={t("shell.pr.reviews", { n: pr.reviews.length })}>
         {pr.reviews.length === 0 ? (
-          <p className="text-xs text-muted-foreground">No reviews yet.</p>
+          <p className="text-xs text-muted-foreground">{t("shell.pr.noReviews")}</p>
         ) : (
           <div className="space-y-2">
             {pr.reviews.map((r) => (
               <div key={r.id} className="rounded-lg border border-border px-3 py-2">
                 <div className="flex items-center gap-2 text-2xs">
                   <MessageSquare className="size-3 text-muted-foreground" />
-                  <span className="font-medium">{r.author ?? "someone"}</span>
+                  <span className="font-medium">{r.author ?? t("shell.pr.someone")}</span>
                   <span
                     className={cn(
                       "text-muted-foreground",
@@ -218,14 +224,14 @@ export function PrDetailsView({
       </Section>
 
       <Section
-        title={`Files changed · ${pr.changedFiles}`}
+        title={t("shell.pr.filesChanged", { n: pr.changedFiles })}
         action={<PrFilesToggle pr={pr} open={files.open} onChange={files.setOpen} />}
       >
         <PrFiles pr={pr} open={files.open} onToggle={files.toggle} />
       </Section>
 
       {pr.body.trim() && (
-        <Section title="Description">
+        <Section title={t("shell.newConfig.descriptionLabel")}>
           <Markdown className="text-[13px]">{pr.body}</Markdown>
         </Section>
       )}

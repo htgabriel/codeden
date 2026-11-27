@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useTranslation } from "@/lib/i18n";
 import { useSnapshotData } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 import { AGENT_TABS, type AgentTab } from "./agent-tabs";
@@ -27,6 +28,7 @@ function revealTab(el: HTMLButtonElement | null) {
 
 /** Agent configuration (§12.4): each provider's native files, edited in place. */
 export function AgentsPage({ tab, projectId }: { tab: AgentTab; projectId: string | null }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const projects = useSnapshotData((s) => s.projects, []);
   // `?project=global` keeps "Global only" selected; no param means the first project.
@@ -48,8 +50,8 @@ export function AgentsPage({ tab, projectId }: { tab: AgentTab; projectId: strin
     <>
       <PageHeader
         icon={<SlidersHorizontal />}
-        title="Agent configuration"
-        meta="Native files are the source of truth — edits show up in the CLI too"
+        title={t("pages.agents.title")}
+        meta={t("pages.agents.meta")}
         actions={
           <Select
             value={scope ?? "global"}
@@ -59,7 +61,7 @@ export function AgentsPage({ tab, projectId }: { tab: AgentTab; projectId: strin
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="global">Global only</SelectItem>
+              <SelectItem value="global">{t("pages.agents.globalOnly")}</SelectItem>
               {projects.map((p) => (
                 <SelectItem key={p.id} value={p.id}>
                   {p.name}
@@ -71,18 +73,18 @@ export function AgentsPage({ tab, projectId }: { tab: AgentTab; projectId: strin
       />
       <div className="flex min-h-0 flex-1 flex-col px-4 pt-4 pb-6 sm:px-6">
         <div className="mb-4 flex shrink-0 items-center gap-1 border-b border-border scroll-thin max-md:overflow-x-auto">
-          {AGENT_TABS.map((t) => (
+          {AGENT_TABS.map((option) => (
             <button
-              key={t.id}
-              ref={tab === t.id ? revealTab : undefined}
+              key={option.id}
+              ref={tab === option.id ? revealTab : undefined}
               type="button"
-              onClick={() => go({ tab: t.id })}
+              onClick={() => go({ tab: option.id })}
               className={cn(
                 "-mb-px shrink-0 border-b-2 px-3 py-2 text-[13px] whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground",
-                tab === t.id ? "border-primary text-foreground" : "border-transparent",
+                tab === option.id ? "border-primary text-foreground" : "border-transparent",
               )}
             >
-              {t.label}
+              {t(`pages.agents.tabs.${option.id}`)}
             </button>
           ))}
         </div>

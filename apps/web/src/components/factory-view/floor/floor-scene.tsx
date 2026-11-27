@@ -4,6 +4,7 @@ import { Maximize2 } from "lucide-react";
 import { type RefObject, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useRoleSession } from "@/components/orchestration/role-chat";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "@/lib/i18n";
 import { usePrefersReducedMotion } from "@/lib/motion";
 import { useRoomy } from "../hooks";
 import { agentCard } from "../scene/agent-card";
@@ -96,6 +97,7 @@ export function FloorScene({
   /** WebGL couldn't start, or its context was lost and not restored. */
   onUnsupported: () => void;
 }) {
+  const { t } = useTranslation();
   const pm = useRoleSession("pm", projectId);
   const { scene, layout } = useWorkshop({ f, pipeline, sessions, pmSessionId: pm?.id ?? null });
   const palette = useFloorPalette();
@@ -293,10 +295,10 @@ export function FloorScene({
             variant="outline"
             className="absolute right-2 bottom-2 z-10 bg-background/90"
             onClick={() => stage.current?.fit(true)}
-            title="Frame the whole factory floor (or double-click the floor)"
+            title={t("factoryView.floor.fitTitle")}
             data-testid="factory-view-floor-fit"
           >
-            <Maximize2 /> Fit
+            <Maximize2 /> {t("factoryView.floor.fit")}
           </Button>
           {!chat.docked && chat.open && (
             <PmChat
@@ -313,10 +315,10 @@ export function FloorScene({
               type="button"
               onClick={focusChat}
               className="flex w-8 shrink-0 flex-col items-center gap-2 rounded-lg border border-border bg-surface/40 py-2 text-2xs text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-              aria-label="Show the PM chat"
+              aria-label={t("factoryView.floor.showChat")}
               data-testid="factory-view-chat-show"
             >
-              <span className="[writing-mode:vertical-rl]">PM chat</span>
+              <span className="[writing-mode:vertical-rl]">{t("factoryView.pmChat.title")}</span>
             </button>
           ))}
       </div>

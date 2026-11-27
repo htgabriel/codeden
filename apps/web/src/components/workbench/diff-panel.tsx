@@ -34,6 +34,7 @@ import {
 } from "@/lib/diff-review";
 import { relatedSessions } from "@/lib/fork-origin";
 import { ageShort } from "@/lib/format";
+import { i18n, Trans, useTranslation } from "@/lib/i18n";
 import { useSession, useSnapshotData } from "@/lib/queries";
 import { isNotGitRepo } from "@/lib/session-workspace";
 import { cn } from "@/lib/utils";
@@ -68,10 +69,11 @@ function scopeLabel(
   turns: { id: string; label: string }[],
   compareWith: Session | undefined,
 ): string {
-  if (scope.kind === "session") return "All changes";
-  if (scope.kind === "uncommitted") return "Uncommitted";
-  if (scope.kind === "compare") return `vs ${sessionName(compareWith)}`;
-  return turns.find((t) => t.id === scope.turnId)?.label ?? "Turn";
+  if (scope.kind === "session") return i18n.t("workbench.diff.allChanges");
+  if (scope.kind === "uncommitted") return i18n.t("workbench.diff.uncommitted");
+  if (scope.kind === "compare")
+    return i18n.t("workbench.diff.vs", { name: sessionName(compareWith) });
+  return turns.find((turn) => turn.id === scope.turnId)?.label ?? i18n.t("workbench.diff.turn");
 }
 
 /**
@@ -89,6 +91,7 @@ function restoreTarget(scope: DiffScope): Omit<RestoreFilesRequest, "paths"> | n
  * sessions (§9, §12.3).
  */
 export function DiffPanel({ sessionId }: { sessionId: string }) {
+  const { t } = useTranslation();
   const client = useClient();
   const queryClient = useQueryClient();
   const theme = useResolvedTheme();
@@ -124,17 +127,19 @@ export function DiffPanel({ sessionId }: { sessionId: string }) {
   const restore = useMutation({
     mutationFn: (paths?: string[]) => {
       const target = restoreTarget(scope);
-      if (!target) throw new Error("Pick a turn or the whole session to restore");
+      if (!target) throw new Error(t("workbench.diff.pickRestore"));
       return client.restoreFiles(sessionId, { ...target, ...(paths ? { paths } : {}) });
     },
     onSuccess: (r) => {
       const n = r.restored.length + r.deleted.length;
-      toast.success(n ? `Restored ${n} file${n === 1 ? "" : "s"}` : "Nothing to restore");
+      toast.success(
+        n ? t("workbench.diff.restored", { count: n }) : t("workbench.diff.nothingToRestore"),
+      );
       for (const key of ["diff", "files", "file", "git-status"]) {
         void queryClient.invalidateQueries({ queryKey: [key, sessionId] });
       }
     },
-    onError: (e) => toast.error("Restore failed", { description: e.message }),
+    onError: (e) => toast.error(t("workbench.diff.restoreFailed"), { description: e.message }),
   });
   const files = data?.files ?? noFiles;
   const add = files.reduce((n, f) => n + f.additions, 0);
@@ -180,10 +185,12 @@ export function DiffPanel({ sessionId }: { sessionId: string }) {
   if (notGitRepo) {
     return (
       <div className="flex h-full flex-col" data-testid="diff-panel">
-        <EmptyState icon={<FileDiff />} title="Not a git repository" className="h-full">
-          No diff to show: this session runs in{" "}
-          <code className="font-mono text-[12px] break-all">{session?.cwd ?? "its folder"}</code>,
-          which isn't a git repository, so CodeDen can't track its changes.
+        <EmptyState icon={<FileDiff />} title={t("workbench.diff.notRepo")} className="h-full">
+          <Trans
+            i18nKey="workbench.diff.notRepoBody"
+            values={{ cwd: session?.cwd ?? t("workbench.diff.itsFolder") }}
+            components={{ code: <code className="font-mono text-[12px] break-all" /> }}
+          />
         </EmptyState>
       </div>
     );
@@ -202,10 +209,10 @@ export function DiffPanel({ sessionId }: { sessionId: string }) {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-64">
             <DropdownMenuItem onSelect={() => setScope({ kind: "session" })}>
-              All changes in this session
+              {t("workbench.diff.allInSession")}
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => setScope({ kind: "uncommitted" })}>
-              Uncommitted
+              {t("workbench.diff.uncommitted")}
             </DropdownMenuItem>
             <CompareMenuItems
               related={related}
@@ -213,22 +220,25 @@ export function DiffPanel({ sessionId }: { sessionId: string }) {
             />
             {(data?.turns.length ?? 0) > 0 && <DropdownMenuSeparator />}
             {(data?.turns.length ?? 0) > 0 && (
-              <DropdownMenuLabel className="text-2xs">By turn</DropdownMenuLabel>
+              <DropdownMenuLabel className="text-2xs">
+                {t("workbench.diff.byTurn")}
+              </DropdownMenuLabel>
             )}
-            {[...(data?.turns ?? [])].reverse().map((t) => (
+            {[...(data?.turns ?? [])].reverse().map((turn) => (
               <DropdownMenuItem
-                key={t.id}
-                onSelect={() => setScope({ kind: "turn", turnId: t.id })}
+                key={turn.id}
+                onSelect={() => setScope({ kind: "turn", turnId: turn.id })}
               >
-                <span className="flex-1">{t.label}</span>
-                <span className="text-2xs text-muted-foreground">{ageShort(t.at)}</span>
+                <span className="flex-1">{turn.label}</span>
+                <span className="text-2xs text-muted-foreground">{ageShort(turn.at)}</span>
               </DropdownMenuItem>
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
         {files.length > 0 && (
           <span className="text-2xs text-muted-foreground tabular-nums">
-            {files.length} files · <span className="text-diff-add">+{add}</span>{" "}
+            {t("workbench.diff.files", { count: files.length })} ·{" "}
+            <span className="text-diff-add">+{add}</span>{" "}
             <span className="text-diff-del">−{del}</span>
           </span>
         )}
@@ -241,8 +251,8 @@ export function DiffPanel({ sessionId }: { sessionId: string }) {
               void refetch();
               void queryClient.invalidateQueries({ queryKey: ["git-status", sessionId] });
             }}
-            aria-label="Refresh diff"
-            title="Refresh"
+            aria-label={t("workbench.diff.refreshDiff")}
+            title={t("workbench.diff.refresh")}
           >
             <RefreshCw className={cn(isFetching && "animate-spin")} />
           </Button>
@@ -253,14 +263,13 @@ export function DiffPanel({ sessionId }: { sessionId: string }) {
               className="text-xs text-muted-foreground"
               disabled={restore.isPending}
               onClick={() => {
-                if (window.confirm("Put every file in this diff back to how it was?"))
-                  restore.mutate(undefined);
+                if (window.confirm(t("workbench.diff.confirmRestore"))) restore.mutate(undefined);
               }}
               title={
-                scope.kind === "turn" ? "Undo this turn's file changes" : "Undo all session changes"
+                scope.kind === "turn" ? t("workbench.diff.undoTurn") : t("workbench.diff.undoAll")
               }
             >
-              <RotateCcw /> Restore
+              <RotateCcw /> {t("workbench.diff.restore")}
             </Button>
           )}
           <Button
@@ -268,8 +277,8 @@ export function DiffPanel({ sessionId }: { sessionId: string }) {
             size="icon-sm"
             className={cn("text-muted-foreground", wrap && "text-foreground")}
             onClick={() => setWrap((v) => !v)}
-            aria-label="Toggle wrap"
-            title="Wrap lines"
+            aria-label={t("workbench.diff.toggleWrap")}
+            title={t("workbench.diff.wrap")}
           >
             <WrapText />
           </Button>
@@ -278,8 +287,8 @@ export function DiffPanel({ sessionId }: { sessionId: string }) {
             size="icon-sm"
             className="text-muted-foreground"
             onClick={() => setSplit((v) => !v)}
-            aria-label="Toggle split view"
-            title={split ? "Unified" : "Split"}
+            aria-label={t("workbench.diff.toggleSplit")}
+            title={split ? t("workbench.diff.unified") : t("workbench.diff.split")}
           >
             {split ? <Rows2 /> : <Columns2 />}
           </Button>
@@ -305,7 +314,7 @@ export function DiffPanel({ sessionId }: { sessionId: string }) {
         ) : failed ? (
           <EmptyState
             icon={<FileDiff />}
-            title={comparing ? "Couldn't compare" : "Couldn't load the diff"}
+            title={comparing ? t("workbench.diff.compareFailed") : t("workbench.diff.loadFailed")}
             className="h-full"
           >
             {error?.message}
@@ -313,14 +322,18 @@ export function DiffPanel({ sessionId }: { sessionId: string }) {
         ) : files.length === 0 ? (
           <EmptyState
             icon={<FileDiff />}
-            title={comparing ? `Same code as ${sessionName(compareWith)}` : "No changes yet"}
+            title={
+              comparing
+                ? t("workbench.diff.sameCode", { name: sessionName(compareWith) })
+                : t("workbench.diff.noChanges")
+            }
             className={anchors.outdated.length > 0 ? undefined : "h-full"}
           >
             {comparing
-              ? "This session's files match its latest checkpoint."
+              ? t("workbench.diff.matchCheckpoint")
               : noCheckpoints
-                ? "Diffs appear once the session's first checkpoint is written."
-                : "Diffs appear here from the session's turn checkpoints."}
+                ? t("workbench.diff.afterFirstCheckpoint")
+                : t("workbench.diff.fromCheckpoints")}
           </EmptyState>
         ) : (
           <div className="space-y-3 p-2">
@@ -366,6 +379,7 @@ function FilePatch({
   commentable: boolean;
   onRestore?: () => void;
 }) {
+  const { t } = useTranslation();
   const card = useCommentButtonLabels();
   // Lines picked with the line numbers; otherwise the open comment's lines stay highlighted.
   const [picked, setPicked] = useState<SelectedLineRange | null>(null);
@@ -407,11 +421,11 @@ function FilePatch({
             size="xs"
             className={hoverReveal}
             onClick={onRestore}
-            aria-label={`Restore ${file.path}`}
-            title={`Restore ${file.path}`}
+            aria-label={t("workbench.diff.restorePath", { path: file.path })}
+            title={t("workbench.diff.restorePath", { path: file.path })}
           >
             <RotateCcw />
-            <span className={cardLabel}>Restore file</span>
+            <span className={cardLabel}>{t("workbench.diff.restoreFile")}</span>
           </Button>
         )}
       </div>

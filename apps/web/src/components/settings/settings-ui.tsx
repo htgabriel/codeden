@@ -3,6 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { toast } from "sonner";
 import { useClient } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n";
 import { useSnapshotData } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
@@ -10,11 +11,12 @@ const fallback = defaultSettings();
 
 /** Current settings plus a patch function (validated server-side by re-parsing). */
 export function useSettings(): { settings: Settings; update: (patch: SettingsPatch) => void } {
+  const { t } = useTranslation();
   const client = useClient();
   const settings = useSnapshotData((s) => s.settings, fallback);
   const m = useMutation({
     mutationFn: (patch: SettingsPatch) => client.updateSettings(patch),
-    onError: (e) => toast.error("Setting not saved", { description: e.message }),
+    onError: (e) => toast.error(t("prefs.notSaved"), { description: e.message }),
   });
   return { settings, update: (patch) => m.mutate(patch) };
 }

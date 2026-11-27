@@ -5,7 +5,8 @@ import {
   stoppedKind,
   stoppedLabel,
 } from "@/components/factory/stopped-items";
-import { cardNumber, type ViewCard, type ViewPipeline } from "../stages";
+import { i18n } from "@/lib/i18n";
+import { cardNumber, textMap, type ViewCard, type ViewPipeline } from "../stages";
 
 /**
  * The repair bay (#264): the small corner of the floor for work that stopped and waits on a
@@ -28,11 +29,9 @@ export interface BayCrate {
   entries: BayEntry[];
 }
 
-export const BAY_TITLE: Record<StoppedKind, string> = {
-  retry: "Needs a retry",
-  stuck: "Stuck",
-  merge: "Yours to merge",
-};
+export const BAY_TITLE: Record<StoppedKind, string> = textMap(["retry", "stuck", "merge"], (k) =>
+  i18n.t(`factoryView.bay.${k}`),
+);
 
 const ORDER: StoppedKind[] = ["retry", "stuck", "merge"];
 

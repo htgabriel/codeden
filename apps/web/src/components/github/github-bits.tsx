@@ -13,6 +13,7 @@ import {
   summaryLabel,
   summaryState,
 } from "@/lib/github-checks";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { CheckGlyph, checkToneClass } from "./check-glyph";
 
@@ -96,14 +97,8 @@ export function CheckLabel({ status, conclusion }: { status: string; conclusion:
   );
 }
 
-const decisionText: Record<ReviewDecision, string> = {
-  none: "",
-  review_required: "Review required",
-  approved: "Approved",
-  changes_requested: "Changes requested",
-};
-
 export function ReviewDecisionBadge({ decision }: { decision: ReviewDecision }) {
+  const { t } = useTranslation();
   if (decision === "none") return null;
   return (
     <span
@@ -114,7 +109,7 @@ export function ReviewDecisionBadge({ decision }: { decision: ReviewDecision }) 
         decision === "review_required" && "border-border text-muted-foreground",
       )}
     >
-      {decisionText[decision]}
+      {t(`shell.github.decision.${decision}`)}
     </span>
   );
 }
@@ -127,9 +122,10 @@ const stateTone: Record<GitHubPrRef["state"], string> = {
 };
 
 export function PrStateBadge({ state }: { state: GitHubPrRef["state"] }) {
+  const { t } = useTranslation();
   return (
     <span className={cn("rounded-full border px-2 py-px text-3xs capitalize", stateTone[state])}>
-      {state}
+      {t(`shell.common.prState.${state}`)}
     </span>
   );
 }
@@ -155,10 +151,11 @@ export function GithubUnavailable({
   className?: string;
   action?: ReactNode;
 }) {
-  const title = localOnly ? "Local-only project" : "GitHub is not connected";
+  const { t } = useTranslation();
+  const title = localOnly ? t("shell.github.localOnly") : t("shell.github.notConnected");
   const body = localOnly
-    ? "This project has no GitHub remote. Sessions, worktrees, diffs and automations work; issues, pull requests and evidence need a GitHub repository."
-    : (connection?.message ?? "Run `gh auth login` in a terminal, then refresh.");
+    ? t("shell.github.localOnlyBody")
+    : (connection?.message ?? t("shell.github.notConnectedBody"));
   return (
     <div
       className={cn(

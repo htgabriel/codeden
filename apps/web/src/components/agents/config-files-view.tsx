@@ -6,6 +6,7 @@ import { EmptyState, ProviderMark } from "@/components/common/bits";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useClient } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { useViewport } from "@/lib/viewport";
 import { ConfigFileEditor } from "./config-file-editor";
@@ -18,7 +19,6 @@ const PROVIDERS = [
 ] as const;
 const scopeOrder = { user: 0, project: 1, local: 2 };
 const scopeTone = { user: "text-chart-2", project: "text-primary", local: "text-chart-4" };
-const scopeLabel = { user: "user", project: "project", local: "local" };
 
 export const fileKey = (f: Pick<AgentConfigFile, "root" | "projectId" | "path">) =>
   `${f.root}:${f.projectId ?? ""}:${f.path}`;
@@ -66,6 +66,7 @@ export function ConfigFilesView({
   rowAddon?: (file: AgentConfigFile) => RowAddon | undefined;
   onFilesChanged?: () => void;
 }) {
+  const { t } = useTranslation();
   const files = useAgentConfigFiles(projectId);
   const changed = () => {
     void files.refetch();
@@ -106,7 +107,10 @@ export function ConfigFilesView({
               className="w-full"
               onClick={() => setCreating(true)}
             >
-              <Plus /> New {create === "skill" ? "skill" : "subagent"}
+              <Plus />{" "}
+              {create === "skill"
+                ? t("shell.configFiles.newSkill")
+                : t("shell.configFiles.newSubagent")}
             </Button>
           </div>
         )}
@@ -146,7 +150,7 @@ export function ConfigFilesView({
           )}
           {files.data?.autoMemoryDir && kinds.includes("auto_memory") && (
             <p className="mt-2 flex items-start gap-1.5 px-2 text-3xs break-all text-muted-foreground/80">
-              <FolderOpen className="mt-px size-3 shrink-0" /> Auto memory:{" "}
+              <FolderOpen className="mt-px size-3 shrink-0" /> {t("shell.configFiles.autoMemory")}{" "}
               {files.data.autoMemoryDir}
             </p>
           )}
@@ -163,7 +167,7 @@ export function ConfigFilesView({
         />
       ) : (
         <div hidden={!showFile} className="flex flex-1 items-center justify-center">
-          <EmptyState icon={<FileText />} title="Nothing selected">
+          <EmptyState icon={<FileText />} title={t("shell.configFiles.nothingSelected")}>
             {emptyText}
           </EmptyState>
         </div>
@@ -195,6 +199,7 @@ function FileRow({
   onSelect: () => void;
   addon?: RowAddon;
 }) {
+  const { t } = useTranslation();
   const label = f.kind === "skill" || f.kind === "subagent" ? f.name : f.path;
   return (
     <div
@@ -224,9 +229,13 @@ function FileRow({
           </span>
         </span>
         <span className="mt-0.5 flex shrink-0 flex-col items-end gap-0.5 text-3xs">
-          <span className={scopeTone[f.scope]}>{scopeLabel[f.scope]}</span>
-          {f.onDemand && <span className="text-muted-foreground">on demand</span>}
-          {f.kind === "auto_memory" && <span className="text-muted-foreground">auto</span>}
+          <span className={scopeTone[f.scope]}>{t(`shell.configFiles.scope.${f.scope}`)}</span>
+          {f.onDemand && (
+            <span className="text-muted-foreground">{t("shell.configFiles.onDemand")}</span>
+          )}
+          {f.kind === "auto_memory" && (
+            <span className="text-muted-foreground">{t("shell.configFiles.auto")}</span>
+          )}
           {addon?.chip}
         </span>
       </button>

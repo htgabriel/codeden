@@ -5,6 +5,7 @@ import type {
   ReasoningEffort,
   SetupCheck,
 } from "@codeden/contracts";
+import { i18n } from "@/lib/i18n";
 import { aliasFor, DEFAULT_MODEL_ID } from "./alias";
 
 /**
@@ -28,14 +29,14 @@ export const EFFORT_ORDER: readonly ReasoningEffort[] = [
   "max",
 ];
 
-export const EFFORT_NAME: Record<ReasoningEffort, string> = {
-  minimal: "Minimal",
-  low: "Low",
-  medium: "Medium",
-  high: "High",
-  xhigh: "Extra high",
-  max: "Max",
-};
+export const EFFORT_NAME = Object.defineProperties({} as Record<ReasoningEffort, string>, {
+  minimal: { get: () => i18n.t("workbench.picker.effort.minimal"), enumerable: true },
+  low: { get: () => i18n.t("workbench.picker.effort.low"), enumerable: true },
+  medium: { get: () => i18n.t("workbench.picker.effort.medium"), enumerable: true },
+  high: { get: () => i18n.t("workbench.picker.effort.high"), enumerable: true },
+  xhigh: { get: () => i18n.t("workbench.picker.effort.xhigh"), enumerable: true },
+  max: { get: () => i18n.t("workbench.picker.effort.max"), enumerable: true },
+});
 
 /** A model's effort levels from lowest to highest, without duplicates. */
 export function sortEfforts(efforts: readonly ReasoningEffort[]): ReasoningEffort[] {
@@ -79,7 +80,9 @@ export function resolveModel(
 export function modelName(resolved: ResolvedModel): string | null {
   if (resolved.missing) return resolved.missing;
   if (!resolved.model) return null;
-  return resolved.followsDefault ? `Default (${resolved.model.label})` : resolved.model.label;
+  return resolved.followsDefault
+    ? i18n.t("workbench.picker.defaultModel", { model: resolved.model.label })
+    : resolved.model.label;
 }
 
 /** Effort levels the picker should offer for a model (none when the provider has no effort). */
@@ -193,6 +196,24 @@ export function providerAvailability(
   return { ready: false, reason, detail: check.message, command: check.fix?.command ?? null };
 }
 
+const REASON_KEYS = {
+  "Installed but broken": "workbench.picker.reasons.broken",
+  "Not installed": "workbench.picker.reasons.notInstalled",
+  "Not signed in": "workbench.picker.reasons.notSignedIn",
+  [TOO_OLD]: "workbench.picker.reasons.tooOld",
+  "Not ready": "workbench.picker.reasons.notReady",
+} as const;
+
+/**
+ * An availability reason as the UI shows it. `Availability.reason` stays in English (it is
+ * compared with `TOO_OLD`); this translates the known ones and leaves others as they came.
+ */
+export function reasonText(reason: string | null | undefined): string {
+  const r = reason ?? "Not ready";
+  const key = REASON_KEYS[r as keyof typeof REASON_KEYS];
+  return key ? i18n.t(key) : r;
+}
+
 /** "Not signed in" → "not signed in", to follow a colon or sit in brackets. */
 export const lowerFirst = (text: string) => text.charAt(0).toLowerCase() + text.slice(1);
 
@@ -201,7 +222,7 @@ export const lowerFirst = (text: string) => text.charAt(0).toLowerCase() + text.
  * "Codex (not signed in)", "Gemini CLI (not installed)".
  */
 export function providerOptionLabel(name: string, availability: Availability): string {
-  return availability.ready ? name : `${name} (${lowerFirst(availability.reason ?? "Not ready")})`;
+  return availability.ready ? name : `${name} (${lowerFirst(reasonText(availability.reason))})`;
 }
 
 /** Where the provider of the orchestrator and of PMs is chosen. */
@@ -212,8 +233,9 @@ export const ROLE_PROVIDER_SETTING = "Settings → Providers → Defaults per ro
  * default in settings, and changing that starts a fresh session (§8.1).
  */
 export function roleSwitchHint(role: "orchestrator" | "pm"): string {
-  const who = role === "orchestrator" ? "The orchestrator" : "A project manager";
-  return `${who} runs on its role's provider: change it in ${ROLE_PROVIDER_SETTING}, and the next message starts a fresh conversation there.`;
+  return role === "orchestrator"
+    ? i18n.t("workbench.picker.roleSwitchOrchestrator")
+    : i18n.t("workbench.picker.roleSwitchPm");
 }
 
 // ---------------------------------------------------------------- tabs and search
@@ -259,18 +281,21 @@ function lockedTab(
 ): Pick<ProviderTab, "lockedReason" | "handoff"> {
   if (!lockedProvider || provider.id === lockedProvider) return { lockedReason: null };
   const name = provider.displayName;
-  const newSession = "Start a new session to switch providers.";
+  const t = i18n.t;
+  const newSession = t("workbench.picker.newSessionToSwitch");
   if (!handoff) {
-    return { lockedReason: `${name} can't be used in this session. ${switchHint ?? newSession}` };
+    return {
+      lockedReason: t("workbench.picker.notInSession", { name, hint: switchHint ?? newSession }),
+    };
   }
   if (!handoff.blocked) {
-    return { lockedReason: `Continue in a new ${name} session`, handoff: "ready" };
+    return { lockedReason: t("workbench.picker.continueIn", { name }), handoff: "ready" };
   }
   const reason = lowerFirst(handoff.blocked);
   return {
     lockedReason: handoff.lasting
-      ? `Can't hand off to ${name}: ${reason}. ${newSession}`
-      : `Continue in a new ${name} session. Not available now: ${reason}.`,
+      ? t("workbench.picker.cantHandOff", { name, reason, hint: newSession })
+      : t("workbench.picker.continueInLater", { name, reason }),
     handoff: "blocked",
   };
 }
@@ -435,7 +460,7 @@ export function searchRows(
  */
 export function triggerText(provider: ProviderInfo | undefined, resolved: ResolvedModel) {
   const name = modelName(resolved);
-  if (!provider) return name ?? "Choose a model";
+  if (!provider) return name ?? i18n.t("workbench.picker.chooseModel");
   if (!name) return provider.displayName;
   return provider.models.length <= 1 && !resolved.missing
     ? `${provider.displayName} · ${name}`

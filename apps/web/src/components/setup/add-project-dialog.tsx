@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useClient } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n";
 import { platform } from "@/lib/platform";
 import { snapshotKey } from "@/lib/queries";
 import { withCreatedProject } from "@/lib/snapshot-reducer";
@@ -26,11 +27,12 @@ import { NativeFolderField } from "./native-folder-field";
 /** Pick a local folder (server-side picker) or clone a GitHub repo. Shared by setup and the sidebar. */
 export function ProjectSourcePicker({
   onCreated,
-  submitLabel = "Add project",
+  submitLabel,
 }: {
   onCreated: (projectId: string) => void;
   submitLabel?: string;
 }) {
+  const { t } = useTranslation();
   const client = useClient();
   const queryClient = useQueryClient();
   const [source, setSource] = useState<"folder" | "clone">("folder");
@@ -45,17 +47,21 @@ export function ProjectSourcePicker({
       );
       const facts = [
         detected.github ? `GitHub ${detected.github.owner}/${detected.github.repo}` : null,
-        detected.packageManager ? `Detected ${detected.packageManager}` : null,
+        detected.packageManager
+          ? t("prefs.addProject.detected", { manager: detected.packageManager })
+          : null,
         detected.suggestedSetupCommands.length
-          ? `suggested setup: ${detected.suggestedSetupCommands.join(" && ")}`
+          ? t("prefs.addProject.suggestedSetup", {
+              commands: detected.suggestedSetupCommands.join(" && "),
+            })
           : null,
       ].filter(Boolean);
-      toast.success(`Added ${project.name}`, {
+      toast.success(t("prefs.addProject.added", { name: project.name }), {
         description: facts.length ? facts.join(" · ") : undefined,
       });
       onCreated(project.id);
     },
-    onError: (e) => toast.error("Couldn't add the project", { description: e.message }),
+    onError: (e) => toast.error(t("prefs.addProject.addFailed"), { description: e.message }),
   });
   const valid =
     source === "folder"
@@ -67,20 +73,10 @@ export function ProjectSourcePicker({
       <div className="grid grid-cols-2 gap-2">
         {(
           [
-            [
-              "folder",
-              FolderOpen,
-              "Local folder",
-              "Any folder; GitHub features turn on when it has a GitHub remote.",
-            ],
-            [
-              "clone",
-              GitBranch,
-              "Clone from GitHub",
-              "Paste a repository URL and CodeDen clones it.",
-            ],
+            ["folder", FolderOpen],
+            ["clone", GitBranch],
           ] as const
-        ).map(([id, Icon, title, desc]) => (
+        ).map(([id, Icon]) => (
           <button
             key={id}
             type="button"
@@ -98,8 +94,10 @@ export function ProjectSourcePicker({
                 source === id ? "text-primary" : "text-muted-foreground",
               )}
             />
-            <div className="text-[13px] font-medium">{title}</div>
-            <div className="mt-0.5 text-2xs leading-snug text-muted-foreground">{desc}</div>
+            <div className="text-[13px] font-medium">{t(`prefs.addProject.${id}.title`)}</div>
+            <div className="mt-0.5 text-2xs leading-snug text-muted-foreground">
+              {t(`prefs.addProject.${id}.description`)}
+            </div>
           </button>
         ))}
       </div>
@@ -129,7 +127,11 @@ export function ProjectSourcePicker({
             )
           }
         >
-          {create.isPending ? (source === "clone" ? "Cloning…" : "Adding…") : submitLabel}
+          {create.isPending
+            ? source === "clone"
+              ? t("prefs.addProject.cloning")
+              : t("prefs.addProject.adding")
+            : (submitLabel ?? t("sidebar.addProject"))}
         </Button>
       </div>
     </div>
@@ -140,14 +142,13 @@ export function AddProjectDialog() {
   const open = useUiStore((s) => s.addProjectOpen);
   const setOpen = useUiStore((s) => s.setAddProjectOpen);
   const navigate = useNavigate();
+  const { t } = useTranslation();
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>Add a project</DialogTitle>
-          <DialogDescription>
-            GitHub repos get issues, PRs and evidence. Local folders work too.
-          </DialogDescription>
+          <DialogTitle>{t("sidebar.addProjectTooltip")}</DialogTitle>
+          <DialogDescription>{t("prefs.addProject.dialogDescription")}</DialogDescription>
         </DialogHeader>
         <ProjectSourcePicker
           onCreated={(projectId) => {

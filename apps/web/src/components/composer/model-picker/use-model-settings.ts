@@ -2,6 +2,7 @@ import type { CustomModel, ModelRef, Settings, SettingsPatch, Snapshot } from "@
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useClient } from "@/lib/api";
+import { i18n } from "@/lib/i18n";
 import { snapshotKey, useSnapshotData } from "@/lib/queries";
 import type { CustomModels } from "./custom";
 import { type HiddenModels, toggleHidden } from "./hidden";
@@ -26,7 +27,7 @@ function useModelsSettings() {
       s ? { ...s, settings: { ...s.settings, models: next } } : s,
     );
     client.updateSettings(patch).catch((e: Error) => {
-      toast.error("Model setting not saved", { description: e.message });
+      toast.error(i18n.t("workbench.picker.settingNotSaved"), { description: e.message });
       void queryClient.invalidateQueries({ queryKey: snapshotKey });
     });
   };

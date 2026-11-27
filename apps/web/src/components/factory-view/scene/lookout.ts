@@ -1,4 +1,6 @@
 import { DiscoveryArea as Areas, type DiscoveryArea } from "@codeden/contracts";
+import { i18n } from "@/lib/i18n";
+import { textMap } from "../stages";
 import { type Box, type Point, WALL_H, type WorkshopLayout } from "./layout";
 
 /**
@@ -11,16 +13,10 @@ import { type Box, type Point, WALL_H, type WorkshopLayout } from "./layout";
  */
 
 /** The pods' labels, in the areas' order. */
-export const POD_LABEL: Record<DiscoveryArea, string> = {
-  features: "Features",
-  ux: "UX",
-  performance: "Performance",
-  tech_debt: "Tech debt",
-  test_gaps: "Test gaps",
-  security: "Security",
-  bugs: "Bugs",
-  docs: "Docs",
-};
+export const POD_LABEL: Record<DiscoveryArea, string> = textMap(
+  ["features", "ux", "performance", "tech_debt", "test_gaps", "security", "bugs", "docs"],
+  (k) => i18n.t(`factoryView.pods.${k}`),
+);
 
 export const AREAS: readonly DiscoveryArea[] = Areas.options;
 

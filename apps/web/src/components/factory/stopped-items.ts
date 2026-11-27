@@ -4,6 +4,7 @@ import {
   type StoppedItem,
   stoppedRetry,
 } from "@codeden/contracts";
+import { i18n } from "@/lib/i18n";
 
 /**
  * Stopped factory work in a person's words (§10.1): why an item stopped and what to do about it.
@@ -45,9 +46,9 @@ export function stoppedKind(item: Item, pr: Pr): StoppedKind | null {
 /** Why it is yours to merge, from the factory's reason or the PR's note. */
 function mergeReason(item: Item, pr: Pr): string | null {
   const why = `${item.reason ?? ""} ${pr?.note ?? ""}`;
-  if (/protected/i.test(why)) return "protected area";
-  if (item.trust === "untrusted") return "untrusted author";
-  if (/auto-merge is off/i.test(why)) return "auto-merge is off";
+  if (/protected/i.test(why)) return i18n.t("factory.stopped.protectedArea");
+  if (item.trust === "untrusted") return i18n.t("factory.stopped.untrustedAuthor");
+  if (/auto-merge is off/i.test(why)) return i18n.t("factory.stopped.autoMergeOff");
   return null;
 }
 
@@ -56,25 +57,25 @@ function mergeReason(item: Item, pr: Pr): string | null {
  * once and still conflicting", "Yours to merge: protected area". Null when it isn't stopped.
  */
 export function stoppedLabel(item: Item, pr: Pr): string | null {
+  const t = i18n.t;
   const kind = stoppedKind(item, pr);
   if (!kind) return null;
   if (kind === "merge") {
     const why = mergeReason(item, pr);
-    return why ? `Yours to merge: ${why}` : "Yours to merge";
+    return why ? t("factory.stopped.yoursToMergeWhy", { why }) : t("factory.stopped.yoursToMerge");
   }
   const why = `${item.reason ?? ""} ${pr?.note ?? ""}`;
   if (kind === "stuck") {
-    if (/conflict/i.test(why) && /rebuil/i.test(why)) return "Rebuilt once and still conflicting";
+    if (/conflict/i.test(why) && /rebuil/i.test(why))
+      return t("factory.stopped.rebuiltConflicting");
     if (/\b(actions|workflow)\b|CI can never|CI never/i.test(why))
-      return "CI can't run on this repository";
-    return "Stuck: needs a person";
+      return t("factory.stopped.ciCantRun");
+    return t("factory.stopped.stuck");
   }
   // The shared rule's words, without the button's name: the action sits right beside them.
   const label = stoppedRetry(asStopped(item))?.label;
   if (label) return label.replace(/\s*\(Retry\)$/, "");
-  return asStopped(item).pr
-    ? "Stopped with its pull request open"
-    : "Stopped without a pull request";
+  return asStopped(item).pr ? t("factory.stopped.withPr") : t("factory.stopped.withoutPr");
 }
 
 /** What a person does about it; null when there's nothing to do here. */

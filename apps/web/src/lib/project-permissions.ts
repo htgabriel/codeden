@@ -4,6 +4,7 @@ import {
   type Session,
   type SessionStatus,
 } from "@codeden/contracts";
+import { i18n } from "@/lib/i18n";
 
 /** Statuses a session doesn't leave by itself: it has finished, failed or was stopped. */
 const ENDED: readonly SessionStatus[] = ["completed", "failed", "stopped"];
@@ -76,7 +77,7 @@ export function planLevelChanges(
     });
 }
 
-const sessions = (n: number) => `${n} ${n === 1 ? "session" : "sessions"}`;
+const sessions = (count: number) => i18n.t("messages.permissions.sessions", { count });
 
 /**
  * The line that says when the applied level takes effect, read from each session's
@@ -85,15 +86,16 @@ const sessions = (n: number) => `${n} ${n === 1 ? "session" : "sessions"}`;
 export function appliedNote(applied: readonly LevelChange[]): string {
   const live = applied.filter((c) => c.appliesFrom === "next_tool_call").length;
   const later = applied.length - live;
-  const one = applied.length === 1;
+  const t = i18n.t;
+  const count = applied.length === 1 ? 1 : 2;
   const when =
     later === 0
-      ? `It applies from ${one ? "the agent's" : "each agent's"} next tool call.`
+      ? t("messages.permissions.toolCall", { count })
       : live === 0
-        ? `It applies from ${one ? "the session's" : "each session's"} next turn.`
-        : `It applies from the next tool call in ${sessions(live)} and from the next turn in ${sessions(later)}.`;
+        ? t("messages.permissions.turn", { count })
+        : t("messages.permissions.mixed", { live: sessions(live), later: sessions(later) });
   const waiting = applied.some((c) => c.session.status === "waiting")
-    ? " Approvals and questions already waiting for you stay waiting."
+    ? t("messages.permissions.waiting")
     : "";
   return `${when}${waiting}`;
 }

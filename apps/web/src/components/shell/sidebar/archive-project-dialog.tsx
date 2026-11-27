@@ -11,6 +11,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Trans, useTranslation } from "@/lib/i18n";
 import { useProjectActions } from "@/lib/project-actions";
 import { showsProject } from "@/lib/project-pages";
 import { canStop } from "@/lib/session-availability";
@@ -35,6 +36,7 @@ export function ArchiveProjectDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { t } = useTranslation();
   const actions = useProjectActions();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -58,24 +60,25 @@ export function ArchiveProjectDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Archive {project.name}?</AlertDialogTitle>
+          <AlertDialogTitle>
+            {t("shell.archiveProject.title", { name: project.name })}
+          </AlertDialogTitle>
           <AlertDialogDescription>
-            It leaves the project list, and its automations and factory stop. Its sessions'
-            worktrees are removed, except any with uncommitted changes. Nothing in{" "}
-            <span className="font-mono break-all">{project.path}</span> changes. To bring the
-            project back, add the same folder again.
+            <Trans
+              i18nKey="shell.archiveProject.body"
+              values={{ path: project.path }}
+              components={{ path: <span className="font-mono break-all" /> }}
+            />
           </AlertDialogDescription>
         </AlertDialogHeader>
         {working > 0 && (
           <p className="text-sm text-status-waiting" role="status">
-            {working === 1
-              ? "1 session is still working or waiting to start. Stop it first."
-              : `${working} sessions are still working or waiting to start. Stop them first.`}
-            {notStarted && " A session that hasn't started yet has no Stop: archive it instead."}
+            {t("shell.archiveProject.working", { count: working })}
+            {notStarted && t("shell.archiveProject.notStarted")}
           </p>
         )}
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
           <AlertDialogAction
             variant="destructive"
             disabled={busy || working > 0}
@@ -85,7 +88,7 @@ export function ArchiveProjectDialog({
               void archive();
             }}
           >
-            Archive project
+            {t("shell.archiveProject.confirm")}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

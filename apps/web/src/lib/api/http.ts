@@ -1,3 +1,4 @@
+import { i18n } from "@/lib/i18n";
 /** A failed API call, with the server's error code when it sent one. */
 export class ApiRequestError extends Error {
   constructor(
@@ -38,7 +39,7 @@ export function createFetcher(origin: string, onUnauthorized: (code: string) => 
     try {
       res = await fetch(`${base}${path}`, { method, credentials: "include", headers, body });
     } catch {
-      throw new ApiRequestError(0, "network", "Can't reach the CodeDen server");
+      throw new ApiRequestError(0, "network", i18n.t("messages.api.unreachable"));
     }
     if (!res.ok) {
       const payload = (await res.json().catch(() => null)) as {

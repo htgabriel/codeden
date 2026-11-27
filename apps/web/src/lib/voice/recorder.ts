@@ -1,3 +1,5 @@
+import { i18n } from "@/lib/i18n";
+
 /**
  * Microphone recording with `MediaRecorder`, for the local Whisper test in Settings. Dictation
  * itself captures live samples instead (`mic-capture.ts`), to transcribe while the user speaks.
@@ -23,7 +25,7 @@ export async function startRecording(): Promise<Recording> {
   try {
     stream = await navigator.mediaDevices.getUserMedia({ audio: true });
   } catch {
-    throw new Error("Microphone access was blocked.");
+    throw new Error(i18n.t("messages.voice.micBlocked"));
   }
   const mimeType = pickMimeType();
   const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);

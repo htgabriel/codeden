@@ -2,6 +2,7 @@ import type { ScoutStatus } from "@codeden/contracts";
 import { useNavigate } from "@tanstack/react-router";
 import { InfoHint } from "@/components/common/info-hint";
 import { StatusDot } from "@/components/common/status-dot";
+import { useTranslation } from "@/lib/i18n";
 import { HeldFollowUps } from "./held-follow-ups";
 import { AREA_LABEL, reviewAreasHelp, roundHelp, scoutHelp } from "./meta";
 import { Badge } from "./node-badge";
@@ -20,20 +21,21 @@ export function ScoutNode({
   /** False when scheduled rounds are off (`minBacklog` 0): it only runs when started. */
   scheduled?: boolean;
 }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const phase =
     scout.phase === "idle"
       ? !scheduled
-        ? "On demand"
+        ? t("factory.scoutNode.onDemand")
         : scout.nextRoundAt
-          ? "Resting"
-          : "Waiting for a round"
+          ? t("factory.scoutNode.resting")
+          : t("factory.scoutNode.waiting")
       : scout.phase === "planning"
-        ? "Planning"
+        ? t("factory.scoutNode.planning")
         : scout.phase === "reviewing"
-          ? "Reviewing areas"
-          : "Filing issues";
-  const roundHint = <InfoHint label="rounds">{roundHelp()}</InfoHint>;
+          ? t("factory.scoutNode.reviewing")
+          : t("factory.scoutNode.filing");
+  const roundHint = <InfoHint label={t("factory.scoutNode.rounds")}>{roundHelp()}</InfoHint>;
   return (
     <div
       className="relative flex min-h-[64px] w-[132px] shrink-0 flex-col items-center gap-1 rounded-lg border border-foreground/30 bg-card px-2 pt-3.5 pb-2 text-center"
@@ -48,15 +50,15 @@ export function ScoutNode({
           void navigate({ to: "/sessions/$sessionId", params: { sessionId: scout.sessionId } })
         }
         className="text-[12px] leading-tight font-medium hover:text-primary disabled:hover:text-foreground"
-        title={scout.sessionId ? "Open the scout's session" : undefined}
+        title={scout.sessionId ? t("factory.scoutNode.openSession") : undefined}
       >
-        Find improvements
+        {t("factory.scoutNode.title")}
       </button>
       <span className="text-[10px] leading-tight text-muted-foreground">
         {phase}
         {scout.rounds > 0 ? (
           <span className="flex items-center justify-center gap-1">
-            Round {scout.rounds}
+            {t("factory.scoutNode.round", { n: scout.rounds })}
             {roundHint}
           </span>
         ) : (
@@ -73,8 +75,18 @@ export function ScoutNode({
                 void navigate({ to: "/sessions/$sessionId", params: { sessionId: l.sessionId } })
               }
               className="flex items-center gap-1 rounded-md border border-border px-1 text-[10px] hover:border-primary/60"
-              title={`${AREA_LABEL[l.area]} review: ${l.reported ? "reported" : "reviewing"}`}
-              aria-label={`${AREA_LABEL[l.area]} review: ${l.reported ? "reported" : "reviewing"}. Open its session`}
+              title={t("factory.scoutNode.areaReview", {
+                area: AREA_LABEL[l.area],
+                state: l.reported
+                  ? t("factory.scoutNode.reported")
+                  : t("factory.scoutNode.inReview"),
+              })}
+              aria-label={t("factory.scoutNode.areaReviewAria", {
+                area: AREA_LABEL[l.area],
+                state: l.reported
+                  ? t("factory.scoutNode.reported")
+                  : t("factory.scoutNode.inReview"),
+              })}
             >
               <StatusDot
                 tone={l.active ? "running" : l.reported ? "done" : "idle"}
@@ -83,11 +95,13 @@ export function ScoutNode({
               {AREA_LABEL[l.area]}
             </button>
           ))}
-          <InfoHint label="review areas">{reviewAreasHelp()}</InfoHint>
+          <InfoHint label={t("factory.scoutNode.areas")}>{reviewAreasHelp()}</InfoHint>
         </div>
       )}
       {scout.phase === "filing" || scout.filed > 0 ? (
-        <span className="text-[10px] text-muted-foreground">{scout.filed} filed this round</span>
+        <span className="text-[10px] text-muted-foreground">
+          {t("factory.scoutNode.filed", { n: scout.filed })}
+        </span>
       ) : null}
       <HeldFollowUps projectId={projectId} held={scout.heldFollowUps} />
     </div>

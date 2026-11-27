@@ -10,6 +10,7 @@ import {
   PlaneGeometry,
 } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { i18n } from "@/lib/i18n";
 import type { Rgb } from "@/lib/oklch";
 import {
   BOOTH,
@@ -63,7 +64,7 @@ export function boxes(
 
 /** The sign labels, in atlas order: the zones, then the PM's booth. */
 function signLabels(layout: WorkshopLayout): string[] {
-  return [...layout.zones.map((z) => z.label), "PM BOOTH"];
+  return [...layout.zones.map((z) => z.label), i18n.t("factoryView.canvas.pmBooth")];
 }
 
 /** Planes that each show one row of a vertical atlas, merged into one geometry. */

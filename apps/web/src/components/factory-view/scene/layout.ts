@@ -1,3 +1,4 @@
+import { i18n } from "@/lib/i18n";
 import type { StationDemand } from "./scene-model";
 import type { StationId, StationTable, Tile } from "./stations";
 
@@ -155,13 +156,22 @@ const STATION_ORDER: StationId[] = [
   "area",
 ];
 
-const ZONES: { id: ZoneId; label: string; station: StationId | null }[] = [
-  { id: "intake", label: "INTAKE", station: null },
-  { id: "prep", label: "PREP", station: "prep" },
-  { id: "bench", label: "BUILD", station: "bench" },
-  { id: "review", label: "REVIEW", station: "review" },
-  { id: "merge", label: "MERGE", station: "merge" },
-  { id: "ship", label: "SHIP", station: "ship" },
+const zone = (id: ZoneId, station: StationId | null) => ({
+  id,
+  get label() {
+    return i18n.t(`factoryView.zones.${id}`);
+  },
+  station,
+});
+
+/** The zones; their labels are read in the UI language each time a layout is made. */
+const ZONES: { id: ZoneId; readonly label: string; station: StationId | null }[] = [
+  zone("intake", null),
+  zone("prep", "prep"),
+  zone("bench", "bench"),
+  zone("review", "review"),
+  zone("merge", "merge"),
+  zone("ship", "ship"),
 ];
 
 const clampLimit = (n: number) =>

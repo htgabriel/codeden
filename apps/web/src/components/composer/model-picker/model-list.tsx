@@ -2,8 +2,9 @@ import { Command as CommandPrimitive } from "cmdk";
 import { ArrowRight, Check, Eye, EyeOff, Search, Star, TriangleAlert } from "lucide-react";
 import type { KeyboardEvent, ReactNode, RefObject } from "react";
 import { ProviderMark } from "@/components/common/bits";
+import { Trans, useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import type { Availability, ModelRow } from "./logic";
+import { type Availability, type ModelRow, reasonText } from "./logic";
 
 /**
  * Shown above the models of a provider that isn't set up on this machine. The models stay
@@ -18,6 +19,7 @@ export function SetupNotice({
   availability: Availability;
   onOpenSetup: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div
       className="mb-1.5 flex flex-col items-start gap-1 rounded-md border border-status-waiting/25 bg-status-waiting/[0.06] px-2.5 py-2 text-xs"
@@ -25,13 +27,16 @@ export function SetupNotice({
     >
       <p className="flex items-center gap-1.5 font-medium text-foreground">
         <TriangleAlert className="size-3.5 text-status-waiting" aria-hidden />
-        {name}: {availability.reason}
+        {name}: {reasonText(availability.reason)}
       </p>
       {availability.detail && <p className="text-muted-foreground">{availability.detail}</p>}
       {availability.command && (
         <p className="text-muted-foreground">
-          Run <code className="rounded bg-muted px-1 py-0.5 font-mono">{availability.command}</code>{" "}
-          in a terminal, then check again.
+          <Trans
+            i18nKey="workbench.setup.runCommand"
+            values={{ command: availability.command }}
+            components={{ code: <code className="rounded bg-muted px-1 py-0.5 font-mono" /> }}
+          />
         </p>
       )}
       <button
@@ -39,7 +44,7 @@ export function SetupNotice({
         onClick={onOpenSetup}
         className="mt-1 inline-flex items-center gap-1 rounded-md px-1.5 py-1 font-medium text-primary outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring/50"
       >
-        Open setup <ArrowRight className="size-3" aria-hidden />
+        {t("workbench.picker.openSetup")} <ArrowRight className="size-3" aria-hidden />
       </button>
     </div>
   );
@@ -126,6 +131,7 @@ function Row({
   onToggleFavorite?: (row: ModelRow) => void;
   onToggleHidden?: (row: ModelRow) => void;
 }) {
+  const { t } = useTranslation();
   const { model, provider } = row;
   return (
     <CommandPrimitive.Item
@@ -143,17 +149,17 @@ function Row({
       </span>
       {model.isDefault && provider.models.length > 1 && (
         <span className="shrink-0 rounded border border-border px-1 text-3xs text-muted-foreground">
-          Default
+          {t("workbench.picker.default")}
         </span>
       )}
       {custom && (
         <span className="shrink-0 rounded border border-border px-1 text-3xs text-muted-foreground">
-          Custom
+          {t("workbench.picker.custom")}
         </span>
       )}
       {hidden && (
         <span className="shrink-0 rounded border border-dashed border-border px-1 text-3xs text-muted-foreground">
-          Hidden
+          {t("workbench.picker.hidden")}
         </span>
       )}
       <span className="min-w-0 flex-1 truncate text-2xs text-muted-foreground">
@@ -162,7 +168,9 @@ function Row({
       {onToggleHidden && (
         <RowAction
           label={
-            hidden ? `Show ${model.label} in the picker` : `Hide ${model.label} from the picker`
+            hidden
+              ? t("workbench.picker.showInPicker", { model: model.label })
+              : t("workbench.picker.hideFromPicker", { model: model.label })
           }
           pressed={hidden}
           focusable={highlighted}
@@ -179,7 +187,9 @@ function Row({
       {onToggleFavorite && (
         <RowAction
           label={
-            favorite ? `Remove ${model.label} from favourites` : `Add ${model.label} to favourites`
+            favorite
+              ? t("workbench.picker.removeFavourite", { model: model.label })
+              : t("workbench.picker.addFavourite", { model: model.label })
           }
           pressed={favorite}
           focusable={highlighted}
@@ -250,6 +260,7 @@ export function ModelList({
   onFocusRail?: () => void;
   onFocusEffort?: () => void;
 }) {
+  const { t } = useTranslation();
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.altKey || e.ctrlKey || e.metaKey || e.nativeEvent.isComposing) return;
     const input = e.currentTarget;
@@ -272,7 +283,7 @@ export function ModelList({
       loop
       value={highlight}
       onValueChange={onHighlight}
-      label="Models"
+      label={t("workbench.picker.models")}
       className="flex min-h-0 min-w-0 flex-1 flex-col"
     >
       <div className="flex h-11 shrink-0 items-center gap-2 border-b border-border px-3">
@@ -282,21 +293,21 @@ export function ModelList({
           value={query}
           onValueChange={onQueryChange}
           onKeyDown={onKeyDown}
-          placeholder="Search models…"
-          aria-label="Search models"
+          placeholder={t("workbench.picker.searchPlaceholder")}
+          aria-label={t("workbench.picker.search")}
           className="h-full w-full bg-transparent text-[13px] outline-none placeholder:text-muted-foreground/70"
         />
       </div>
       <CommandPrimitive.List
-        label="Models"
+        label={t("workbench.picker.models")}
         className="min-h-0 flex-1 overflow-y-auto p-1.5 scroll-thin"
       >
         {notice}
         {rows.length === 0 && !hiddenToggle?.count ? (
           <CommandPrimitive.Empty className="px-3 py-6 text-center text-xs text-muted-foreground">
             {query
-              ? `No models match "${query}"`
-              : (empty ?? "This provider reports no models yet.")}
+              ? t("workbench.picker.noMatch", { query })
+              : (empty ?? t("workbench.picker.noModels"))}
           </CommandPrimitive.Empty>
         ) : (
           rows.map((row) => (
@@ -327,8 +338,8 @@ export function ModelList({
               <Eye className="size-3.5" aria-hidden />
             )}
             {hiddenToggle.shown
-              ? "Hide hidden models again"
-              : `Show ${hiddenToggle.count} hidden model${hiddenToggle.count === 1 ? "" : "s"}`}
+              ? t("workbench.picker.hideHidden")
+              : t("workbench.picker.showHidden", { count: hiddenToggle.count })}
           </CommandPrimitive.Item>
         )}
       </CommandPrimitive.List>

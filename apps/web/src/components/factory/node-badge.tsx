@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { InfoHint } from "@/components/common/info-hint";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 /** The small label on a pipeline diagram node: who does the step (§10.1). */
@@ -13,19 +14,10 @@ export type Kind =
   | "scout"
   | "checks";
 
-const KIND_LABEL: Record<Kind, string> = {
-  human: "Human",
-  humanOrScout: "Human or scout",
-  llm: "LLM call",
-  agent: "Agent",
-  workspace: "Workspace agent",
-  auto: "Auto-merge",
-  scout: "Scout",
-  checks: "CI checks",
-};
-
 /** `hint` turns the label into a tooltip that explains it. */
 export function Badge({ kind, hint }: { kind: Kind; hint?: ReactNode }) {
+  const { t } = useTranslation();
+  const label = t(`factory.badge.${kind}`);
   return (
     <span
       className={cn(
@@ -38,11 +30,11 @@ export function Badge({ kind, hint }: { kind: Kind; hint?: ReactNode }) {
       )}
     >
       {hint ? (
-        <InfoHint label={KIND_LABEL[kind]} term={KIND_LABEL[kind]}>
+        <InfoHint label={label} term={label}>
           {hint}
         </InfoHint>
       ) : (
-        KIND_LABEL[kind]
+        label
       )}
     </span>
   );

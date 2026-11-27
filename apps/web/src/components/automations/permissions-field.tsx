@@ -1,6 +1,7 @@
 import type { AutonomyLevel } from "@codeden/contracts";
 import { AlertTriangle } from "lucide-react";
 import { AUTONOMY, AUTONOMY_LEVELS } from "@/components/thread/autonomy";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 /**
@@ -19,10 +20,11 @@ export function PermissionsField({
   disabled?: boolean;
   readOnlySupported?: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-2">
       <fieldset
-        aria-label="Permissions"
+        aria-label={t("automations.form.permissions")}
         className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4"
         data-testid="permissions-field"
       >
@@ -46,7 +48,7 @@ export function PermissionsField({
                 <o.icon className={cn("size-3.5", o.tone)} /> {o.label}
               </span>
               <span className="text-3xs leading-snug text-muted-foreground">
-                {unavailable ? "This provider can't enforce read-only." : o.description}
+                {unavailable ? t("automations.permissions.cantReadOnly") : o.description}
               </span>
             </button>
           );
@@ -55,7 +57,7 @@ export function PermissionsField({
       {value === "full" && (
         <p className="flex items-start gap-1.5 text-2xs text-status-waiting">
           <AlertTriangle className="mt-px size-3.5 shrink-0" />
-          Full never asks before acting, even unattended. Use it only for work you trust.
+          {t("automations.permissions.fullWarning")}
         </p>
       )}
     </div>

@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { useClient } from "@/lib/api";
 import { factoryKeys } from "@/lib/factory";
 import { ago } from "@/lib/format";
+import { useTranslation } from "@/lib/i18n";
 import { useSessionLookups } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 import { CheckPill } from "./factory-columns";
@@ -30,6 +31,7 @@ import { RetryButton } from "./retry-button";
 
 /** A link to the builder's or reviewer's session, or a dash when there is none. */
 export function SessionLink({ id, label }: { id: string | null; label: string }) {
+  const { t } = useTranslation();
   if (!id)
     return <span className="text-muted-foreground">{label === "session" ? "—" : label}</span>;
   return (
@@ -38,16 +40,16 @@ export function SessionLink({ id, label }: { id: string | null; label: string })
       params={{ sessionId: id }}
       className="text-primary hover:underline"
     >
-      {label}
+      {label === "session" ? t("factory.parts.session") : label}
     </Link>
   );
 }
 
 /** What a session did for the item, from its work key. */
-function sessionRole(s: Session): string {
-  if (s.workKey.startsWith("factory:review:")) return "Reviewer";
-  if (s.workKey.startsWith("factory:integrate:")) return "Integrator";
-  return "Builder";
+function sessionRole(s: Session): "reviewer" | "integrator" | "builder" {
+  if (s.workKey.startsWith("factory:review:")) return "reviewer";
+  if (s.workKey.startsWith("factory:integrate:")) return "integrator";
+  return "builder";
 }
 
 /**
@@ -55,19 +57,27 @@ function sessionRole(s: Session): string {
  * replaced. The factory archives those, so they leave the sidebar; they stay reachable here.
  */
 export function EarlierSessions({ item }: { item: FactoryItem }) {
+  const { t } = useTranslation();
   const current = new Set([item.builderSessionId, item.reviewerSessionId]);
   const ids = item.sessionIds.filter((id) => !current.has(id));
   const sessions = useSessionLookups(ids);
   if (ids.length === 0) return null;
   return (
     <div className="space-y-1 text-xs" data-testid="item-earlier-sessions">
-      <p className="text-muted-foreground">Earlier sessions</p>
+      <p className="text-muted-foreground">{t("factory.parts.earlierSessions")}</p>
       <ul className="space-y-0.5">
         {ids.map((id) => {
           const s = sessions.get(id);
           return (
             <li key={id} className="flex items-baseline justify-between gap-3">
-              <SessionLink id={id} label={s ? `${sessionRole(s)} · ${s.provider}` : "Session"} />
+              <SessionLink
+                id={id}
+                label={
+                  s
+                    ? `${t(`factory.parts.role.${sessionRole(s)}`)} · ${s.provider}`
+                    : t("factory.parts.sessionTitle")
+                }
+              />
               {s && (
                 <span
                   className={cn(
@@ -76,7 +86,7 @@ export function EarlierSessions({ item }: { item: FactoryItem }) {
                   )}
                 >
                   {s.status}
-                  {s.archivedAt && " · archived"}
+                  {s.archivedAt && ` · ${t("factory.parts.archived")}`}
                 </span>
               )}
             </li>
@@ -92,7 +102,9 @@ export function EarlierSessions({ item }: { item: FactoryItem }) {
  * "No usage yet" before an agent worked on it.
  */
 export function CostValue({ cost }: { cost: FactoryItemCost | null }) {
-  if (!hasCost(cost)) return <span className="text-muted-foreground">No usage yet</span>;
+  const { t } = useTranslation();
+  if (!hasCost(cost))
+    return <span className="text-muted-foreground">{t("factory.parts.noUsage")}</span>;
   return (
     <span className="tabular-nums" title={costTitle(cost)} data-testid="item-cost">
       {costFact(cost)}
@@ -102,6 +114,7 @@ export function CostValue({ cost }: { cost: FactoryItemCost | null }) {
 
 /** One merge check with its result. */
 export function CheckRow({ check }: { check: MergeCheck }) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-start gap-3 border-b border-border px-3.5 py-2.5 last:border-0">
       <CheckPill check={check} />
@@ -111,7 +124,7 @@ export function CheckRow({ check }: { check: MergeCheck }) {
         </p>
         {check.escalate && (
           <p className="mt-0.5 flex items-center gap-1 text-status-waiting">
-            <AlertTriangle className="size-3" /> Escalated: a human has to review and merge this
+            <AlertTriangle className="size-3" /> {t("factory.parts.escalated")}
           </p>
         )}
       </div>
@@ -122,13 +135,16 @@ export function CheckRow({ check }: { check: MergeCheck }) {
 
 /** The first step's result: the bug's reproduction or the feature's analysis. */
 export function InvestigationCard({ item }: { item: FactoryItem }) {
+  const { t } = useTranslation();
   const inv = item.investigation;
   if (!inv) return null;
   const ok = inv.outcome === "reproduced" || inv.outcome === "implement";
   return (
     <section>
       <SectionLabel className="mb-2">
-        {inv.kind === "reproduction" ? "Reproduction" : "Analysis"}
+        {inv.kind === "reproduction"
+          ? t("factory.parts.reproduction")
+          : t("factory.parts.analysis")}
       </SectionLabel>
       <div className="rounded-xl border border-border bg-card p-4 text-[13px]">
         <p className={cn("font-medium", ok ? "text-status-done" : "text-status-waiting")}>
@@ -137,7 +153,7 @@ export function InvestigationCard({ item }: { item: FactoryItem }) {
         <p className="mt-1 leading-relaxed">{inv.summary}</p>
         {inv.testPath && (
           <p className="mt-2 text-2xs text-muted-foreground">
-            Test: <code className="font-mono">{inv.testPath}</code>
+            {t("factory.parts.test")} <code className="font-mono">{inv.testPath}</code>
           </p>
         )}
         {/* The spec (or the reproduction's notes) as the agent wrote it, in Markdown, in full. */}
@@ -153,6 +169,7 @@ export function InvestigationCard({ item }: { item: FactoryItem }) {
 
 /** What you can do with the item: let it in, change its pipeline, or retry it. */
 export function ItemActions({ item, projectId }: { item: FactoryItem; projectId: string }) {
+  const { t } = useTranslation();
   const client = useClient();
   const queryClient = useQueryClient();
   const done = (title: string) => () => {
@@ -162,13 +179,13 @@ export function ItemActions({ item, projectId }: { item: FactoryItem; projectId:
   const fail = (title: string) => (e: Error) => toast.error(title, { description: e.message });
   const admit = useMutation({
     mutationFn: () => client.factory.admit(projectId, { itemId: item.id }),
-    onSuccess: done("Let in: a person merges the result"),
-    onError: fail("Couldn't let it in"),
+    onSuccess: done(t("factory.parts.letIn")),
+    onError: fail(t("factory.columns.letInFailed")),
   });
   const setType = useMutation({
     mutationFn: (type: WorkType) => client.factory.setType(projectId, { itemId: item.id, type }),
-    onSuccess: done("Pipeline changed"),
-    onError: fail("Couldn't change the pipeline"),
+    onSuccess: done(t("factory.parts.pipelineChanged")),
+    onError: fail(t("factory.parts.pipelineFailed")),
   });
   const notStarted = item.stage === "candidate" || item.stage === "backlog";
   if (item.stage === "ignored") {
@@ -179,7 +196,7 @@ export function ItemActions({ item, projectId }: { item: FactoryItem; projectId:
         onClick={() => admit.mutate()}
         disabled={admit.isPending}
       >
-        <UserCheck /> Let the factory take it on
+        <UserCheck /> {t("factory.parts.takeItOn")}
       </Button>
     );
   }
@@ -210,7 +227,7 @@ export function ItemActions({ item, projectId }: { item: FactoryItem; projectId:
         </div>
         {pr && (
           <p className="text-3xs text-muted-foreground">
-            Retry sends #{pr.number} back to a fresh review; Rebuild starts over and replaces it.
+            {t("factory.parts.retryOrRebuild", { number: pr.number })}
           </p>
         )}
       </div>
@@ -219,17 +236,17 @@ export function ItemActions({ item, projectId }: { item: FactoryItem; projectId:
   if (!notStarted) return null;
   return (
     <div className="space-y-1">
-      <p className="text-3xs text-muted-foreground">Pipeline</p>
-      <fieldset className="flex gap-1 border-0 p-0" aria-label="Pipeline">
-        {WorkType.options.map((t) => (
+      <p className="text-3xs text-muted-foreground">{t("factory.parts.pipeline")}</p>
+      <fieldset className="flex gap-1 border-0 p-0" aria-label={t("factory.parts.pipeline")}>
+        {WorkType.options.map((type) => (
           <Button
-            key={t}
+            key={type}
             size="xs"
-            variant={item.type === t ? "default" : "outline"}
-            disabled={setType.isPending || item.type === t}
-            onClick={() => setType.mutate(t)}
+            variant={item.type === type ? "default" : "outline"}
+            disabled={setType.isPending || item.type === type}
+            onClick={() => setType.mutate(type)}
           >
-            {TYPE_LABEL[t]}
+            {TYPE_LABEL[type]}
           </Button>
         ))}
       </fieldset>

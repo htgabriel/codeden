@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useClient } from "@/lib/api";
+import { Trans, useTranslation } from "@/lib/i18n";
 import { formatCombo, shortcut } from "@/lib/shortcuts";
 import { browserSttAvailability, resetBrowserSttAvailability, tts } from "@/lib/voice/engines";
 import { speak, speechQueue } from "@/lib/voice/speak";
@@ -37,6 +38,7 @@ function useBrowserVoices() {
 }
 
 export function VoiceSettings() {
+  const { t } = useTranslation();
   const client = useClient();
   const { settings, update } = useSettings();
   const v = settings.voice;
@@ -59,12 +61,8 @@ export function VoiceSettings() {
       speechQueue.playNow({
         key: `test-${Date.now()}`,
         play: () =>
-          speak(
-            client,
-            settings,
-            "The checkout flake is fixed and verified with fifty green runs.",
-          ).catch((e: Error) => {
-            toast.error("Couldn't play the voice", { description: e.message });
+          speak(client, settings, t("prefs.voice.sample")).catch((e: Error) => {
+            toast.error(t("prefs.voice.playFailed"), { description: e.message });
           }),
       }),
   });
@@ -74,34 +72,41 @@ export function VoiceSettings() {
   return (
     <>
       <SettingsSection
-        title="Dictation"
-        description={`Speech to text in the composer. Toggle with ${formatCombo(shortcut("dictate").combo)}, or hold a push-to-talk shortcut.`}
+        title={t("prefs.voice.dictation")}
+        description={t("prefs.voice.dictationDescription", {
+          combo: formatCombo(shortcut("dictate").combo),
+        })}
       >
         <SettingRow
-          label="Engine"
+          label={t("prefs.voice.engine")}
           help={
             v.dictation.engine === "browser" ? (
               browserAvailable ? (
-                "The browser engine works in Chrome and Edge."
+                t("prefs.voice.browserWorks")
               ) : (
                 <span data-testid="browser-stt-unavailable">
-                  Speech recognition isn't available here.{" "}
-                  <button
-                    type="button"
-                    className="text-foreground underline underline-offset-2"
-                    onClick={() => update({ voice: { dictation: { engine: "local" } } })}
-                  >
-                    Use Local (Whisper)
-                  </button>
-                  , which runs on this machine, or a cloud engine.
+                  <Trans
+                    i18nKey="prefs.voice.browserUnavailable"
+                    components={{
+                      use: (
+                        <button
+                          type="button"
+                          className="text-foreground underline underline-offset-2"
+                          onClick={() => update({ voice: { dictation: { engine: "local" } } })}
+                        />
+                      ),
+                    }}
+                  />
                 </span>
               )
             ) : v.dictation.engine === "local" ? (
-              "Runs Whisper on this machine through the CodeDen server; audio never leaves it."
+              t("prefs.voice.localHelp")
             ) : has(dictationKey) ? (
-              "Transcribes each phrase through the CodeDen server as you pause, so text appears while you speak."
+              t("prefs.voice.cloudHelp")
             ) : (
-              `Add the ${v.dictation.engine === "openai" ? "OpenAI" : "ElevenLabs"} key below to use this engine.`
+              t("prefs.voice.addKey", {
+                provider: v.dictation.engine === "openai" ? "OpenAI" : "ElevenLabs",
+              })
             )
           }
         >
@@ -117,10 +122,10 @@ export function VoiceSettings() {
                 value: "browser",
                 label:
                   browserAvailable || v.dictation.engine === "browser"
-                    ? "Browser"
-                    : "Browser (unavailable)",
+                    ? t("prefs.voice.browser")
+                    : t("prefs.voice.browserUnavailableOption"),
               },
-              { value: "local", label: "Local (Whisper)" },
+              { value: "local", label: t("prefs.voice.local") },
               { value: "elevenlabs", label: "ElevenLabs" },
               { value: "openai", label: "OpenAI" },
             ]}
@@ -128,11 +133,11 @@ export function VoiceSettings() {
         </SettingRow>
         {v.dictation.engine === "local" && <LocalWhisperRows />}
         <SettingRow
-          label="Language"
+          label={t("settings.appearance.language")}
           help={
             v.dictation.engine === "browser"
-              ? "Leave on auto to follow the browser language."
-              : "Auto detects the spoken language. English-only Whisper models always use English."
+              ? t("prefs.voice.languageBrowser")
+              : t("prefs.voice.languageAuto")
           }
         >
           <Select
@@ -141,21 +146,24 @@ export function VoiceSettings() {
               update({ voice: { dictation: { language: language === "auto" ? null : language } } })
             }
           >
-            <SelectTrigger size="sm" className="w-40" aria-label="Dictation language">
+            <SelectTrigger size="sm" className="w-40" aria-label={t("prefs.voice.languageLabel")}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {LANGUAGES.map((l) => (
                 <SelectItem key={l} value={l}>
-                  {l === "auto" ? "Auto" : l}
+                  {l === "auto" ? t("settings.appearance.auto") : l}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </SettingRow>
         <SettingRow
-          label="Push-to-talk"
-          help={`Hold to dictate, release to stop. Click, then press a key with ${formatCombo("mod")} or ${formatCombo("alt")} (or an F key).`}
+          label={t("prefs.voice.pushToTalk")}
+          help={t("prefs.voice.pushToTalkHelp", {
+            mod: formatCombo("mod"),
+            alt: formatCombo("alt"),
+          })}
         >
           <ShortcutRecorder
             value={v.dictation.pushToTalkShortcut}
@@ -165,25 +173,19 @@ export function VoiceSettings() {
           />
         </SettingRow>
         {v.dictation.engine === "openai" && (
-          <SettingRow
-            label="OpenAI API key"
-            help="Shared with OpenAI Images. Stored in the OS keychain."
-          >
-            <SecretField secret="openai.apiKey" label="OpenAI key" />
+          <SettingRow label={t("prefs.images.openaiKey")} help={t("prefs.voice.openaiKeyHelp")}>
+            <SecretField secret="openai.apiKey" label={t("prefs.images.openaiKeyShort")} />
           </SettingRow>
         )}
       </SettingsSection>
 
       <SettingsSection
-        title="Read aloud"
-        description="Speaks an agent's final message when any session finishes a turn, with code and markdown stripped."
+        title={t("prefs.voice.readAloud")}
+        description={t("prefs.voice.readAloudDescription")}
       >
-        <SettingRow
-          label="Read final messages aloud"
-          help="Messages play one after another; switching this off stops the current one. Mute single sessions from their Details tab."
-        >
+        <SettingRow label={t("prefs.voice.readFinal")} help={t("prefs.voice.readFinalHelp")}>
           <Switch
-            aria-label="Read final messages aloud"
+            aria-label={t("prefs.voice.readFinal")}
             checked={v.readAloud.enabled}
             onCheckedChange={(enabled) => {
               // Switching it off also stops what's playing and drops the queue.
@@ -193,11 +195,13 @@ export function VoiceSettings() {
           />
         </SettingRow>
         <SettingRow
-          label="What to read"
+          label={t("prefs.voice.whatToRead")}
           help={
             v.readAloud.content === "summary"
-              ? "A one or two sentence TL;DR from the utility model: what was done and whether it needs you."
-              : `The whole final message, up to ${READ_ALOUD_FULL_MAX_CHARS.toLocaleString("en-US")} characters (about five minutes).`
+              ? t("prefs.voice.summaryHelp")
+              : t("prefs.voice.fullHelp", {
+                  max: READ_ALOUD_FULL_MAX_CHARS.toLocaleString(t("prefs.voice.numberLocale")),
+                })
           }
         >
           <Segmented
@@ -205,38 +209,35 @@ export function VoiceSettings() {
             onChange={(content) => update({ voice: { readAloud: { content } } })}
             options={[
               { value: "summary", label: "TL;DR" },
-              { value: "full", label: "Full message" },
+              { value: "full", label: t("prefs.voice.fullMessage") },
             ]}
           />
         </SettingRow>
-        <SettingRow
-          label="Say who's speaking"
-          help="Starts each message with who it's from, such as the project manager or a session's title."
-        >
+        <SettingRow label={t("prefs.voice.announce")} help={t("prefs.voice.announceHelp")}>
           <Switch
-            aria-label="Say who's speaking"
+            aria-label={t("prefs.voice.announce")}
             checked={v.readAloud.announceSpeaker}
             onCheckedChange={(announceSpeaker) =>
               update({ voice: { readAloud: { announceSpeaker } } })
             }
           />
         </SettingRow>
-        <SettingRow label="Engine">
+        <SettingRow label={t("prefs.voice.engine")}>
           <Segmented
             value={v.readAloud.engine}
             // Voice ids differ per engine, so switching resets the voice.
             onChange={(engine) => update({ voice: { readAloud: { engine, voice: null } } })}
             options={[
-              { value: "browser", label: "Browser (free)" },
+              { value: "browser", label: t("prefs.voice.browserFree") },
               { value: "elevenlabs", label: "ElevenLabs" },
             ]}
           />
         </SettingRow>
         <SettingRow
-          label="Voice"
+          label={t("prefs.voice.voice")}
           help={
             cloudTts && !has("elevenlabs.apiKey")
-              ? "Add your ElevenLabs key below to load its voices."
+              ? t("prefs.voice.addElevenKey")
               : voices.error
                 ? voices.error.message
                 : undefined
@@ -249,12 +250,12 @@ export function VoiceSettings() {
                 update({ voice: { readAloud: { voice: voice === "default" ? null : voice } } })
               }
             >
-              <SelectTrigger size="sm" className="w-56" aria-label="Read-aloud voice">
+              <SelectTrigger size="sm" className="w-56" aria-label={t("prefs.voice.voiceLabel")}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="default">
-                  {cloudTts ? "Default voice" : "System default"}
+                  {cloudTts ? t("prefs.voice.defaultVoice") : t("prefs.voice.systemDefault")}
                 </SelectItem>
                 {voiceOptions.slice(0, 60).map((vo) => (
                   <SelectItem key={vo.id} value={vo.id}>
@@ -271,13 +272,13 @@ export function VoiceSettings() {
               }
               onClick={() => testVoice.mutate()}
             >
-              <Volume2 /> Test
+              <Volume2 /> {t("prefs.voice.test")}
             </Button>
           </div>
         </SettingRow>
-        <SettingRow label="Only when the tab isn't focused">
+        <SettingRow label={t("prefs.voice.onlyUnfocused")}>
           <Switch
-            aria-label="Only when the tab isn't focused"
+            aria-label={t("prefs.voice.onlyUnfocused")}
             checked={v.readAloud.onlyWhenUnfocused}
             onCheckedChange={(onlyWhenUnfocused) =>
               update({ voice: { readAloud: { onlyWhenUnfocused } } })
@@ -285,11 +286,8 @@ export function VoiceSettings() {
           />
         </SettingRow>
         <QuietHoursRow />
-        <SettingRow
-          label="ElevenLabs API key"
-          help="Optional, for ElevenLabs voices and dictation. Stored in the OS keychain."
-        >
-          <SecretField secret="elevenlabs.apiKey" label="ElevenLabs key" />
+        <SettingRow label={t("prefs.voice.elevenKey")} help={t("prefs.voice.elevenKeyHelp")}>
+          <SecretField secret="elevenlabs.apiKey" label={t("prefs.voice.elevenKeyShort")} />
         </SettingRow>
       </SettingsSection>
     </>

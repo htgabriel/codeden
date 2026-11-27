@@ -43,9 +43,9 @@ export function ProjectSettings({ project }: { project: Project }) {
         label={t("project.settings.defaultAgent")}
         help={
           inherits ? (
-            <Trans i18nKey="project.settings.agentNotSet" components={{ link: toSettings }} />
+            <Trans i18nKey="project.settings.agentNotSet" components={{ l: toSettings }} />
           ) : (
-            <Trans i18nKey="project.settings.agentOverride" components={{ link: toSettings }} />
+            <Trans i18nKey="project.settings.agentOverride" components={{ l: toSettings }} />
           )
         }
       >

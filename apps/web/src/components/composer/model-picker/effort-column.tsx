@@ -1,6 +1,7 @@
 import type { ReasoningEffort } from "@codeden/contracts";
 import { Check } from "lucide-react";
 import type { KeyboardEvent } from "react";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { EffortGlyph } from "./effort-glyph";
 import { EFFORT_NAME } from "./logic";
@@ -53,27 +54,28 @@ export function EffortColumn({
   onPick: (effort: ReasoningEffort) => void;
   onBack: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div
       data-picker-effort
       className="flex min-h-0 w-44 shrink-0 flex-col border-l border-border bg-muted/30 max-sm:h-48 max-sm:w-full max-sm:border-t max-sm:border-l-0"
     >
       <div className="flex h-11 shrink-0 items-center gap-2 border-b border-border px-3 text-xs">
-        <span className="font-medium text-muted-foreground">Effort</span>
+        <span className="font-medium text-muted-foreground">
+          {t("workbench.picker.effortTitle")}
+        </span>
         <span className="ml-auto min-w-0 truncate text-2xs text-muted-foreground/80">
           {modelLabel}
         </span>
       </div>
       {levels.length === 0 ? (
         <p className="px-3 py-2.5 text-xs text-muted-foreground">
-          {missing
-            ? "This model isn't in the provider's list any more. Pick another to set its effort."
-            : "This model has no effort levels."}
+          {missing ? t("workbench.picker.effortMissing") : t("workbench.picker.noEffort")}
         </p>
       ) : (
         <div
           role="radiogroup"
-          aria-label="Reasoning effort"
+          aria-label={t("workbench.picker.reasoningEffort")}
           className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto p-1.5"
           onKeyDown={(e) => onColumnKeyDown(e, onBack)}
         >
@@ -94,7 +96,9 @@ export function EffortColumn({
                 <EffortGlyph level={i + 1} of={levels.length} />
                 <span className="min-w-0 flex-1 truncate">{EFFORT_NAME[level]}</span>
                 {level === defaultEffort && !selected && (
-                  <span className="text-2xs text-muted-foreground/80">Default</span>
+                  <span className="text-2xs text-muted-foreground/80">
+                    {t("workbench.picker.default")}
+                  </span>
                 )}
                 {selected && <Check className="size-3.5" aria-hidden />}
               </button>

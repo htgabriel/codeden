@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import type { CSSProperties, ReactNode } from "react";
 import { useRetryItem } from "@/components/factory/use-retry-item";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "@/lib/i18n";
 import { platform } from "@/lib/platform";
 import { cn } from "@/lib/utils";
 import type { AgentCardModel } from "../scene/agent-card";
@@ -83,6 +84,7 @@ export function AgentCardView({
   /** Opens its item's sheet (the PM: its chat). */
   onOpenItem: (() => void) | null;
 }) {
+  const { t } = useTranslation();
   return (
     <Card
       id={id}
@@ -110,15 +112,15 @@ export function AgentCardView({
           </p>
         )}
         <dl className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-0.5 text-muted-foreground">
-          <dt>Step</dt>
+          <dt>{t("factoryView.floorCard.step")}</dt>
           <dd className="font-medium text-foreground">{card.step}</dd>
           {card.inStep && (
             <>
-              <dt>In step</dt>
+              <dt>{t("factoryView.floorCard.inStep")}</dt>
               <dd>{card.inStep}</dd>
             </>
           )}
-          <dt>Agent</dt>
+          <dt>{t("factoryView.floorCard.agent")}</dt>
           <dd>{card.model}</dd>
         </dl>
         {card.progress && (
@@ -131,7 +133,9 @@ export function AgentCardView({
           <div className="flex flex-wrap gap-1.5 pt-0.5">
             {onOpenItem && (
               <Button size="xs" onClick={onOpenItem}>
-                {agent.role === "pm" ? "Chat" : "Open item"}
+                {agent.role === "pm"
+                  ? t("factoryView.floorCard.chat")
+                  : t("factoryView.floorCard.openItem")}
               </Button>
             )}
             {agent.sessionId && (
@@ -141,7 +145,7 @@ export function AgentCardView({
                   params={{ sessionId: agent.sessionId }}
                   data-testid="factory-view-floor-card-session"
                 >
-                  Open session
+                  {t("factoryView.floorCard.openSession")}
                 </Link>
               </Button>
             )}
@@ -153,15 +157,16 @@ export function AgentCardView({
 }
 
 function RetryAction({ projectId, item }: { projectId: string; item: FactoryWorkItem }) {
+  const { t } = useTranslation();
   const retry = useRetryItem(projectId, item.id);
   return (
     <Button
       size="xs"
       disabled={retry.isPending}
       onClick={() => retry.mutate()}
-      aria-label={`Retry ${cardNumber(item)}`}
+      aria-label={t("factoryView.need.retryLabel", { name: cardNumber(item) })}
     >
-      Retry
+      {t("factoryView.need.retry")}
     </Button>
   );
 }
@@ -184,6 +189,7 @@ export function BayCardView({
   onLeave: () => void;
   onOpen: (card: ViewCard) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <Card
       id={id}
@@ -191,7 +197,7 @@ export function BayCardView({
       onEnter={onEnter}
       onLeave={onLeave}
       testId="factory-view-floor-bay-card"
-      label={`Repair bay: ${crate.title}`}
+      label={t("factoryView.floorCard.bay", { title: crate.title })}
     >
       <header className="flex items-center border-b border-border bg-status-failed/10 px-2.5 py-1.5 font-semibold text-status-failed">
         <span>{crate.title}</span>
@@ -218,7 +224,7 @@ export function BayCardView({
                 {e.action === "retry" && <RetryAction projectId={projectId} item={e.card.item} />}
                 {e.action === "open_pr" && pr && (
                   <Button size="xs" variant="outline" onClick={() => platform.openExternal(pr.url)}>
-                    Open PR #{pr.number}
+                    {t("factoryView.floorCard.openPr", { n: pr.number })}
                   </Button>
                 )}
               </div>

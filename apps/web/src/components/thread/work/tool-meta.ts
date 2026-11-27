@@ -11,6 +11,7 @@ import {
   SquareTerminal,
   Wrench,
 } from "lucide-react";
+import { i18n } from "@/lib/i18n";
 import type { WorkEntry } from "@/lib/transcript/timeline";
 import { outputSummary } from "./tool-summary";
 
@@ -39,39 +40,59 @@ export function entryIcon(e: WorkEntry): LucideIcon {
 
 /** Short verb phrase, a monospace target and a one-line note for a work entry's row. */
 export function entryLabel(e: WorkEntry): { verb: string; target?: string; meta?: string } {
+  const t = i18n.t;
   if (e.kind === "reasoning")
-    return { verb: e.status === "in_progress" ? "Thinking" : "Thought", target: e.summary };
+    return {
+      verb:
+        e.status === "in_progress" ? t("workbench.tools.thinking") : t("workbench.tools.thought"),
+      target: e.summary,
+    };
   const running = e.status === "in_progress";
   switch (e.toolKind) {
     case "command":
-      return { verb: running ? "Running" : "Ran", target: e.command };
+      return {
+        verb: running ? t("workbench.tools.running") : t("workbench.tools.ran"),
+        target: e.command,
+      };
     case "file_edit": {
       const add = e.changes.reduce((n, c) => n + (c.additions ?? 0), 0);
       const del = e.changes.reduce((n, c) => n + (c.deletions ?? 0), 0);
-      const target = e.changes.length === 1 ? e.changes[0]?.path : `${e.changes.length} files`;
-      return { verb: running ? "Editing" : "Edited", target, meta: `+${add} −${del}` };
+      const target =
+        e.changes.length === 1
+          ? e.changes[0]?.path
+          : t("workbench.tools.files", { count: e.changes.length });
+      return {
+        verb: running ? t("workbench.tools.editing") : t("workbench.tools.edited"),
+        target,
+        meta: `+${add} −${del}`,
+      };
     }
     case "file_read": {
       const range = e.startLine ? `:${e.startLine}${e.endLine ? `-${e.endLine}` : ""}` : "";
-      return { verb: "Read", target: `${e.path}${range}` };
+      return { verb: t("workbench.tools.read"), target: `${e.path}${range}` };
     }
     case "search":
       return {
-        verb: "Searched",
+        verb: t("workbench.tools.searched"),
         target: e.query,
         meta:
           e.matchCount !== undefined
-            ? `${e.matchCount} matches${e.path ? ` in ${e.path}` : ""}`
+            ? e.path
+              ? t("workbench.tools.matchesIn", { count: e.matchCount, path: e.path })
+              : t("workbench.tools.matches", { count: e.matchCount })
             : e.path,
       };
     case "web":
-      return { verb: "Fetched", target: e.title ?? e.url ?? e.query };
+      return { verb: t("workbench.tools.fetched"), target: e.title ?? e.url ?? e.query };
     case "mcp":
       if (isImageTool(e))
-        return { verb: running ? "Generating image" : "Generated image", target: e.title };
+        return {
+          verb: running ? t("workbench.tools.generatingImage") : t("workbench.work.generatedImage"),
+          target: e.title,
+        };
       return { verb: e.title ?? `${e.server} · ${e.tool}`, meta: outputSummary(e.output?.text) };
     case "browser":
-      return { verb: e.title ?? `Browser ${e.action}`, target: e.url };
+      return { verb: e.title ?? t("workbench.tools.browser", { action: e.action }), target: e.url };
     default:
       return { verb: e.title ?? e.toolName };
   }

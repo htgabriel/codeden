@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
-  BROWSER_STT_UNAVAILABLE,
   browserSttAvailability,
+  browserSttUnavailable,
   createBrowserStt,
   resetBrowserSttAvailability,
 } from "@/lib/voice/engines";
@@ -89,7 +89,7 @@ describe("browser speech recognition availability", () => {
     const onError = vi.fn();
     stt.start({ onText: () => {}, onEnd: () => {}, onError });
     started[0]?.onerror?.({ error: "network" });
-    expect(onError).toHaveBeenCalledWith(BROWSER_STT_UNAVAILABLE);
+    expect(onError).toHaveBeenCalledWith(browserSttUnavailable());
     expect(browserSttAvailability()).toBe("failed");
     expect(stt.supported).toBe(false);
     resetBrowserSttAvailability();

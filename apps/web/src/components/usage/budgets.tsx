@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useTranslation } from "@/lib/i18n";
 import { useSnapshot } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 import { useBudgets, useSaveUsageSettings, useUsageSettings } from "./api";
@@ -20,11 +21,6 @@ const STATE_BAR: Record<BudgetStatus["state"], string> = {
   ok: "bg-status-done",
   warning: "bg-status-waiting",
   exceeded: "bg-status-failed",
-};
-const STATE_TEXT: Record<BudgetStatus["state"], string> = {
-  ok: "On track",
-  warning: "Near the limit",
-  exceeded: "Over the limit",
 };
 
 function BudgetRow({
@@ -36,13 +32,18 @@ function BudgetRow({
   scope: string;
   onDelete: () => void;
 }) {
+  const { t } = useTranslation();
   const { budget, spentUsd, percent, state } = status;
   return (
     <div className="space-y-1.5 py-3" data-testid="budget-row">
       <div className="flex items-center gap-2 text-xs">
         <span className="font-medium">{scope}</span>
         <span className="text-muted-foreground">
-          · {budget.period === "daily" ? "per day" : "per month"} · alert at {budget.warnAtPercent}%
+          ·{" "}
+          {budget.period === "daily"
+            ? t("shell.budgets.perDayLower")
+            : t("shell.budgets.perMonthLower")}{" "}
+          · {t("shell.budgets.alertAt", { percent: budget.warnAtPercent })}
         </span>
         <span
           className={cn(
@@ -50,12 +51,12 @@ function BudgetRow({
             state === "ok" ? "text-muted-foreground" : "font-medium text-foreground",
           )}
         >
-          {STATE_TEXT[state]}
+          {t(`shell.budgets.state.${state}`)}
         </span>
         <Button
           variant="ghost"
           size="icon-xs"
-          aria-label={`Delete ${scope} budget`}
+          aria-label={t("shell.budgets.delete", { scope })}
           onClick={onDelete}
         >
           <Trash2 />
@@ -68,7 +69,11 @@ function BudgetRow({
         />
       </div>
       <div className="text-2xs text-muted-foreground tabular-nums">
-        {money(spentUsd)} of {money(budget.limitUsd)} ({Math.round(percent)}%)
+        {t("shell.budgets.spent", {
+          spent: money(spentUsd),
+          limit: money(budget.limitUsd),
+          percent: Math.round(percent),
+        })}
       </div>
     </div>
   );
@@ -76,6 +81,7 @@ function BudgetRow({
 
 /** Daily and monthly spend alerts, globally or per project, raised as inbox items. */
 export function BudgetsPanel() {
+  const { t } = useTranslation();
   const budgets = useBudgets();
   const settings = useUsageSettings();
   const save = useSaveUsageSettings();
@@ -90,10 +96,10 @@ export function BudgetsPanel() {
   const current: UsageSettings | undefined = settings.data?.settings;
   const projectName = (id: string | null) =>
     !id
-      ? "All projects"
+      ? t("shell.budgets.allProjects")
       : !projects
         ? "…"
-        : (projects.find((p) => p.id === id)?.name ?? "Deleted project");
+        : (projects.find((p) => p.id === id)?.name ?? t("shell.budgets.deletedProject"));
 
   const persist = (next: UsageSettings, message: string) =>
     save.mutate(next, {
@@ -104,7 +110,7 @@ export function BudgetsPanel() {
   const add = () => {
     if (!current) return;
     if (!(limit > 0)) {
-      toast.error("Enter a limit above $0");
+      toast.error(t("shell.budgets.limitAboveZero"));
       return;
     }
     const budget: UsageBudget = {
@@ -115,7 +121,7 @@ export function BudgetsPanel() {
       warnAtPercent,
       enabled: true,
     };
-    persist({ ...current, budgets: [...current.budgets, budget] }, "Budget added");
+    persist({ ...current, budgets: [...current.budgets, budget] }, t("shell.budgets.added"));
     setAdding(false);
   };
 
@@ -124,7 +130,7 @@ export function BudgetsPanel() {
     <div className="rounded-xl border border-border bg-card px-4 py-3">
       <div className="flex items-center gap-2">
         <BellRing className="size-4 text-muted-foreground" />
-        <h3 className="text-sm font-medium">Budgets and alerts</h3>
+        <h3 className="text-sm font-medium">{t("shell.budgets.title")}</h3>
         {!adding && (
           <Button
             variant="outline"
@@ -133,16 +139,13 @@ export function BudgetsPanel() {
             onClick={() => setAdding(true)}
             disabled={!current}
           >
-            <Plus /> Add budget
+            <Plus /> {t("shell.budgets.add")}
           </Button>
         )}
       </div>
-      <p className="mt-1 text-2xs text-muted-foreground">
-        Crossing the alert level or the limit puts an item in your inbox and sends a notification.
-        Factory limits enforce the same figures.
-      </p>
+      <p className="mt-1 text-2xs text-muted-foreground">{t("shell.budgets.description")}</p>
       {budgets.data && list.length === 0 && !adding && (
-        <p className="py-4 text-xs text-muted-foreground">No budgets yet.</p>
+        <p className="py-4 text-xs text-muted-foreground">{t("shell.budgets.none")}</p>
       )}
       <div className="divide-y divide-border">
         {list.map((s) => (
@@ -154,7 +157,7 @@ export function BudgetsPanel() {
               current &&
               persist(
                 { ...current, budgets: current.budgets.filter((b) => b.id !== s.budget.id) },
-                "Budget removed",
+                t("shell.budgets.removed"),
               )
             }
           />
@@ -163,11 +166,11 @@ export function BudgetsPanel() {
       {adding && (
         <div className="mt-3 grid grid-cols-2 gap-2 border-t border-border pt-3 text-xs md:grid-cols-[1.4fr_1fr_1fr_1fr_auto]">
           <Select value={projectId} onValueChange={setProjectId}>
-            <SelectTrigger size="sm" aria-label="Scope" className="w-full">
+            <SelectTrigger size="sm" aria-label={t("shell.budgets.scope")} className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All projects</SelectItem>
+              <SelectItem value="all">{t("shell.budgets.allProjects")}</SelectItem>
               {projects?.map((p) => (
                 <SelectItem key={p.id} value={p.id}>
                   {p.name}
@@ -176,38 +179,38 @@ export function BudgetsPanel() {
             </SelectContent>
           </Select>
           <Select value={period} onValueChange={(v) => setPeriod(v as UsageBudget["period"])}>
-            <SelectTrigger size="sm" aria-label="Period" className="w-full">
+            <SelectTrigger size="sm" aria-label={t("shell.budgets.period")} className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="daily">Per day</SelectItem>
-              <SelectItem value="monthly">Per month</SelectItem>
+              <SelectItem value="daily">{t("shell.budgets.perDay")}</SelectItem>
+              <SelectItem value="monthly">{t("shell.budgets.perMonth")}</SelectItem>
             </SelectContent>
           </Select>
           <NumberField
-            aria-label="Limit in USD"
+            aria-label={t("shell.budgets.limitLabel")}
             decimal
             min={0}
             className="h-7"
             value={limit}
             onChange={setLimit}
-            placeholder="Limit $"
+            placeholder={t("shell.budgets.limitPlaceholder")}
           />
           <NumberField
-            aria-label="Alert at percent"
+            aria-label={t("shell.budgets.alertLabel")}
             min={1}
             max={100}
             className="h-7"
             value={warnAtPercent}
             onChange={setWarn}
-            placeholder="Alert %"
+            placeholder={t("shell.budgets.alertPlaceholder")}
           />
           <div className="col-span-2 flex justify-end gap-1 md:col-span-1">
             <Button size="sm" variant="ghost" onClick={() => setAdding(false)}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button size="sm" onClick={add} disabled={save.isPending}>
-              Save
+              {t("shell.budgets.save")}
             </Button>
           </div>
         </div>

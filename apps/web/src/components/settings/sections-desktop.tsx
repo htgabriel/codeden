@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Switch } from "@/components/ui/switch";
+import { useTranslation } from "@/lib/i18n";
 import { platform } from "@/lib/platform";
 import { SettingRow, SettingsSection, useSettings } from "./settings-ui";
 
@@ -8,6 +9,7 @@ import { SettingRow, SettingsSection, useSettings } from "./settings-ui";
  * platform has it (`capabilities.osIntegration`); the desktop app applies changes live.
  */
 export function DesktopSettings() {
+  const { t } = useTranslation();
   const { settings, update } = useSettings();
   const { data: loginSupported = false } = useQuery({
     queryKey: ["platform", "launch-at-login"],
@@ -16,14 +18,13 @@ export function DesktopSettings() {
   });
   const desktop = settings.desktop;
   return (
-    <SettingsSection title="App" description="How CodeDen behaves as an app on this computer.">
+    <SettingsSection
+      title={t("settings.sections.desktop")}
+      description={t("prefs.desktop.description")}
+    >
       <SettingRow
-        label="Open at login"
-        help={
-          loginSupported
-            ? "Start CodeDen in the tray when you log in, so agents and automations are ready."
-            : "Not available for this kind of install."
-        }
+        label={t("prefs.desktop.openAtLogin")}
+        help={loginSupported ? t("prefs.desktop.openAtLoginHelp") : t("prefs.desktop.notAvailable")}
       >
         <Switch
           data-testid="launch-at-login"
@@ -32,19 +33,13 @@ export function DesktopSettings() {
           onCheckedChange={(launchAtLogin) => update({ desktop: { launchAtLogin } })}
         />
       </SettingRow>
-      <SettingRow
-        label="Keep running in the tray"
-        help="Closing the window leaves CodeDen in the tray (menu bar on macOS). Quit from its menu."
-      >
+      <SettingRow label={t("prefs.desktop.tray")} help={t("prefs.desktop.trayHelp")}>
         <Switch
           checked={desktop.closeToTray}
           onCheckedChange={(closeToTray) => update({ desktop: { closeToTray } })}
         />
       </SettingRow>
-      <SettingRow
-        label="Keep the computer awake"
-        help="Prevent sleep while an agent is running. The display can still turn off."
-      >
+      <SettingRow label={t("prefs.desktop.keepAwake")} help={t("prefs.desktop.keepAwakeHelp")}>
         <Switch
           checked={desktop.keepAwake}
           onCheckedChange={(keepAwake) => update({ desktop: { keepAwake } })}
@@ -52,8 +47,8 @@ export function DesktopSettings() {
       </SettingRow>
       {platform.capabilities.nativeBrowser && (
         <SettingRow
-          label="Native browser"
-          help="Show session browsers as real browser views in the panel: native scrolling, text selection and DevTools. Off uses the streamed view. Applies to browsers opened from now on."
+          label={t("prefs.desktop.nativeBrowser")}
+          help={t("prefs.desktop.nativeBrowserHelp")}
         >
           <Switch
             data-testid="native-browser"

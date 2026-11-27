@@ -15,6 +15,7 @@ import {
   lowerFirst,
   type ModelChoice,
   providerAvailability,
+  reasonText,
 } from "@/components/composer/model-picker/logic";
 import { ModelPicker } from "@/components/composer/model-picker/model-picker";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useClient } from "@/lib/api";
+import { i18n, Trans, useTranslation } from "@/lib/i18n";
 import { useRecheckSetup, useSession, useSetupStatus, useSnapshotData } from "@/lib/queries";
 import { useReviewBlocked } from "@/lib/session-actions";
 import { useUiStore } from "@/stores/ui";
@@ -58,10 +60,13 @@ export function initialReviewChoice(
 export function reviewTargetProblem(target: ProviderInfo | undefined, availability?: Availability) {
   if (!target) return null;
   if (availability && !availability.ready) {
-    return `${target.displayName} can't start sessions: ${lowerFirst(availability.reason ?? "Not ready")}.`;
+    return i18n.t("workbench.setup.cantStart", {
+      name: target.displayName,
+      reason: lowerFirst(reasonText(availability.reason)),
+    });
   }
   if (!target.capabilities.readOnly) {
-    return `${target.displayName} can't run read-only sessions, so it can't review.`;
+    return i18n.t("workbench.review.noReadOnly", { name: target.displayName });
   }
   return null;
 }
@@ -77,12 +82,12 @@ function useReviewSession(session: Session) {
   const providers = useSnapshotData((s) => s.runner.providers, []);
   return useMutation({
     mutationFn: (req: ReviewSessionRequest) => client.reviewSession(session.id, req),
-    onMutate: () => ({ toastId: toast.loading("Starting the review…") }),
+    onMutate: () => ({ toastId: toast.loading(i18n.t("workbench.review.starting")) }),
     onSuccess: ({ sessionId }, req, context) => {
       const name = providers.find((p) => p.id === req.provider)?.displayName ?? req.provider;
-      toast.success(`${name} is reviewing this session's changes`, {
+      toast.success(i18n.t("workbench.review.started", { name }), {
         id: context?.toastId,
-        description: "It works read-only on a copy of the code. This session is unchanged.",
+        description: i18n.t("workbench.review.startedHint"),
       });
       void navigate({ to: "/sessions/$sessionId", params: { sessionId } });
     },
@@ -126,6 +131,7 @@ function ReviewForm({
   asked: string | null;
   onDone: () => void;
 }) {
+  const { t } = useTranslation();
   const providers = useSnapshotData((s) => s.runner.providers, []);
   const checks = useSetupStatus({ staleTime: 60_000 }).data?.checks;
   // Until the user picks, the default follows the setup checks as they arrive.
@@ -157,18 +163,13 @@ function ReviewForm({
     <DialogContent className="sm:max-w-lg" data-testid="review-dialog">
       <DialogHeader>
         <DialogTitle className="flex items-center gap-2">
-          <ScanSearch className="size-4 text-muted-foreground" /> Review with another agent
+          <ScanSearch className="size-4 text-muted-foreground" /> {t("workbench.review.title")}
         </DialogTitle>
-        <DialogDescription>
-          A new session reviews this session's changes and reports a verdict with its findings. It
-          gets a copy of the code (a new branch with the uncommitted changes) and a brief of the
-          task, and it's read-only: it can run checks but can't edit, commit or push. This session
-          stays as it is.
-        </DialogDescription>
+        <DialogDescription>{t("workbench.review.description")}</DialogDescription>
       </DialogHeader>
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
-          <Label>Review with</Label>
+          <Label>{t("workbench.review.with")}</Label>
           <div className="w-fit rounded-lg border border-border px-1 py-0.5">
             <ModelPicker
               providers={providers}
@@ -179,22 +180,22 @@ function ReviewForm({
             />
           </div>
           {sameProvider && !problem && (
-            <p className="text-xs text-muted-foreground">
-              Same provider as this session. Another provider gives a more independent opinion.
-            </p>
+            <p className="text-xs text-muted-foreground">{t("workbench.review.sameProvider")}</p>
           )}
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="review-focus">
-            What should it focus on?{" "}
-            <span className="font-normal text-muted-foreground">Optional</span>
+            {t("workbench.review.focus")}{" "}
+            <span className="font-normal text-muted-foreground">
+              {t("workbench.setup.optional")}
+            </span>
           </Label>
           <Textarea
             id="review-focus"
             value={focus}
             maxLength={REVIEW_FOCUS_MAX}
             rows={3}
-            placeholder="Correctness, tests, security and the project's conventions"
+            placeholder={t("workbench.review.focusPlaceholder")}
             disabled={review.isPending}
             onChange={(e) => setFocus(e.target.value)}
             onKeyDown={(e) => {
@@ -214,15 +215,13 @@ function ReviewForm({
           <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
             <span>
               {availability.command ? (
-                <>
-                  Run{" "}
-                  <code className="rounded bg-muted px-1 py-0.5 font-mono">
-                    {availability.command}
-                  </code>{" "}
-                  in a terminal, then check again.
-                </>
+                <Trans
+                  i18nKey="workbench.setup.runCommand"
+                  values={{ command: availability.command }}
+                  components={{ code: <code className="rounded bg-muted px-1 py-0.5 font-mono" /> }}
+                />
               ) : (
-                "Set it up, then check again."
+                t("workbench.setup.setItUp")
               )}
             </span>
             <Button
@@ -231,18 +230,18 @@ function ReviewForm({
               disabled={recheck.isPending}
               onClick={() => recheck.mutate()}
             >
-              {recheck.isPending ? "Checking…" : "Check again"}
+              {recheck.isPending ? t("workbench.setup.checking") : t("workbench.setup.checkAgain")}
             </Button>
           </div>
         )}
       </div>
       <DialogFooter>
         <Button variant="ghost" onClick={onDone}>
-          Cancel
+          {t("common.cancel")}
         </Button>
         <Button onClick={submit} disabled={problem !== null || review.isPending}>
           {review.isPending && <Loader2 className="animate-spin" aria-hidden />}
-          Start review on {name}
+          {t("workbench.review.submit", { name })}
         </Button>
       </DialogFooter>
     </DialogContent>

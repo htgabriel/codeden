@@ -3,6 +3,7 @@ import { ChevronDown, Sparkles } from "lucide-react";
 import type { ComponentProps } from "react";
 import { ProviderMark } from "@/components/common/bits";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { EffortGlyph } from "./effort-glyph";
 import { DEFAULT_MODEL_ID, EFFORT_NAME, modelName, type ResolvedModel, triggerText } from "./logic";
@@ -33,28 +34,32 @@ export function PickerTrigger({
   placeholder: string;
   ready: boolean;
 }) {
+  const { t } = useTranslation();
   // Without the provider's list (runner offline) the stored id is all there is to show.
   const unlisted =
-    modelId === null || modelId === DEFAULT_MODEL_ID ? `${providerId} · Default` : modelId;
+    modelId === null || modelId === DEFAULT_MODEL_ID
+      ? t("workbench.picker.providerDefault", { provider: providerId ?? "" })
+      : modelId;
   const text = providerId ? (provider ? triggerText(provider, resolved) : unlisted) : placeholder;
   const name = providerId
     ? provider
       ? [provider.displayName, modelName(resolved)].filter(Boolean).join(" ")
       : unlisted
     : placeholder;
-  const label = [
-    `Provider and model: ${name}`,
-    effort ? `${EFFORT_NAME[effort]} effort` : null,
-    ready ? null : "provider not ready",
-  ]
+  const extra = [
+    effort ? t("workbench.picker.effortLabel", { effort: EFFORT_NAME[effort] }) : null,
+    ready ? null : t("workbench.picker.providerNotReady"),
+  ];
+  const label = [t("workbench.picker.providerAndModel", { name }), ...extra]
     .filter(Boolean)
     .join(", ");
+  const title = [name, ...extra].filter(Boolean).join(", ");
   return (
     <Button
       variant="ghost"
       size="sm"
       aria-label={label}
-      title={label.replace("Provider and model: ", "")}
+      title={title}
       // Shrinks in a narrow composer: the model name truncates before anything overflows.
       className={cn(TRIGGER_CLASS, "min-w-0 shrink", className)}
       {...props}

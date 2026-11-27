@@ -16,24 +16,52 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useClient } from "@/lib/api";
 import { duration } from "@/lib/format";
+import { i18n, useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
-const look: Record<CheckStatus, { icon: typeof CircleCheck; tone: string; label: string }> = {
-  pending: { icon: CircleDashed, tone: "text-muted-foreground/60", label: "Waiting" },
-  running: { icon: Loader2, tone: "text-status-running animate-spin", label: "Running" },
-  passed: { icon: CircleCheck, tone: "text-status-done", label: "Passed" },
-  failed: { icon: CircleX, tone: "text-status-failed", label: "Failed" },
-  timed_out: { icon: AlarmClockOff, tone: "text-status-failed", label: "Timed out" },
-  cancelled: { icon: CircleSlash, tone: "text-muted-foreground", label: "Not run" },
+const look: Record<CheckStatus, { icon: typeof CircleCheck; tone: string; label: () => string }> = {
+  pending: {
+    icon: CircleDashed,
+    tone: "text-muted-foreground/60",
+    label: () => i18n.t("workbench.checkRun.waiting"),
+  },
+  running: {
+    icon: Loader2,
+    tone: "text-status-running animate-spin",
+    label: () => i18n.t("workbench.checkRun.running"),
+  },
+  passed: {
+    icon: CircleCheck,
+    tone: "text-status-done",
+    label: () => i18n.t("workbench.checkRun.passed"),
+  },
+  failed: {
+    icon: CircleX,
+    tone: "text-status-failed",
+    label: () => i18n.t("workbench.checkRun.failed"),
+  },
+  timed_out: {
+    icon: AlarmClockOff,
+    tone: "text-status-failed",
+    label: () => i18n.t("workbench.checkRun.timedOut"),
+  },
+  cancelled: {
+    icon: CircleSlash,
+    tone: "text-muted-foreground",
+    label: () => i18n.t("workbench.checkRun.notRun"),
+  },
 };
 
 /** One check: its status, command and duration; its output opens below it. */
 function CheckRow({ check }: { check: CheckResult }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const l = look[check.status];
   const output = check.output?.trim();
   const detail =
-    check.status === "failed" && check.exitCode !== null ? `exit ${check.exitCode}` : null;
+    check.status === "failed" && check.exitCode !== null
+      ? t("workbench.checkRun.exit", { code: check.exitCode })
+      : null;
   return (
     <li>
       <button
@@ -44,7 +72,7 @@ function CheckRow({ check }: { check: CheckResult }) {
         )}
         onClick={() => output && setOpen(!open)}
         aria-expanded={output ? open : undefined}
-        aria-label={`${check.command}: ${l.label}`}
+        aria-label={`${check.command}: ${l.label()}`}
       >
         <l.icon className={cn("size-3.5 shrink-0", l.tone)} />
         <code
@@ -90,10 +118,11 @@ export function CheckRunCard({
   data: CheckRunData;
   sessionId: string;
 }) {
+  const { t } = useTranslation();
   const client = useClient();
   const stop = useMutation({
     mutationFn: () => client.interrupt(sessionId),
-    onError: (e) => toast.error("Couldn't stop the checks", { description: e.message }),
+    onError: (e) => toast.error(t("workbench.checkRun.stopFailed"), { description: e.message }),
   });
   const running = item.status === "in_progress";
   const failed = data.outcome !== undefined && data.outcome !== "passed";
@@ -110,7 +139,7 @@ export function CheckRunCard({
         <span className="min-w-0 flex-1 truncate">{item.message}</span>
         {data.round > 0 && (
           <span className="shrink-0 tabular-nums">
-            Round {data.round} of {data.maxRounds}
+            {t("workbench.checkRun.round", { round: data.round, max: data.maxRounds })}
           </span>
         )}
         {running && (
@@ -121,7 +150,7 @@ export function CheckRunCard({
             disabled={stop.isPending}
             onClick={() => stop.mutate()}
           >
-            <Square className="size-2.5 fill-current" /> Stop
+            <Square className="size-2.5 fill-current" /> {t("orchestrator.composer.stop")}
           </Button>
         )}
       </div>

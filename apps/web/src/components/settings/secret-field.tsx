@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useClient } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n";
 
 export const secretsKey = ["secrets"] as const;
 
@@ -28,6 +29,7 @@ export function SecretField({
   label: string;
   onChange?: () => void;
 }) {
+  const { t } = useTranslation();
   const client = useClient();
   const queryClient = useQueryClient();
   const status = useSecrets();
@@ -42,20 +44,18 @@ export function SecretField({
     onSuccess: () => {
       setValue("");
       done();
-      toast.success(`${label} saved`, {
+      toast.success(t("prefs.secret.saved", { label }), {
         description:
-          status.data?.backend === "memory"
-            ? "No OS keychain is available, so it lasts until the server restarts."
-            : "Stored in the OS keychain.",
+          status.data?.backend === "memory" ? t("prefs.secret.memory") : t("prefs.secret.keychain"),
       });
     },
-    onError: (e) => toast.error(`${label} not saved`, { description: e.message }),
+    onError: (e) => toast.error(t("prefs.secret.notSaved", { label }), { description: e.message }),
   });
   const remove = useMutation({
     mutationFn: () => client.secrets.remove(secret),
     onSuccess: () => {
       done();
-      toast.success(`${label} removed`);
+      toast.success(t("prefs.secret.removed", { label }));
     },
   });
   return (
@@ -66,7 +66,7 @@ export function SecretField({
         aria-label={label}
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        placeholder={isSet ? "•••••••• stored in keychain" : "Paste key"}
+        placeholder={isSet ? t("prefs.secret.stored") : t("prefs.secret.paste")}
         className="h-8 font-mono text-xs"
       />
       <Button
@@ -75,13 +75,13 @@ export function SecretField({
         disabled={!value.trim() || save.isPending}
         onClick={() => save.mutate()}
       >
-        <KeyRound /> Save
+        <KeyRound /> {t("prefs.secret.save")}
       </Button>
       {isSet && (
         <Button
           size="icon-sm"
           variant="ghost"
-          aria-label={`Remove ${label}`}
+          aria-label={t("prefs.secret.remove", { label })}
           onClick={() => remove.mutate()}
         >
           <Trash2 />

@@ -19,6 +19,7 @@ import { Switch } from "@/components/ui/switch";
 import { useClient } from "@/lib/api";
 import { automationKeys, toastRunResult, useAutomationTemplates } from "@/lib/automations";
 import { localTimezone } from "@/lib/cron";
+import { i18n, useTranslation } from "@/lib/i18n";
 import { useProject, useSnapshotData } from "@/lib/queries";
 import { PageHeader } from "./page-header";
 
@@ -37,6 +38,7 @@ export function NewAutomationPage({
   /** Prefill from this session: its opening message, agent and permissions. */
   sessionId?: string;
 }) {
+  const { t } = useTranslation();
   const client = useClient();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -66,7 +68,9 @@ export function NewAutomationPage({
     if (sessionId) {
       if (source.data) setDraft(draftFromSession(source.data.session, source.data.items));
       else if (source.error) {
-        toast.error("Couldn't read that session", { description: source.error.message });
+        toast.error(i18n.t("automations.newPage.readSessionFailed"), {
+          description: source.error.message,
+        });
         setDraft(blankDraft(defaultAutonomy));
       }
       return;
@@ -95,12 +99,15 @@ export function NewAutomationPage({
     onSuccess: ({ item, run }) => {
       void queryClient.invalidateQueries({ queryKey: automationKeys.all });
       toast.success(
-        `${item.automation.name} saved${item.automation.enabled ? " and on" : ", off"}`,
+        item.automation.enabled
+          ? t("automations.newPage.savedOn", { name: item.automation.name })
+          : t("automations.newPage.saved", { name: item.automation.name }),
       );
-      if (run instanceof Error) toast.error("Couldn't run it", { description: run.message });
+      if (run instanceof Error)
+        toast.error(t("automations.newPage.runFailed"), { description: run.message });
       else if (run?.status === "conflict") {
-        toast.warning("Not run: matching work is already running", {
-          description: "Use Run now on the automation to wait, join or run anyway.",
+        toast.warning(t("automations.newPage.notRun"), {
+          description: t("automations.newPage.notRunHint"),
         });
       } else if (run) toastRunResult(run);
       void navigate({
@@ -109,12 +116,12 @@ export function NewAutomationPage({
         replace: true,
       });
     },
-    onError: (e) => toast.error("Couldn't save", { description: e.message }),
+    onError: (e) => toast.error(t("automations.newPage.saveFailed"), { description: e.message }),
   });
 
   if (!project) return null;
   const tz = project.timezone ?? localTimezone();
-  const problems = draft ? draftProblems(draft, tz) : ["Loading"];
+  const problems = draft ? draftProblems(draft, tz) : [t("automations.newPage.loading")];
   const submit = (run: boolean) => draft && create.mutate({ draft, run });
 
   return (
@@ -132,17 +139,23 @@ export function NewAutomationPage({
             </Link>
             <span className="text-muted-foreground">/</span>
             {template
-              ? `New from ${template.name}`
+              ? t("automations.newPage.newFrom", { name: template.name })
               : fromSession
-                ? `New from ${fromSession.title ?? fromSession.purpose}`
-                : "New automation"}
+                ? t("automations.newPage.newFrom", {
+                    name: fromSession.title ?? fromSession.purpose,
+                  })
+                : t("automations.newPage.newAutomation")}
           </span>
         }
         actions={
           <>
             <span className="mr-2 flex items-center gap-2 text-xs text-muted-foreground">
-              <Switch checked={enabled} onCheckedChange={setEnabled} aria-label="Start enabled" />
-              {enabled ? "Starts on" : "Starts off"}
+              <Switch
+                checked={enabled}
+                onCheckedChange={setEnabled}
+                aria-label={t("automations.newPage.startEnabled")}
+              />
+              {enabled ? t("automations.newPage.startsOn") : t("automations.newPage.startsOff")}
             </span>
             <Button
               size="sm"
@@ -150,7 +163,7 @@ export function NewAutomationPage({
               disabled={problems.length > 0 || create.isPending}
               onClick={() => submit(true)}
             >
-              <Play /> Save and run now
+              <Play /> {t("automations.newPage.saveAndRun")}
             </Button>
             <Button
               size="sm"
@@ -158,7 +171,8 @@ export function NewAutomationPage({
               title={problems.join(" ")}
               onClick={() => submit(false)}
             >
-              <Save /> {create.isPending ? "Saving…" : "Save"}
+              <Save />{" "}
+              {create.isPending ? t("automations.newPage.saving") : t("automations.newPage.save")}
             </Button>
           </>
         }
@@ -177,7 +191,7 @@ export function NewAutomationPage({
               />
               {problems.length > 0 && (
                 <p className="text-2xs text-muted-foreground" data-testid="draft-problems">
-                  To save: {problems.join(" ")}
+                  {t("automations.newPage.toSave", { problems: problems.join(" ") })}
                 </p>
               )}
             </>

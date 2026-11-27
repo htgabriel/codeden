@@ -2,15 +2,16 @@ import { type BrowserDialog, type BrowserTab, DIALOG_TIMEOUT_MS } from "@codeden
 import { type FormEvent, type KeyboardEvent, useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { i18n, useTranslation } from "@/lib/i18n";
 
 const minutes = Math.round(DIALOG_TIMEOUT_MS / 60_000);
 
 /** `localhost:5173`, the way browsers name who is asking. */
 function origin(url: string | undefined): string {
   try {
-    return url ? new URL(url).host || url : "This page";
+    return url ? new URL(url).host || url : i18n.t("workbench.browser.dialog.thisPage");
   } catch {
-    return url ?? "This page";
+    return url ?? i18n.t("workbench.browser.dialog.thisPage");
   }
 }
 
@@ -73,6 +74,7 @@ export function PageDialog({
   /** False when the answer could not be sent (the card stays answerable). */
   onAnswer(accept: boolean, promptText?: string): boolean;
 }) {
+  const { t } = useTranslation();
   const ids = useId();
   const box = useRef<HTMLDivElement>(null);
   const field = useRef<HTMLInputElement>(null);
@@ -118,23 +120,25 @@ export function PageDialog({
         className="w-full max-w-sm rounded-xl border border-border bg-popover p-4 text-popover-foreground shadow-lg"
       >
         <h2 id={`${ids}-title`} className="text-sm font-medium">
-          {leave ? "Leave this page?" : `${origin(tab?.url)} says`}
+          {leave
+            ? t("workbench.browser.dialog.leaveTitle")
+            : t("workbench.browser.dialog.says", { origin: origin(tab?.url) })}
         </h2>
         {!active && tab && (
           <p className="mt-0.5 truncate text-2xs text-muted-foreground">
-            In tab “{tab.title || tab.url}”
+            {t("workbench.browser.dialog.inTab", { name: tab.title || tab.url })}
           </p>
         )}
         <p
           id={`${ids}-message`}
           className="mt-2 max-h-48 overflow-y-auto text-sm break-words whitespace-pre-wrap"
         >
-          {leave ? dialog.message || "Changes you made may not be saved." : dialog.message}
+          {leave ? dialog.message || t("workbench.browser.dialog.unsaved") : dialog.message}
         </p>
         {dialog.type === "prompt" && (
           <Input
             ref={field}
-            aria-label="Your answer"
+            aria-label={t("workbench.browser.dialog.answer")}
             value={text}
             onChange={(e) => setText(e.target.value)}
             className="mt-3"
@@ -143,16 +147,15 @@ export function PageDialog({
         <div className="mt-4 flex justify-end gap-2">
           {dialog.type !== "alert" && (
             <Button type="button" variant="outline" disabled={sent} onClick={() => answer(false)}>
-              {leave ? "Stay" : "Cancel"}
+              {leave ? t("workbench.browser.dialog.stay") : t("common.cancel")}
             </Button>
           )}
           <Button type="submit" disabled={sent} ref={ok}>
-            {leave ? "Leave" : "OK"}
+            {leave ? t("workbench.browser.dialog.leave") : t("workbench.browser.dialog.ok")}
           </Button>
         </div>
         <p className="mt-3 text-2xs text-muted-foreground">
-          The page waits for an answer from you or the agent. Unanswered, it is dismissed after{" "}
-          {minutes} minutes.
+          {t("workbench.browser.dialog.waits", { minutes })}
         </p>
       </form>
     </div>

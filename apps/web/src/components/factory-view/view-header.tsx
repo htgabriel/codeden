@@ -14,6 +14,7 @@ import { WipChip } from "@/components/factory/wip-chip";
 import { Button } from "@/components/ui/button";
 import { useClient } from "@/lib/api";
 import { factoryKeys } from "@/lib/factory";
+import { i18n, useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import type { ViewMode } from "./view-mode";
 import { ViewModeToggle } from "./view-mode-toggle";
@@ -31,18 +32,19 @@ function useFullscreen() {
     const done = document.fullscreenElement
       ? document.exitFullscreen()
       : document.documentElement.requestFullscreen();
-    void done?.catch(() => toast.error("Full screen isn't available here"));
+    void done?.catch(() => toast.error(i18n.t("factoryView.header.noFullscreen")));
   };
   return { supported, on, toggle };
 }
 
 function LoopChip({ f }: { f: FactoryStatus }) {
+  const { t } = useTranslation();
   const stopped = f.killSwitch || f.globalKillSwitch || f.loopState === "stopped";
   const loop = LOOP_LABEL[stopped ? "stopped" : f.loopState];
   const why = f.globalKillSwitch
-    ? "global kill switch"
+    ? t("factoryView.header.globalKillSwitch")
     : f.killSwitch
-      ? "kill switch"
+      ? t("factoryView.header.killSwitch")
       : f.loopState === "paused"
         ? f.pausedReason
         : null;
@@ -59,7 +61,9 @@ function LoopChip({ f }: { f: FactoryStatus }) {
       data-testid="factory-view-loop"
       title={why ?? undefined}
     >
-      <span className="shrink-0">Loop {loop.label.toLowerCase()}</span>
+      <span className="shrink-0">
+        {t("factoryView.header.loop", { state: loop.label.toLowerCase() })}
+      </span>
       {why && <span className="truncate font-normal">· {why}</span>}
     </span>
   );
@@ -113,6 +117,7 @@ export function ViewHeader({
   /** Floor mode's storey tabs, beside the mode toggle (a dark factory only). */
   storeys?: ReactNode;
 }) {
+  const { t } = useTranslation();
   const client = useClient();
   const queryClient = useQueryClient();
   const full = useFullscreen();
@@ -120,10 +125,10 @@ export function ViewHeader({
   const resume = useMutation({
     mutationFn: () => client.factory.resume(f.projectId),
     onSuccess: () => {
-      toast.success("Loop resumed");
+      toast.success(t("factoryView.header.resumed"));
       void queryClient.invalidateQueries({ queryKey: factoryKeys.all });
     },
-    onError: (e) => toast.error("Couldn't resume", { description: e.message }),
+    onError: (e) => toast.error(t("factoryView.header.resumeFailed"), { description: e.message }),
   });
   return (
     <header
@@ -147,13 +152,13 @@ export function ViewHeader({
       <div className="flex items-center gap-1.5">
         <Count
           n={needsPerson}
-          label="need you"
+          label={t("factoryView.header.needYou", { count: needsPerson })}
           tone="waiting"
           icon={<UserRound className="size-3" aria-hidden />}
         />
         <Count
           n={failed}
-          label="failed"
+          label={t("factoryView.header.failed", { count: failed })}
           tone="failed"
           icon={<AlertTriangle className="size-3" aria-hidden />}
         />
@@ -161,7 +166,7 @@ export function ViewHeader({
       <div className="ml-auto flex flex-wrap items-center gap-1">
         {f.loopState === "paused" && !stopped && !f.drain && (
           <Button size="sm" onClick={() => resume.mutate()} disabled={resume.isPending}>
-            <Play /> Resume
+            <Play /> {t("factoryView.header.resume")}
           </Button>
         )}
         <FactoryRunButtons f={f} stopped={stopped} />
@@ -180,11 +185,17 @@ export function ViewHeader({
             variant="ghost"
             onClick={full.toggle}
             // The text hides on phones; the name stays.
-            aria-label={full.on ? "Exit full screen" : "Full screen"}
+            aria-label={
+              full.on ? t("factoryView.header.exitFullscreen") : t("factoryView.header.fullscreen")
+            }
             data-testid="factory-view-fullscreen"
           >
             {full.on ? <Minimize /> : <Maximize />}
-            <span className="hidden sm:inline">{full.on ? "Exit full screen" : "Full screen"}</span>
+            <span className="hidden sm:inline">
+              {full.on
+                ? t("factoryView.header.exitFullscreen")
+                : t("factoryView.header.fullscreen")}
+            </span>
           </Button>
         )}
         <Button size="sm" variant="ghost" asChild>
@@ -195,8 +206,8 @@ export function ViewHeader({
             onClick={() => full.on && void document.exitFullscreen().catch(() => {})}
             data-testid="factory-view-exit"
           >
-            <X /> <span className="hidden sm:inline">Exit</span>
-            <span className="sr-only sm:hidden">Exit the factory view</span>
+            <X /> <span className="hidden sm:inline">{t("factoryView.header.exit")}</span>
+            <span className="sr-only sm:hidden">{t("factoryView.header.exitView")}</span>
           </Link>
         </Button>
       </div>

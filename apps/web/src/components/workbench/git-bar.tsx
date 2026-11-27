@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useClient } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n";
 import { isNotGitRepo } from "@/lib/session-workspace";
 import { useLayoutStore } from "@/stores/layout";
 import { useAskForPullRequest, usePullRequestOffer } from "./open-pr";
@@ -39,6 +40,7 @@ export function useGitStatus(sessionId: string) {
  * request ends without one) or the session's open PR (§9).
  */
 export function GitBar({ sessionId, title }: { sessionId: string; title: string }) {
+  const { t } = useTranslation();
   const client = useClient();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -56,20 +58,24 @@ export function GitBar({ sessionId, title }: { sessionId: string; title: string 
     onSuccess: (r) => {
       setOpen(false);
       setMessage("");
-      toast.success(r.commit ? `Committed ${r.commit.slice(0, 7)}` : "Nothing to commit");
+      toast.success(
+        r.commit
+          ? t("workbench.git.committed", { sha: r.commit.slice(0, 7) })
+          : t("workbench.git.nothingToCommit"),
+      );
       refresh();
     },
-    onError: (e) => toast.error("Commit failed", { description: e.message }),
+    onError: (e) => toast.error(t("workbench.git.commitFailed"), { description: e.message }),
   });
   const push = useMutation({
     mutationFn: () => client.gitPush(sessionId, {}),
     onSuccess: (r) => {
-      toast.success(`Pushed ${r.branch} to ${r.remote}`, {
+      toast.success(t("workbench.git.pushed", { branch: r.branch, remote: r.remote }), {
         action: <PushToastPrAction sessionId={sessionId} />,
       });
       refresh();
     },
-    onError: (e) => toast.error("Push failed", { description: e.message }),
+    onError: (e) => toast.error(t("workbench.git.pushFailed"), { description: e.message }),
   });
 
   const data = status.data;
@@ -79,14 +85,18 @@ export function GitBar({ sessionId, title }: { sessionId: string; title: string 
     <div className="flex h-9 shrink-0 items-center gap-2 overflow-x-auto border-b border-border px-3 text-2xs whitespace-nowrap text-muted-foreground scroll-thin pointer-coarse:h-auto pointer-coarse:min-h-10">
       <GitBranch className="size-3.5 shrink-0" />
       <span className="min-w-0 truncate font-mono" title={data.branch ?? undefined}>
-        {data.branch ?? "detached"}
+        {data.branch ?? t("workbench.git.detached")}
       </span>
       {(data.ahead > 0 || data.behind > 0) && (
         <span className="shrink-0 tabular-nums">
           ↑{data.ahead} ↓{data.behind}
         </span>
       )}
-      <span className="shrink-0">{changed === 0 ? "clean" : `${changed} uncommitted`}</span>
+      <span className="shrink-0">
+        {changed === 0
+          ? t("workbench.git.clean")
+          : t("workbench.git.uncommitted", { count: changed })}
+      </span>
       <div className="ml-auto flex shrink-0 items-center gap-1">
         <Button
           size="xs"
@@ -97,7 +107,7 @@ export function GitBar({ sessionId, title }: { sessionId: string; title: string 
             setOpen(true);
           }}
         >
-          <GitCommitHorizontal /> Commit
+          <GitCommitHorizontal /> {t("workbench.git.commit")}
         </Button>
         <Button
           size="xs"
@@ -105,13 +115,13 @@ export function GitBar({ sessionId, title }: { sessionId: string; title: string 
           disabled={push.isPending || !data.branch}
           onClick={() => push.mutate()}
         >
-          <ArrowUp /> {push.isPending ? "Pushing…" : "Push"}
+          <ArrowUp /> {push.isPending ? t("workbench.git.pushing") : t("workbench.git.push")}
         </Button>
         {offer.pr ? (
           <Button
             size="xs"
             variant="ghost"
-            title={offer.pr.title ?? `Pull request #${offer.pr.number}`}
+            title={offer.pr.title ?? t("workbench.git.prN", { number: offer.pr.number })}
             onClick={() => openTab("github")}
           >
             <GitPullRequest /> PR #{offer.pr.number}
@@ -123,10 +133,10 @@ export function GitBar({ sessionId, title }: { sessionId: string; title: string 
             <Button
               size="xs"
               variant="ghost"
-              title="Ask the agent to open a pull request for this work"
+              title={t("workbench.git.askPrHint")}
               onClick={askForPr}
             >
-              <GitPullRequest /> Open PR
+              <GitPullRequest /> {t("workbench.git.openPr")}
             </Button>
           )
         )}
@@ -134,23 +144,23 @@ export function GitBar({ sessionId, title }: { sessionId: string; title: string 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Commit changes</DialogTitle>
+            <DialogTitle>{t("workbench.git.commitTitle")}</DialogTitle>
             <DialogDescription>
-              Stages all {changed} changed file{changed === 1 ? "" : "s"} in the session's folder.
+              {t("workbench.git.stagesAll", { count: changed })}
             </DialogDescription>
           </DialogHeader>
           <Textarea
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             className="min-h-24 font-mono text-[13px]"
-            aria-label="Commit message"
+            aria-label={t("workbench.git.message")}
           />
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setOpen(false)}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button disabled={!message.trim() || commit.isPending} onClick={() => commit.mutate()}>
-              {commit.isPending ? "Committing…" : "Commit"}
+              {commit.isPending ? t("workbench.git.committing") : t("workbench.git.commit")}
             </Button>
           </div>
         </DialogContent>

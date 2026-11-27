@@ -80,9 +80,8 @@ export const project = {
     description:
       "What sessions you start in this project begin with. You can still pick something else in each new session.",
     defaultAgent: "Default agent",
-    agentNotSet: "Not set: new sessions use <link>Settings → Providers → Agent sessions</link>.",
-    agentOverride:
-      "Used instead of <link>Settings → Providers → Agent sessions</link> for this project.",
+    agentNotSet: "Not set: new sessions use <l>Settings → Providers → Agent sessions</l>.",
+    agentOverride: "Used instead of <l>Settings → Providers → Agent sessions</l> for this project.",
     settingsDefault: "Settings default",
     settingsDefaultChoice: "Settings default: Agent sessions in Settings",
     permissions: "Permissions",

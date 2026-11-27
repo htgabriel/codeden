@@ -5,6 +5,7 @@ import { Archive, Bot, ChevronRight, GripVertical, House, Plus } from "lucide-re
 import { type CSSProperties, useState } from "react";
 import { StatusDot } from "@/components/common/status-dot";
 import { statusTone } from "@/lib/format";
+import { useTranslation } from "@/lib/i18n";
 import { useSnapshotData } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 import { useLayoutStore } from "@/stores/layout";
@@ -69,6 +70,7 @@ export function ProjectGroup({
   drag: ProjectDrag;
   position: GroupPosition;
 }) {
+  const { t } = useTranslation();
   const open = useLayoutStore((s) => s.expandedProjects[project.id] ?? false);
   const toggle = useLayoutStore((s) => s.toggleProject);
   const [showAll, setShowAll] = useState(false);
@@ -107,7 +109,7 @@ export function ProjectGroup({
             type="button"
             ref={drag.setActivatorNodeRef}
             {...drag.attributes}
-            aria-label={`Reorder ${project.name}`}
+            aria-label={t("shell.projectGroup.reorder", { name: project.name })}
             className="absolute top-1/2 -left-3 flex h-5 w-3 -translate-y-1/2 cursor-grab items-center justify-center rounded-sm text-muted-foreground/70 opacity-0 outline-none transition-opacity group-hover/head:opacity-100 hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-sidebar-ring active:cursor-grabbing"
           >
             <GripVertical className="size-3" />
@@ -144,7 +146,7 @@ export function ProjectGroup({
               to="/projects/$projectId"
               params={{ projectId: project.id }}
               className="flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-sidebar-border hover:text-foreground"
-              title="Project home"
+              title={t("shell.palette.projectHome")}
             >
               <House className="size-3.5" />
             </Link>
@@ -152,11 +154,15 @@ export function ProjectGroup({
               to="/projects/$projectId/new"
               params={{ projectId: project.id }}
               className="flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-sidebar-border hover:text-foreground"
-              title="New session"
+              title={t("shell.projectGroup.newSession")}
             >
               <Plus className="size-3.5" />
             </Link>
-            <RowMenuButton menu={menu} entries={entries} label={`${project.name} actions`} />
+            <RowMenuButton
+              menu={menu}
+              entries={entries}
+              label={t("shell.projectGroup.actions", { name: project.name })}
+            />
           </div>
         </div>
       </RowMenu>
@@ -175,7 +181,7 @@ export function ProjectGroup({
             className={childRow}
           >
             <Bot className="size-3.5 shrink-0 text-primary/80" />
-            <span className="flex-1 truncate">Project manager</span>
+            <span className="flex-1 truncate">{t("shell.projectGroup.projectManager")}</span>
             <span className="rounded-full bg-primary/10 px-1.5 text-3xs font-medium text-primary">
               PM
             </span>
@@ -190,7 +196,9 @@ export function ProjectGroup({
               onClick={() => setShowAll((v) => !v)}
               className={cn(rowBase, childRow, "h-7 text-xs text-muted-foreground")}
             >
-              {showAll ? "Show less" : `Show ${agents.length - LIMIT} more`}
+              {showAll
+                ? t("shell.projectGroup.showLess")
+                : t("shell.projectGroup.showMore", { count: agents.length - LIMIT })}
             </button>
           )}
           <ProjectAutomations projectId={project.id} />
@@ -202,7 +210,9 @@ export function ProjectGroup({
               className={cn(rowBase, childRow, "h-7 text-xs text-muted-foreground/70")}
             >
               <Archive className="size-3.5 shrink-0" />
-              <span className="truncate">{archived} archived</span>
+              <span className="truncate">
+                {t("shell.projectGroup.archived", { count: archived })}
+              </span>
             </Link>
           )}
         </div>

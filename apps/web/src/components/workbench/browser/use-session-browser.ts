@@ -10,20 +10,28 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ApiRequestError, useClient } from "@/lib/api";
 import type { BrowserChannel, BrowserConnection } from "@/lib/api/feature-apis";
+import { i18n } from "@/lib/i18n";
 
 export type FrameMessage = Extract<BrowserServerMessage, { type: "frame" }>;
 export type AppliedViewport = Omit<Extract<BrowserServerMessage, { type: "viewport" }>, "type">;
 
 /** Tell the user about a dialog that closed without them: the agent or the timeout answered. */
 function noteClosed(closed: BrowserDialogClosed): void {
-  const what = closed.type === "beforeunload" ? '"Leave this page?"' : `a ${closed.type}`;
+  const t = i18n.t;
+  const what = t(`workbench.browser.dialogClosed.kinds.${closed.type}`);
   if (closed.by === "timeout") {
     const minutes = Math.round(DIALOG_TIMEOUT_MS / 60_000);
-    toast(`Dismissed ${what} nobody answered`, {
-      description: `${closed.message || "The page"} waited ${minutes} minutes.`,
+    toast(t("workbench.browser.dialogClosed.timeout", { what }), {
+      description: t("workbench.browser.dialogClosed.waited", {
+        page: closed.message || t("workbench.browser.dialogClosed.thePage"),
+        minutes,
+      }),
     });
   } else if (closed.by === "agent") {
-    toast(`The agent ${closed.accepted ? "accepted" : "dismissed"} ${what}`, {
+    const key = closed.accepted
+      ? "workbench.browser.dialogClosed.agentAccepted"
+      : "workbench.browser.dialogClosed.agentDismissed";
+    toast(t(key, { what }), {
       description: closed.message || undefined,
     });
   }
@@ -174,13 +182,13 @@ export function useSessionBrowser(sessionId: string, native = false): SessionBro
       async openBrowser(url) {
         // Over the viewer socket, so opening and watching happen together server-side.
         if (channel) return channel.open(url);
-        const res = await run("Couldn't open the browser", () =>
+        const res = await run(i18n.t("workbench.browser.openFailed"), () =>
           client.browser.open(sessionId, url, native || undefined),
         );
         if (res) setTabs(res.tabs);
       },
       async closeBrowser() {
-        await run("Couldn't close the browser", () => client.browser.close(sessionId));
+        await run(i18n.t("workbench.browser.closeFailed"), () => client.browser.close(sessionId));
         setOpen(false);
         setTabs([]);
         // A fresh viewer socket waits for the next open (by you or the agent).

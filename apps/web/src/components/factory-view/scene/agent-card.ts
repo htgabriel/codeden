@@ -1,4 +1,6 @@
 import { AREA_LABEL } from "@/components/factory/meta";
+import { i18n } from "@/lib/i18n";
+import { textMap } from "../stages";
 import type { AgentRole, AgentStatus, AgentStep, BlockedOn, SceneAgent } from "./agents";
 
 /**
@@ -8,45 +10,34 @@ import type { AgentRole, AgentStatus, AgentStep, BlockedOn, SceneAgent } from ".
  * component only lays it out. The same facts name the agent's button for screen readers.
  */
 
-export const ROLE_LABEL: Record<AgentRole, string> = {
-  builder: "Builder",
-  reviewer: "Reviewer",
-  rebaser: "Rebaser",
-  integrator: "Integrator",
-  scout: "Scout",
-  area: "Area reviewer",
-  pm: "Project manager",
-};
+export const ROLE_LABEL: Record<AgentRole, string> = textMap(
+  ["builder", "reviewer", "rebaser", "integrator", "scout", "area", "pm"],
+  (k) => i18n.t(`factoryView.agentCard.role.${k}`),
+);
 
-export const STEP_LABEL: Record<AgentStep, string> = {
-  reproducing: "Reproducing",
-  analyzing: "Analyzing",
-  implementing: "Implementing",
-  revising: "Revising",
-  reviewing: "Reviewing",
-  rebasing: "Rebasing",
-  merging: "Merging",
-  watching_ci: "Watching CI",
-};
+export const STEP_LABEL: Record<AgentStep, string> = textMap(
+  [
+    "reproducing",
+    "analyzing",
+    "implementing",
+    "revising",
+    "reviewing",
+    "rebasing",
+    "merging",
+    "watching_ci",
+  ],
+  (k) => i18n.t(`factoryView.agentCard.step.${k}`),
+);
 
-export const STATUS_LABEL: Record<AgentStatus, string> = {
-  working: "Working",
-  thinking: "Thinking",
-  approval: "Waiting for approval",
-  blocked: "Blocked",
-  done: "Done",
-  idle: "Idle",
-};
+export const STATUS_LABEL: Record<AgentStatus, string> = textMap(
+  ["working", "thinking", "approval", "blocked", "done", "idle"],
+  (k) => i18n.t(`factoryView.agentCard.status.${k}`),
+);
 
-const BLOCKED_LABEL: Record<BlockedOn, string> = {
-  ci: "waits for CI",
-  conflicts: "merge conflicts to resolve",
-  agent: "waits for a free agent",
-  turn: "waits its turn to merge",
-  person: "waits on a person",
-  failed: "its session failed",
-  cut_off: "its session was cut off",
-};
+const BLOCKED_LABEL: Record<BlockedOn, string> = textMap(
+  ["ci", "conflicts", "agent", "turn", "person", "failed", "cut_off"],
+  (k) => i18n.t(`factoryView.agentCard.blocked.${k}`),
+);
 
 export interface AgentCardModel {
   role: string;
@@ -67,18 +58,24 @@ export interface AgentCardModel {
 /** A step's length in a few characters: "under a minute", "12 min", "2 h 5 min", "3 days". */
 export function stepTime(ms: number): string {
   const min = Math.floor(ms / 60_000);
-  if (min < 1) return "under a minute";
-  if (min < 60) return `${min} min`;
+  const t = i18n.t;
+  if (min < 1) return t("factoryView.agentCard.underAMinute");
+  if (min < 60) return t("factoryView.agentCard.min", { min });
   const h = Math.floor(min / 60);
-  if (h < 24) return min % 60 ? `${h} h ${min % 60} min` : `${h} h`;
+  if (h < 24)
+    return min % 60
+      ? t("factoryView.agentCard.hMin", { h, min: min % 60 })
+      : t("factoryView.agentCard.h", { h });
   const d = Math.floor(h / 24);
-  return d === 1 ? "1 day" : `${d} days`;
+  return t("factoryView.agentCard.days", { count: d });
 }
 
 function stepOf(a: SceneAgent): string {
   if (!a.step) return a.activity ?? "—";
   const queued = a.step === "merging" ? a.card?.pr?.queuePosition : null;
-  return queued ? `${STEP_LABEL[a.step]} (number ${queued} in line)` : STEP_LABEL[a.step];
+  return queued
+    ? i18n.t("factoryView.agentCard.inLine", { step: STEP_LABEL[a.step], n: queued })
+    : STEP_LABEL[a.step];
 }
 
 export function agentCard(a: SceneAgent, now: number): AgentCardModel {
@@ -98,7 +95,9 @@ export function agentCard(a: SceneAgent, now: number): AgentCardModel {
     refs,
     title: w?.title ?? null,
     step: stepOf(a),
-    model: [a.provider, a.model].filter(Boolean).join(" · ") || "No session yet",
+    model:
+      [a.provider, a.model].filter(Boolean).join(" · ") ||
+      i18n.t("factoryView.agentCard.noSession"),
     progress: a.progress,
     inStep: Number.isNaN(since) ? null : stepTime(Math.max(0, now - since)),
     status:

@@ -29,55 +29,57 @@ import {
 } from "@/components/ui/select";
 import { useClient } from "@/lib/api";
 import { factoryKeys } from "@/lib/factory";
+import { i18n, useTranslation } from "@/lib/i18n";
 
 type Scope = { projectId: string } | "global";
 /** What the confirmation asks about. */
 type Confirm = "drain" | "now" | "release";
 
-/** The drain's optional time limit, in minutes ("none": no limit). */
-const LIMITS = [
-  { value: "none", label: "No time limit" },
-  { value: "30", label: "30 minutes" },
-  { value: "60", label: "1 hour" },
-  { value: "120", label: "2 hours" },
-  { value: "240", label: "4 hours" },
-] as const;
+/** The drain's optional time limit, in minutes ("none": no limit); labels under `factory.kill.limits`. */
+const LIMITS = ["none", "30", "60", "120", "240"] as const;
 
-const COPY: Record<
-  Confirm,
-  { title: (global: boolean) => string; body: (global: boolean) => string }
-> = {
-  drain: {
-    title: () => "Finish current work, then stop?",
-    body: () =>
-      "The factory takes on no new work: no new issues, builds or scout rounds. Work in flight carries on until it merges, fails or needs you, with the usual checks; then the factory stops by itself. Queued items stay queued.",
-  },
-  now: {
-    title: (global) => (global ? "Stop every project's factory now?" : "Stop this factory now?"),
-    body: (global) =>
-      `This stops the loop and every factory session${global ? " in every project" : " in this project"} immediately. Items being built go back to the backlog; open PRs stay open.`,
-  },
-  release: {
-    title: (global) => (global ? "Let factories run again?" : "Release the kill switch?"),
-    body: () =>
-      "The loop picks up backlog items again within your limits. A paused loop stays paused until you resume it.",
-  },
-};
+/** The confirmation's title and body (`factory.kill.confirm.<which>`), worded for one or every project. */
+function copy(which: Confirm, global: boolean): { title: string; body: string } {
+  const t = i18n.t;
+  switch (which) {
+    case "drain":
+      return {
+        title: t("factory.kill.confirm.drainTitle"),
+        body: t("factory.kill.confirm.drainBody"),
+      };
+    case "now":
+      return {
+        title: global
+          ? t("factory.kill.confirm.nowTitleGlobal")
+          : t("factory.kill.confirm.nowTitle"),
+        body: global ? t("factory.kill.confirm.nowBodyGlobal") : t("factory.kill.confirm.nowBody"),
+      };
+    default:
+      return {
+        title: global
+          ? t("factory.kill.confirm.releaseTitleGlobal")
+          : t("factory.kill.confirm.releaseTitle"),
+        body: t("factory.kill.confirm.releaseBody"),
+      };
+  }
+}
 
 function toastResult(res: KillSwitchResponse, global: boolean, mode: KillSwitchMode | "off") {
+  const t = i18n.t;
   if (res.draining) {
-    const n = res.inFlight;
-    toast.success("Finishing current work", {
-      description: `${n} item${n === 1 ? "" : "s"} in flight; the factory stops once ${n === 1 ? "it finishes" : "they finish"}.`,
+    toast.success(t("factory.kill.toast.finishing"), {
+      description: t("factory.kill.toast.inFlight", { count: res.inFlight }),
     });
   } else if (res.on && mode === "drain") {
-    toast.warning("Factory stopped", { description: "Nothing was in flight." });
-  } else if (res.on) {
-    const n = res.stoppedSessions.length;
-    toast.warning(global ? "Every factory stopped" : "Factory stopped", {
-      description: `${n} factory session${n === 1 ? "" : "s"} halted.`,
+    toast.warning(t("factory.kill.toast.stopped"), {
+      description: t("factory.kill.toast.nothingInFlight"),
     });
-  } else toast.success(global ? "Factories may run again" : "Factory resumed");
+  } else if (res.on) {
+    toast.warning(global ? t("factory.kill.toast.everyStopped") : t("factory.kill.toast.stopped"), {
+      description: t("factory.kill.toast.halted", { count: res.stoppedSessions.length }),
+    });
+  } else
+    toast.success(global ? t("factory.kill.toast.mayRunAgain") : t("factory.kill.toast.resumed"));
 }
 
 /**
@@ -105,6 +107,7 @@ export function KillSwitchButton({
   paused?: boolean;
   size?: "sm" | "xs";
 }) {
+  const { t } = useTranslation();
   const client = useClient();
   const queryClient = useQueryClient();
   const global = scope === "global";
@@ -120,15 +123,15 @@ export function KillSwitchButton({
       void queryClient.invalidateQueries({ queryKey: factoryKeys.all });
       toastResult(res, global, req.on ? (req.mode ?? "now") : "off");
     },
-    onError: (e) => toast.error("Couldn't change the kill switch", { description: e.message }),
+    onError: (e) => toast.error(t("factory.kill.toast.changeFailed"), { description: e.message }),
   });
   const resumeLoop = useMutation({
     mutationFn: () => client.factory.resume(typeof scope === "string" ? "" : scope.projectId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: factoryKeys.all });
-      toast.success("Factory resumed");
+      toast.success(t("factory.kill.toast.resumed"));
     },
-    onError: (e) => toast.error("Couldn't resume", { description: e.message }),
+    onError: (e) => toast.error(t("factory.kill.toast.resumeFailed"), { description: e.message }),
   });
   const busy = kill.isPending || resumeLoop.isPending;
   const act = (which: Confirm) => {
@@ -150,7 +153,7 @@ export function KillSwitchButton({
         disabled={kill.isPending}
         onClick={() => ask("release")}
       >
-        <Power /> {global ? "Release global kill switch" : "Release kill switch"}
+        <Power /> {global ? t("factory.kill.releaseGlobal") : t("factory.kill.release")}
       </Button>
     );
   } else if (global) {
@@ -161,7 +164,7 @@ export function KillSwitchButton({
         disabled={kill.isPending}
         onClick={() => ask("now")}
       >
-        <Power /> Stop every factory
+        <Power /> {t("factory.kill.stopEvery")}
       </Button>
     );
   } else if (drain) {
@@ -171,17 +174,13 @@ export function KillSwitchButton({
           size={size}
           disabled={busy}
           onClick={() => (paused ? resumeLoop.mutate() : kill.mutate({ on: false }))}
-          title={
-            paused
-              ? "Cancel the drain and the pause: the factory takes on new work again"
-              : "Cancel the drain: the factory takes on new work again"
-          }
+          title={paused ? t("factory.kill.cancelDrainAndPause") : t("factory.kill.cancelDrain")}
           data-testid="factory-drain-resume"
         >
-          <Play /> Resume
+          <Play /> {t("factory.kill.resume")}
         </Button>
         <Button size={size} variant="destructive" disabled={busy} onClick={() => ask("now")}>
-          <Power /> Stop now
+          <Power /> {t("factory.kill.stopNow")}
         </Button>
       </>
     );
@@ -190,15 +189,15 @@ export function KillSwitchButton({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button size={size} variant="destructive" disabled={kill.isPending}>
-            <Power /> Kill switch <ChevronDown aria-hidden />
+            <Power /> {t("factory.kill.killSwitch")} <ChevronDown aria-hidden />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-72">
           <DropdownMenuItem onSelect={() => ask("drain")} data-testid="kill-switch-drain">
             <div>
-              <div className="font-medium">Finish current work, then stop</div>
+              <div className="font-medium">{t("factory.kill.drainItem")}</div>
               <div className="text-2xs text-muted-foreground">
-                Nothing new starts; work in flight finishes first.
+                {t("factory.kill.drainItemHint")}
               </div>
             </div>
           </DropdownMenuItem>
@@ -208,10 +207,8 @@ export function KillSwitchButton({
             data-testid="kill-switch-now"
           >
             <div>
-              <div className="font-medium">Stop now</div>
-              <div className="text-2xs text-muted-foreground">
-                Every factory session stops immediately.
-              </div>
+              <div className="font-medium">{t("factory.kill.stopNow")}</div>
+              <div className="text-2xs text-muted-foreground">{t("factory.kill.stopNowHint")}</div>
             </div>
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -226,26 +223,26 @@ export function KillSwitchButton({
         {confirm && (
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>{COPY[confirm].title(global)}</AlertDialogTitle>
-              <AlertDialogDescription>{COPY[confirm].body(global)}</AlertDialogDescription>
+              <AlertDialogTitle>{copy(confirm, global).title}</AlertDialogTitle>
+              <AlertDialogDescription>{copy(confirm, global).body}</AlertDialogDescription>
             </AlertDialogHeader>
             {confirm === "drain" && (
               <div className="flex items-center justify-between gap-3 text-[13px]">
                 <span className="text-muted-foreground" id="drain-limit-hint">
-                  If work is still in flight after this long, stop it all at once
+                  {t("factory.kill.limitHint")}
                 </span>
                 <Select value={limit} onValueChange={setLimit}>
                   <SelectTrigger
                     className="h-8 w-40 text-[13px]"
-                    aria-label="Drain time limit"
+                    aria-label={t("factory.kill.limitAria")}
                     aria-describedby="drain-limit-hint"
                   >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {LIMITS.map((l) => (
-                      <SelectItem key={l.value} value={l.value}>
-                        {l.label}
+                      <SelectItem key={l} value={l}>
+                        {t(`factory.kill.limits.${l}`)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -253,16 +250,16 @@ export function KillSwitchButton({
               </div>
             )}
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
               <AlertDialogAction
                 onClick={() => act(confirm)}
                 variant={confirm === "now" ? "destructive" : "default"}
               >
                 {confirm === "release"
-                  ? "Release"
+                  ? t("factory.kill.releaseAction")
                   : confirm === "drain"
-                    ? "Finish, then stop"
-                    : "Stop everything"}
+                    ? t("factory.kill.drainAction")
+                    : t("factory.kill.stopAction")}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

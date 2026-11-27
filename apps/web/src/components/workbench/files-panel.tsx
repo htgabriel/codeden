@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useClient } from "@/lib/api";
 import type { FileNode } from "@/lib/api/types";
 import { buildFileTree } from "@/lib/file-tree";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { useResolvedTheme } from "@/stores/theme";
 
@@ -83,6 +84,7 @@ function TreeNode({
 
 /** The session folder's file tree (worktree or in place) plus a highlighted viewer (§12.3). */
 export function FilesPanel({ sessionId }: { sessionId: string }) {
+  const { t } = useTranslation();
   const client = useClient();
   const theme = useResolvedTheme();
   const [selected, setSelected] = useState<string | null>(null);
@@ -125,16 +127,16 @@ export function FilesPanel({ sessionId }: { sessionId: string }) {
       </div>
       <div className="min-h-0 flex-1 overflow-auto scroll-thin">
         {!selected ? (
-          <EmptyState icon={<Files />} title="Pick a file" className="h-full">
-            Browse the session's folder.
+          <EmptyState icon={<Files />} title={t("workbench.files.pick")} className="h-full">
+            {t("workbench.files.browse")}
           </EmptyState>
         ) : file.error ? (
-          <EmptyState icon={<Files />} title="Can't show this file" className="h-full">
+          <EmptyState icon={<Files />} title={t("workbench.files.cantShow")} className="h-full">
             {file.error.message}
           </EmptyState>
         ) : file.data?.binary ? (
-          <EmptyState icon={<Files />} title="Binary file" className="h-full">
-            {file.data.path} isn't shown as text.
+          <EmptyState icon={<Files />} title={t("workbench.files.binary")} className="h-full">
+            {t("workbench.files.binaryHint", { path: file.data.path })}
           </EmptyState>
         ) : file.data ? (
           <FileView

@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useShallow } from "zustand/react/shallow";
 import { useClient } from "@/lib/api";
+import { i18n } from "@/lib/i18n";
 import {
   canAskForPullRequest,
   latestUserMessage,
@@ -56,10 +57,10 @@ export function useAskForPullRequest(sessionId: string): () => void {
   const queryClient = useQueryClient();
   const send = useMutation({
     mutationFn: () => client.sendMessage(sessionId, { text: OPEN_PR_PROMPT }, "queue"),
-    onSuccess: () => toast.success("Asked the agent to open a pull request"),
+    onSuccess: () => toast.success(i18n.t("workbench.git.askedPr")),
     onError: (e) => {
       usePrRequestsStore.getState().forget(sessionId);
-      toast.error("Couldn't ask for a pull request", { description: e.message });
+      toast.error(i18n.t("workbench.git.askPrFailed"), { description: e.message });
     },
   });
   return () => {

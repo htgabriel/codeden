@@ -4,7 +4,7 @@ import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import {
   addCustomModel,
-  CUSTOM_DESCRIPTION,
+  customDescription,
   customEfforts,
   isCustom,
   removeCustomModel,
@@ -36,7 +36,7 @@ describe("custom model rules", () => {
     expect(merged?.models.at(-1)).toMatchObject({
       id: "opus-6-preview",
       label: "Opus 6 preview",
-      description: CUSTOM_DESCRIPTION,
+      description: customDescription(),
     });
     expect(merged?.models[0]).toEqual(claude.models[0]);
     expect(untouched).toBe(codex);

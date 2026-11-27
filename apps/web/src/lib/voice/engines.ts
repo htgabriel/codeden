@@ -1,3 +1,4 @@
+import { i18n } from "@/lib/i18n";
 /**
  * Voice engines (§11.3) sit behind small interfaces so cloud or local engines can be swapped in.
  * The browser implementations are the defaults.
@@ -112,8 +113,7 @@ function markBrowserSttFailed(): void {
   }
 }
 
-export const BROWSER_STT_UNAVAILABLE =
-  "Browser speech recognition isn't available here. Choose Local (Whisper) in Settings > Voice.";
+export const browserSttUnavailable = () => i18n.t("messages.voice.browserSttUnavailable");
 
 export function createBrowserStt(): SpeechToText {
   const Ctor = recognitionCtor();
@@ -126,7 +126,7 @@ export function createBrowserStt(): SpeechToText {
     finishesAfterStop: false,
     start({ language, onText, onEnd, onError }) {
       if (!Ctor) {
-        onError(BROWSER_STT_UNAVAILABLE);
+        onError(browserSttUnavailable());
         return;
       }
       rec = new Ctor();
@@ -148,10 +148,10 @@ export function createBrowserStt(): SpeechToText {
       rec.onerror = (e) => {
         if (SERVICE_ERRORS.has(e.error)) {
           markBrowserSttFailed();
-          onError(BROWSER_STT_UNAVAILABLE);
+          onError(browserSttUnavailable());
           return;
         }
-        onError(e.error === "not-allowed" ? "Microphone access was blocked." : e.error);
+        onError(e.error === "not-allowed" ? i18n.t("messages.voice.micBlocked") : e.error);
       };
       rec.onend = () => {
         rec = null;

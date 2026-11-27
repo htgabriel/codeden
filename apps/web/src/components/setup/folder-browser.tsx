@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useClient } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 /**
@@ -17,6 +18,7 @@ export function FolderBrowser({
   value: string | null;
   onChange: (path: string) => void;
 }) {
+  const { t } = useTranslation();
   const client = useClient();
   const [path, setPath] = useState<string | null>(null);
   const [showHidden, setShowHidden] = useState(false);
@@ -32,7 +34,7 @@ export function FolderBrowser({
   const entries = (data?.entries ?? []).filter((e) => showHidden || !e.hidden);
   const places = data
     ? [
-        { label: "Home", path: data.home },
+        { label: t("prefs.folders.home"), path: data.home },
         ...data.roots.map((r) => ({ label: r.name, path: r.path })),
       ]
     : [];
@@ -45,7 +47,7 @@ export function FolderBrowser({
           size="icon-xs"
           disabled={!data?.parent}
           onClick={() => data?.parent && setPath(data.parent)}
-          aria-label="Up one folder"
+          aria-label={t("prefs.folders.up")}
         >
           <ArrowUp />
         </Button>
@@ -75,7 +77,7 @@ export function FolderBrowser({
             onChange={(e) => setShowHidden(e.target.checked)}
             className="accent-primary"
           />{" "}
-          hidden
+          {t("prefs.folders.hidden")}
         </label>
       </div>
       <div className="flex">
@@ -106,7 +108,7 @@ export function FolderBrowser({
             <div className="p-3 text-xs text-status-failed">{(error as Error).message}</div>
           )}
           {!isLoading && !error && entries.length === 0 && (
-            <div className="p-3 text-xs text-muted-foreground">No folders here.</div>
+            <div className="p-3 text-xs text-muted-foreground">{t("prefs.folders.empty")}</div>
           )}
           {entries.map((e) => (
             <div
@@ -138,7 +140,7 @@ export function FolderBrowser({
                 type="button"
                 onClick={() => setPath(e.path)}
                 className="mr-1 flex size-6 shrink-0 items-center justify-center rounded opacity-0 group-hover:opacity-100 hover:bg-background focus-visible:opacity-100 touch:opacity-100"
-                aria-label={`Open ${e.name}`}
+                aria-label={t("prefs.folders.open", { name: e.name })}
               >
                 <ChevronRight className="size-3.5" />
               </button>
@@ -160,8 +162,8 @@ export function FolderBrowser({
         <input
           value={typed ?? value ?? ""}
           onChange={(e) => setTyped(e.target.value)}
-          placeholder="Select a folder · double-click to open · or paste a path and press Enter"
-          aria-label="Folder path"
+          placeholder={t("prefs.folders.placeholder")}
+          aria-label={t("prefs.folders.path")}
           className="w-full bg-transparent px-3 py-1.5 font-mono text-2xs text-muted-foreground outline-none placeholder:text-muted-foreground/70 focus:text-foreground"
         />
       </form>

@@ -17,6 +17,7 @@ import {
   guideLink,
   headingId,
 } from "@/lib/factory-guide";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { useFactoryGuideStore } from "@/stores/factory-guide";
 
@@ -118,6 +119,7 @@ function Contents({ sections, className }: { sections: GuideSection[]; className
  * `useFactoryGuideStore().show(section?)` from the factory panel, the Factory view and its lanes.
  */
 export function FactoryGuideSheet() {
+  const { t } = useTranslation();
   const open = useFactoryGuideStore((s) => s.open);
   const section = useFactoryGuideStore((s) => s.section);
   const hide = useFactoryGuideStore((s) => s.hide);
@@ -143,27 +145,27 @@ export function FactoryGuideSheet() {
             {guide.title}
           </SheetTitle>
           <SheetDescription className="flex flex-wrap items-center gap-x-3 gap-y-1 text-2xs">
-            <span>The software factory and the dark factory, step by step.</span>
+            <span>{t("factory.guide.subtitle")}</span>
             <a
               href={`${DOCS_URL}factory-loop.md`}
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-1 text-primary hover:underline"
             >
-              <ExternalLink className="size-3" aria-hidden /> In the docs
+              <ExternalLink className="size-3" aria-hidden /> {t("factory.guide.inDocs")}
             </a>
             <button
               type="button"
               className="inline-flex items-center gap-1 text-primary hover:underline md:hidden"
               onClick={() => scrollToAnchor(MOBILE_TOC)}
             >
-              <ListTree className="size-3" aria-hidden /> Contents
+              <ListTree className="size-3" aria-hidden /> {t("factory.guide.contents")}
             </button>
           </SheetDescription>
         </SheetHeader>
         <div className="flex min-h-0 flex-1">
           <nav
-            aria-label="Contents"
+            aria-label={t("factory.guide.contents")}
             className="hidden w-56 shrink-0 overflow-y-auto border-r border-border p-2 scroll-thin md:block"
           >
             <Contents sections={guide.sections} />
@@ -179,11 +181,11 @@ export function FactoryGuideSheet() {
             )}
             <nav
               id={MOBILE_TOC}
-              aria-label="Contents"
+              aria-label={t("factory.guide.contents")}
               className="mt-4 scroll-mt-3 rounded-lg border border-border bg-surface p-2 md:hidden"
             >
               <div className="px-2 pb-1 text-3xs tracking-wider text-muted-foreground uppercase">
-                Contents
+                {t("factory.guide.contents")}
               </div>
               <Contents sections={guide.sections} />
             </nav>
@@ -221,19 +223,20 @@ export function FactoryGuideButton({
   section?: string;
   className?: string;
 }) {
+  const { t } = useTranslation();
   const show = useFactoryGuideStore((s) => s.show);
   return (
     <Button
       size="sm"
       variant="ghost"
       onClick={() => show(section)}
-      title="How the factory loop works"
-      aria-label="How it works"
+      title={t("factory.guide.buttonTitle")}
+      aria-label={t("factory.guide.howItWorks")}
       className={className}
       data-testid="factory-guide-open"
     >
       <CircleHelp />
-      <span className="hidden sm:inline">How it works</span>
+      <span className="hidden sm:inline">{t("factory.guide.howItWorks")}</span>
     </Button>
   );
 }

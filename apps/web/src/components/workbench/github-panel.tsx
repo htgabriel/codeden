@@ -10,6 +10,7 @@ import { Markdown } from "@/components/thread/markdown";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useClient } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n";
 import { platform } from "@/lib/platform";
 import { useProject, useSession } from "@/lib/queries";
 import { useSessionActions } from "@/lib/session-actions";
@@ -28,6 +29,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 function IssueSection({ projectId, number }: { projectId: string; number: number }) {
+  const { t } = useTranslation();
   const client = useClient();
   const { data: issue, isLoading } = useQuery({
     queryKey: ["github", "issue", projectId, number],
@@ -36,7 +38,7 @@ function IssueSection({ projectId, number }: { projectId: string; number: number
   if (isLoading) return <Skeleton className="h-16" />;
   if (!issue) return null;
   return (
-    <Section title="Issue">
+    <Section title={t("workbench.githubPanel.issue")}>
       <button
         type="button"
         onClick={() => platform.openExternal(issue.url)}
@@ -69,6 +71,7 @@ function IssueSection({ projectId, number }: { projectId: string; number: number
  * on its changes before it merges. Not offered for a review session itself.
  */
 function ReviewPrButton({ session }: { session: Session }) {
+  const { t } = useTranslation();
   const actions = useSessionActions(session);
   if (!actions.canReview) return null;
   return (
@@ -79,10 +82,10 @@ function ReviewPrButton({ session }: { session: Session }) {
         disabled={actions.reviewBlocked !== null}
         onClick={() => actions.review()}
       >
-        <ScanSearch /> Review with another agent
+        <ScanSearch /> {t("workbench.review.title")}
       </Button>
       <span className="text-2xs text-muted-foreground">
-        {actions.reviewBlocked ?? "A read-only second opinion on its changes, before you merge"}
+        {actions.reviewBlocked ?? t("workbench.githubPanel.reviewHint")}
       </span>
     </div>
   );
@@ -90,6 +93,7 @@ function ReviewPrButton({ session }: { session: Session }) {
 
 /** The session's linked issue and pull request with live status (§9). */
 export function GitHubPanel({ sessionId }: { sessionId: string }) {
+  const { t } = useTranslation();
   const client = useClient();
   const session = useSession(sessionId);
   const project = useProject(session?.projectId);
@@ -126,7 +130,7 @@ export function GitHubPanel({ sessionId }: { sessionId: string }) {
     return (
       <EmptyState
         icon={<GitPullRequest />}
-        title="No issue or PR linked"
+        title={t("workbench.githubPanel.none")}
         className="h-full"
         action={
           offer.requested ? (
@@ -134,24 +138,24 @@ export function GitHubPanel({ sessionId }: { sessionId: string }) {
           ) : (
             offer.canAsk && (
               <Button size="sm" onClick={askForPr}>
-                <GitPullRequest /> Open pull request
+                <GitPullRequest /> {t("workbench.githubPanel.openPr")}
               </Button>
             )
           )
         }
       >
         {offer.requested === "queued"
-          ? "The agent was asked to open a pull request. The request is queued behind the running turn, and the PR appears here once it's open."
+          ? t("workbench.githubPanel.requestedQueued")
           : offer.requested === "sent"
-            ? "The agent was asked to open a pull request. It appears here once it's open."
-            : "Sessions started from an issue link it here. When the work is ready, ask the agent to open a pull request and it appears here."}
+            ? t("workbench.githubPanel.requestedSent")
+            : t("workbench.githubPanel.noneHint")}
       </EmptyState>
     );
   }
   return (
     <div className="h-full space-y-6 overflow-y-auto p-4 scroll-thin">
       {data.pr && (
-        <Section title="Pull request">
+        <Section title={t("workbench.githubPanel.pr")}>
           <PrDetailsView prId={githubPrId(data.pr.projectId, data.pr.number)} showSession={false} />
           {session && <ReviewPrButton session={session} />}
         </Section>

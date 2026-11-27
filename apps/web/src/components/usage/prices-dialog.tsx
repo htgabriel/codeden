@@ -21,14 +21,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useTranslation } from "@/lib/i18n";
 import { useSaveUsageSettings, useUsageSettings } from "./api";
 import { localToday, PROVIDER_NAMES } from "./format";
 
+/** The price fields; their labels are `shell.prices.field.<key>`. */
 const FIELDS = [
-  ["inputPerMTok", "Input"],
-  ["outputPerMTok", "Output"],
-  ["cacheReadPerMTok", "Cache read"],
-  ["cacheWritePerMTok", "Cache write"],
+  ["inputPerMTok"],
+  ["outputPerMTok"],
+  ["cacheReadPerMTok"],
+  ["cacheWritePerMTok"],
 ] as const;
 
 /** A price being typed: an empty price box counts as $0. */
@@ -48,6 +50,7 @@ const emptyDraft: Draft = {
 
 /** The price table behind estimated costs: bundled list prices plus your overrides. */
 export function PricesDialog() {
+  const { t } = useTranslation();
   const settings = useUsageSettings();
   const save = useSaveUsageSettings();
   const [draft, setDraft] = useState<Draft>(emptyDraft);
@@ -66,7 +69,7 @@ export function PricesDialog() {
 
   const add = () => {
     if (!draft.model.trim()) {
-      toast.error("Enter a model id");
+      toast.error(t("shell.prices.enterModel"));
       return;
     }
     const price: ModelPrice = {
@@ -81,7 +84,7 @@ export function PricesDialog() {
     const rest = overrides.filter(
       (p) => !(p.provider === price.provider && p.model === price.model),
     );
-    savePrices([...rest, price], `Price for ${price.model} saved`);
+    savePrices([...rest, price], t("shell.prices.saved", { model: price.model }));
     setDraft(emptyDraft);
   };
 
@@ -103,7 +106,9 @@ export function PricesDialog() {
       <TableCell className="py-1.5 font-mono">
         {p.model}
         {!override && overridden.has(`${p.provider}:${p.model}`) && (
-          <span className="ml-1.5 text-2xs text-muted-foreground">(overridden)</span>
+          <span className="ml-1.5 text-2xs text-muted-foreground">
+            {t("shell.prices.overridden")}
+          </span>
         )}
       </TableCell>
       {FIELDS.map(([k]) => (
@@ -117,11 +122,11 @@ export function PricesDialog() {
           <Button
             variant="ghost"
             size="icon-xs"
-            aria-label={`Remove ${p.model} override`}
+            aria-label={t("shell.prices.removeOverride", { model: p.model })}
             onClick={() =>
               savePrices(
                 overrides.filter((o) => o !== p),
-                "Override removed",
+                t("shell.prices.overrideRemoved"),
               )
             }
           >
@@ -131,7 +136,7 @@ export function PricesDialog() {
           <Button
             variant="ghost"
             size="icon-xs"
-            aria-label={`Override ${p.model}`}
+            aria-label={t("shell.prices.override", { model: p.model })}
             onClick={() => edit(p)}
           >
             <Pencil />
@@ -145,63 +150,61 @@ export function PricesDialog() {
     <Dialog>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
-          <Tag className="size-3.5" /> Prices
+          <Tag className="size-3.5" /> {t("shell.prices.button")}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Model prices</DialogTitle>
-          <DialogDescription>
-            USD per million tokens. Estimated costs use these when a provider reports no cost (Codex
-            always, Claude never). List prices are bundled with the date they were checked; your
-            overrides win.
-          </DialogDescription>
+          <DialogTitle>{t("shell.prices.title")}</DialogTitle>
+          <DialogDescription>{t("shell.prices.description")}</DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-3 gap-2 rounded-lg border border-border p-3 text-xs md:grid-cols-7">
           <Input
-            aria-label="Provider"
+            aria-label={t("shell.breakdown.dimension.provider")}
             className="h-7"
             value={draft.provider}
             onChange={(e) => setDraft({ ...draft, provider: e.target.value })}
-            placeholder="provider"
+            placeholder={t("shell.prices.providerPlaceholder")}
           />
           <Input
-            aria-label="Model id"
+            aria-label={t("shell.prices.modelId")}
             className="col-span-2 h-7 font-mono"
             value={draft.model}
             onChange={(e) => setDraft({ ...draft, model: e.target.value })}
-            placeholder="model id"
+            placeholder={t("shell.prices.modelIdPlaceholder")}
           />
-          {FIELDS.map(([k, label]) => (
+          {FIELDS.map(([k]) => (
             <NumberField
               key={k}
-              aria-label={`${label} per million tokens`}
+              aria-label={t("shell.prices.perMillion", { label: t(`shell.prices.field.${k}`) })}
               decimal
               optional
               min={0}
               className="h-7"
               value={draft[k]}
               onChange={(v) => setDraft((d) => ({ ...d, [k]: v }))}
-              placeholder={label}
+              placeholder={t(`shell.prices.field.${k}`)}
             />
           ))}
           <div className="col-span-3 flex justify-end md:col-span-7">
             <Button size="sm" onClick={add} disabled={save.isPending || !current}>
-              Save price
+              {t("shell.prices.savePrice")}
             </Button>
           </div>
         </div>
         <Table className="text-xs">
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className="h-8 text-2xs">Provider</TableHead>
-              <TableHead className="h-8 text-2xs">Model</TableHead>
-              {FIELDS.map(([k, label]) => (
+              <TableHead className="h-8 text-2xs">
+                {t("shell.breakdown.dimension.provider")}
+              </TableHead>
+              <TableHead className="h-8 text-2xs">{t("shell.breakdown.dimension.model")}</TableHead>
+              {FIELDS.map(([k]) => (
                 <TableHead key={k} className="h-8 text-right text-2xs">
-                  {label}
+                  {t(`shell.prices.field.${k}`)}
                 </TableHead>
               ))}
-              <TableHead className="h-8 text-right text-2xs">Checked</TableHead>
+              <TableHead className="h-8 text-right text-2xs">{t("shell.prices.checked")}</TableHead>
               <TableHead className="h-8 w-8" />
             </TableRow>
           </TableHeader>

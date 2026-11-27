@@ -4,6 +4,7 @@ import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { InfoHint } from "@/components/common/info-hint";
 import { FactoryGuideLink } from "@/components/factory/factory-guide";
 import { GUIDE_ANCHOR } from "@/lib/factory-guide";
+import { i18n, useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { HeldIssues } from "./held-issues";
 import { useWide } from "./hooks";
@@ -11,7 +12,7 @@ import { NeedsYouCard } from "./need-actions";
 import { ScoutCard } from "./scout-card";
 import {
   describeMoves,
-  NEEDS_YOU_LABEL,
+  needsYouLabel,
   placesOf,
   VIEW_STAGES,
   type ViewCard,
@@ -36,7 +37,10 @@ function useMoveAnnouncement(pipeline: ViewPipeline): string {
     if (lines.length === 0) return;
     setMessage(
       lines.length > 4
-        ? `${lines.slice(0, 4).join(" ")} And ${lines.length - 4} more.`
+        ? i18n.t("factoryView.board.andMore", {
+            lines: lines.slice(0, 4).join(" "),
+            n: lines.length - 4,
+          })
         : lines.join(" "),
     );
   }, [pipeline]);
@@ -55,12 +59,13 @@ function Cards({
   /** "Nothing here", with a link to the guide's section about this stage. */
   empty?: { text: string; guide: string };
 }) {
+  const { t } = useTranslation();
   if (cards.length === 0)
     return empty ? (
       <p className="px-1 py-2 text-2xs text-muted-foreground/70">
         {empty.text} ·{" "}
         <FactoryGuideLink section={empty.guide} className="text-muted-foreground">
-          how it works
+          {t("factoryView.board.howItWorks")}
         </FactoryGuideLink>
       </p>
     ) : null;
@@ -173,13 +178,14 @@ function NeedsYou({
   wide: boolean;
   projectId: string;
 }) {
+  const { t } = useTranslation();
   const headingId = useId();
   if (cards.length === 0)
     return (
       <p className="flex items-center gap-1.5 px-1 text-2xs text-muted-foreground">
-        <UserRound className="size-3" aria-hidden /> Nothing waits on you.
+        <UserRound className="size-3" aria-hidden /> {t("factoryView.board.nothingWaits")}
         <FactoryGuideLink section={GUIDE_ANCHOR.needsYou} className="text-muted-foreground">
-          What lands here?
+          {t("factoryView.board.whatLandsHere")}
         </FactoryGuideLink>
       </p>
     );
@@ -199,18 +205,18 @@ function NeedsYou({
         className="mb-1.5 flex items-center gap-1.5 px-1 text-[12px] font-medium text-status-waiting"
       >
         <UserRound className="size-3.5 shrink-0" aria-hidden />
-        <span className="whitespace-nowrap">{NEEDS_YOU_LABEL}</span>
+        <span className="whitespace-nowrap">{needsYouLabel()}</span>
         <span className="rounded-full bg-status-waiting/12 px-1.5 text-[10px] leading-4 tabular-nums">
           {cards.length}
         </span>
         <span className="hidden truncate font-normal text-muted-foreground sm:inline">
-          Work only a person can move on: merge, retry or dismiss, answer, or approve a spec
+          {t("factoryView.board.needsYouHint")}
         </span>
         <FactoryGuideLink
           section={GUIDE_ANCHOR.needsYou}
           className="ml-auto shrink-0 font-normal whitespace-nowrap"
         >
-          Why is this here?
+          {t("factoryView.board.whyHere")}
         </FactoryGuideLink>
       </h2>
       <ul
@@ -242,6 +248,7 @@ export function PipelineBoard({
   now: number;
   onOpen: (card: ViewCard) => void;
 }) {
+  const { t } = useTranslation();
   const wide = useWide();
   const announcement = useMoveAnnouncement(pipeline);
   const scout = f.mode === "dark_factory" ? f.scout : null;
@@ -297,16 +304,16 @@ export function PipelineBoard({
                   empty={
                     stage.id === "intake" && (scout || f.held.length > 0)
                       ? undefined
-                      : { text: "Nothing here", guide: GUIDE_ANCHOR[stage.id] }
+                      : { text: t("factoryView.board.nothingHere"), guide: GUIDE_ANCHOR[stage.id] }
                   }
                 />
                 {stage.id === "intake" && <HeldIssues held={f.held} />}
                 {stage.id === "intake" && ignored > 0 && (
                   <p
                     className="px-1 text-[10px] text-status-waiting"
-                    title="Issues from authors who aren't trusted. Let them in from the factory panel."
+                    title={t("factoryView.board.ignoredTitle")}
                   >
-                    {ignored} ignored (untrusted authors)
+                    {t("factoryView.board.ignored", { count: ignored })}
                   </p>
                 )}
               </div>

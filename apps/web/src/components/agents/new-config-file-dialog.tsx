@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useClient } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n";
 import {
   CONFIG_NAME,
   type NewConfigKind,
@@ -36,6 +37,7 @@ export function NewConfigFileDialog({
   onOpenChange: (open: boolean) => void;
   onCreated: (file: AgentConfigFileContent) => void;
 }) {
+  const { t } = useTranslation();
   const client = useClient();
   const [provider, setProvider] = useState<AgentConfigProvider>("claude");
   const [scope, setScope] = useState<"user" | "project">(projectId ? "project" : "user");
@@ -43,7 +45,7 @@ export function NewConfigFileDialog({
   const [description, setDescription] = useState("");
   const valid = CONFIG_NAME.test(name) && (scope === "user" || projectId !== null);
   const location = newConfigLocation(kind, provider, scope, name || "<name>", projectId);
-  const noun = kind === "skill" ? "skill" : "subagent";
+  const skill = kind === "skill";
 
   const create = useMutation({
     mutationFn: () =>
@@ -55,23 +57,26 @@ export function NewConfigFileDialog({
         { create: true },
       ),
     onSuccess: (res) => {
-      toast.success(`Created ${name}`, { description: res.file.absolutePath });
+      toast.success(t("shell.newConfig.created", { name }), { description: res.file.absolutePath });
       onCreated(res.file);
       onOpenChange(false);
       setName("");
       setDescription("");
     },
-    onError: (e) => toast.error(`Couldn't create the ${noun}`, { description: e.message }),
+    onError: (e) =>
+      toast.error(skill ? t("shell.newConfig.failedSkill") : t("shell.newConfig.failedSubagent"), {
+        description: e.message,
+      }),
   });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>New {noun}</DialogTitle>
-          <DialogDescription>
-            Written to the provider's own folder, so the CLI picks it up too.
-          </DialogDescription>
+          <DialogTitle>
+            {skill ? t("shell.configFiles.newSkill") : t("shell.configFiles.newSubagent")}
+          </DialogTitle>
+          <DialogDescription>{t("shell.newConfig.description")}</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-3">
@@ -87,13 +92,15 @@ export function NewConfigFileDialog({
               value={scope}
               onChange={setScope}
               options={[
-                { value: "user", label: "Everywhere (user)" },
-                ...(projectId ? [{ value: "project" as const, label: "This project" }] : []),
+                { value: "user", label: t("shell.newConfig.everywhere") },
+                ...(projectId
+                  ? [{ value: "project" as const, label: t("shell.newConfig.thisProject") }]
+                  : []),
               ]}
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="new-config-name">Name</Label>
+            <Label htmlFor="new-config-name">{t("shell.mcpDialog.name")}</Label>
             <Input
               id="new-config-name"
               value={name}
@@ -103,12 +110,12 @@ export function NewConfigFileDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="new-config-desc">Description</Label>
+            <Label htmlFor="new-config-desc">{t("shell.newConfig.descriptionLabel")}</Label>
             <Input
               id="new-config-desc"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="When the agent should use it"
+              placeholder={t("shell.newConfig.descriptionPlaceholder")}
             />
           </div>
           <p className="font-mono text-3xs break-all text-muted-foreground">
@@ -118,10 +125,14 @@ export function NewConfigFileDialog({
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button disabled={!valid || create.isPending} onClick={() => create.mutate()}>
-            {create.isPending ? "Creating…" : `Create ${noun}`}
+            {create.isPending
+              ? t("shell.newConfig.creating")
+              : skill
+                ? t("shell.newConfig.createSkill")
+                : t("shell.newConfig.createSubagent")}
           </Button>
         </DialogFooter>
       </DialogContent>

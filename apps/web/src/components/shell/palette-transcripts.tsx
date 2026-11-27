@@ -6,6 +6,7 @@ import { StatusDot } from "@/components/common/status-dot";
 import { SnippetText } from "@/components/search/snippet-text";
 import { CommandGroup, CommandItem } from "@/components/ui/command";
 import { ageShort } from "@/lib/format";
+import { Trans, useTranslation } from "@/lib/i18n";
 import { useProject, useSession } from "@/lib/queries";
 import {
   canSearchTranscripts,
@@ -37,6 +38,7 @@ function Badge({ children }: { children: string }) {
 }
 
 function HitRow({ hit, onSelect }: { hit: TranscriptSearchHit; onSelect: () => void }) {
+  const { t } = useTranslation();
   // An older archived session isn't in the snapshot: it is fetched by id.
   const session = useSession(hit.sessionId);
   const project = useProject(session?.projectId);
@@ -52,13 +54,13 @@ function HitRow({ hit, onSelect }: { hit: TranscriptSearchHit; onSelect: () => v
           {session ? <StatusDot status={session.status} /> : <TextSearch />}
         </span>
         <span className="min-w-0 truncate">
-          {session ? (session.title ?? session.purpose) : "Session"}
+          {session ? (session.title ?? session.purpose) : t("shell.palette.session")}
         </span>
         {project && (
           <span className="min-w-0 truncate text-xs text-muted-foreground">{project.name}</span>
         )}
         {role && <Badge>{role}</Badge>}
-        {session?.archivedAt && <Badge>Archived</Badge>}
+        {session?.archivedAt && <Badge>{t("shell.palette.archived")}</Badge>}
         <span className="flex-1" />
         <span className="shrink-0 text-3xs text-muted-foreground tabular-nums">
           {ageShort(hit.ts)}
@@ -77,6 +79,7 @@ function HitRow({ hit, onSelect }: { hit: TranscriptSearchHit; onSelect: () => v
  * characters), and a row that opens the full results with their filters and more pages.
  */
 export function PaletteTranscripts({ search, close }: { search: string; close: () => void }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { data, searching, error } = useTranscriptSearch(search, { limit: 5 });
   if (!canSearchTranscripts(search)) return null;
@@ -92,15 +95,15 @@ export function PaletteTranscripts({ search, close }: { search: string; close: (
   };
 
   const note = error
-    ? "Couldn't search transcripts"
+    ? t("shell.palette.searchFailed")
     : !data
-      ? "Searching transcripts…"
+      ? t("shell.palette.searching")
       : data.hits.length === 0 && !searching
-        ? "No matches in transcripts"
+        ? t("shell.palette.noMatches")
         : null;
 
   return (
-    <CommandGroup heading="Transcripts">
+    <CommandGroup heading={t("shell.palette.transcripts")}>
       {data?.hits.map((hit) => (
         <HitRow key={`${hit.sessionId}:${hit.itemId}`} hit={hit} onSelect={() => open(hit)} />
       ))}
@@ -117,7 +120,11 @@ export function PaletteTranscripts({ search, close }: { search: string; close: (
           <TextSearch />
         </span>
         <span className="min-w-0 truncate">
-          Search all transcripts for <span className="font-medium">“{q}”</span>
+          <Trans
+            i18nKey="shell.palette.searchAll"
+            values={{ q }}
+            components={{ q: <span className="font-medium" /> }}
+          />
         </span>
       </CommandItem>
     </CommandGroup>

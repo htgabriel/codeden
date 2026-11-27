@@ -1,6 +1,7 @@
 import type { GitHubIssueRef, GitHubPrRef } from "@codeden/contracts";
 import { CircleDot, GitMerge, GitPullRequest, GitPullRequestDraft } from "lucide-react";
 import type { ReactNode } from "react";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { providerHue, providerLogo } from "./provider-logos";
 
@@ -116,6 +117,7 @@ const prColor = {
 
 /** GitHub PR badge: `PR 57` with state colour. */
 export function PrBadge({ pr, className }: { pr: GitHubPrRef; className?: string }) {
+  const { t } = useTranslation();
   const Icon = prIcon[pr.state];
   return (
     <span
@@ -123,7 +125,7 @@ export function PrBadge({ pr, className }: { pr: GitHubPrRef; className?: string
         "inline-flex h-[18px] items-center gap-1 rounded-full border border-border px-1.5 font-mono text-3xs text-muted-foreground tabular-nums",
         className,
       )}
-      title={`${pr.title ?? "Pull request"} (${pr.state})`}
+      title={`${pr.title ?? t("shell.common.pullRequest")} (${t(`shell.common.prState.${pr.state}`)})`}
     >
       <Icon className={cn("size-2.5", prColor[pr.state])} />
       {pr.number}

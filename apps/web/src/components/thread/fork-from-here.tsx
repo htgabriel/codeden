@@ -2,6 +2,7 @@ import type { Session } from "@codeden/contracts";
 import { GitFork } from "lucide-react";
 import { useId } from "react";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n";
 import { useSession } from "@/lib/queries";
 import { useForkSession } from "@/lib/session-actions";
 import type { TimelineRow } from "@/lib/transcript/timeline";
@@ -36,6 +37,7 @@ export function ForkFromHere({ sessionId, row }: { sessionId: string; row: TurnE
  * touch nor on keyboard focus.
  */
 function ForkButton({ session, turnId }: { session: Session; turnId: string }) {
+  const { t } = useTranslation();
   const fork = useForkSession(session);
   const reasonId = useId();
   if (!fork.canFork || fork.notARepo) return null;
@@ -46,9 +48,7 @@ function ForkButton({ session, turnId }: { session: Session; turnId: string }) {
         type="button"
         aria-disabled={blocked !== null}
         aria-describedby={blocked ? reasonId : undefined}
-        title={
-          blocked ?? "A new session with the conversation and the code as they were after this turn"
-        }
+        title={blocked ?? t("workbench.fork.hint")}
         onClick={() => {
           if (blocked === null) fork.fork(turnId);
           // Already forking: its "Forking the session…" toast says so.
@@ -56,7 +56,7 @@ function ForkButton({ session, turnId }: { session: Session; turnId: string }) {
         }}
         className="absolute right-0 flex shrink-0 items-center gap-1 bg-background pl-2 whitespace-nowrap text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-foreground focus-visible:opacity-100 touch:static touch:pl-0 touch:opacity-100 aria-disabled:cursor-not-allowed aria-disabled:hover:text-muted-foreground"
       >
-        <GitFork className="size-3" /> Fork from here
+        <GitFork className="size-3" /> {t("workbench.fork.label")}
       </button>
       {blocked && (
         <span id={reasonId} className="sr-only">

@@ -3,6 +3,7 @@ import { useId } from "react";
 import { Field } from "@/components/automations/form-bits";
 import { NumberField } from "@/components/common/number-field";
 import { Switch } from "@/components/ui/switch";
+import { useTranslation } from "@/lib/i18n";
 
 type Budget = FactoryLimits["dailyBudget"];
 
@@ -31,10 +32,11 @@ function BudgetPair({
   usdPlaceholder: string;
   tokensPlaceholder: string;
 }) {
+  const { t } = useTranslation();
   const id = useId();
   return (
     <div className="grid gap-3 sm:grid-cols-2">
-      <Field label={`${label} (USD)`} htmlFor={`${id}-usd`} help={usdHelp}>
+      <Field label={t("factory.budget.usd", { label })} htmlFor={`${id}-usd`} help={usdHelp}>
         <NumberField
           id={`${id}-usd`}
           decimal
@@ -46,7 +48,7 @@ function BudgetPair({
           className="text-[13px]"
         />
       </Field>
-      <Field label={`${label} (tokens)`} htmlFor={`${id}-tok`} help={tokensHelp}>
+      <Field label={t("factory.budget.tokens", { label })} htmlFor={`${id}-tok`} help={tokensHelp}>
         <NumberField
           id={`${id}-tok`}
           optional
@@ -72,41 +74,42 @@ export function BudgetFields({
   limits: FactoryLimits;
   onChange: (l: FactoryLimits) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <>
       <BudgetPair
-        label="Daily budget"
+        label={t("factory.budget.daily")}
         budget={limits.dailyBudget}
         onChange={(dailyBudget) => onChange({ ...limits, dailyBudget })}
-        usdHelp="The loop pauses until tomorrow when today's spend reaches it."
-        tokensHelp="Optional, alongside USD."
-        usdPlaceholder="e.g. 10"
-        tokensPlaceholder="e.g. 5000000"
+        usdHelp={t("factory.budget.dailyHelp")}
+        tokensHelp={t("factory.budget.tokensHelp")}
+        usdPlaceholder={t("factory.budget.usdPlaceholder")}
+        tokensPlaceholder={t("factory.budget.tokensPlaceholder")}
       />
       <div className="flex items-start gap-2.5 text-xs">
         <Switch
           checked={limits.budgetScope === "project"}
-          aria-label="Count all project spend against the budget"
+          aria-label={t("factory.budget.scopeAria")}
           onCheckedChange={(all) =>
             onChange({ ...limits, budgetScope: all ? "project" : "factory" })
           }
           className="mt-0.5"
         />
         <span>
-          Count all spend in this project
+          {t("factory.budget.scope")}
           <span className="block text-3xs text-muted-foreground">
-            Off: only the factory's own sessions (builders, reviewers, the scout, reverts) count.
+            {t("factory.budget.scopeHelp")}
           </span>
         </span>
       </div>
       <BudgetPair
-        label="Per-item cap"
+        label={t("factory.budget.item")}
         budget={limits.itemBudget}
         onChange={(itemBudget) => onChange({ ...limits, itemBudget })}
-        usdHelp="Optional. An item that spends this much stops and waits for you; a retry gives it the same again. Empty: no cap."
-        tokensHelp="Optional, alongside USD."
-        usdPlaceholder="No cap"
-        tokensPlaceholder="No cap"
+        usdHelp={t("factory.budget.itemHelp")}
+        tokensHelp={t("factory.budget.tokensHelp")}
+        usdPlaceholder={t("factory.budget.noCap")}
+        tokensPlaceholder={t("factory.budget.noCap")}
       />
     </>
   );

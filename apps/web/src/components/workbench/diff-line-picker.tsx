@@ -3,7 +3,8 @@ import { Fragment, type KeyboardEvent, useId, useMemo, useRef, useState } from "
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { pickedRange, pickerLines } from "@/lib/diff-line-picker";
-import { type ReviewRange, rangeLabel } from "@/lib/diff-review";
+import { type ReviewRange, rangeText } from "@/lib/diff-review";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 /** Rows Page Up and Page Down move. */
@@ -39,6 +40,7 @@ export function DiffLinePicker({
   /** For the visible "Comment" label (the button keeps its accessible name without it). */
   labelClassName?: string;
 }) {
+  const { t } = useTranslation();
   const lines = useMemo(() => pickerLines(patch), [patch]);
   const [open, setOpen] = useState(false);
   const [picked, setPicked] = useState({ anchor: 0, active: 0 });
@@ -102,11 +104,11 @@ export function DiffLinePicker({
           variant="secondary"
           size="xs"
           className={cn("data-[state=open]:opacity-100", className)}
-          aria-label={`Comment on lines of ${path}`}
-          title="Pick lines to comment on (arrow keys, then Enter)"
+          aria-label={t("workbench.linePicker.commentOnLines", { path })}
+          title={t("workbench.linePicker.pickHint")}
         >
           <MessageSquarePlus />
-          <span className={labelClassName}>Comment</span>
+          <span className={labelClassName}>{t("workbench.linePicker.comment")}</span>
         </Button>
       </PopoverTrigger>
       <PopoverContent
@@ -122,13 +124,13 @@ export function DiffLinePicker({
         }}
       >
         <p id={`${id}-hint`} className="px-1 text-2xs text-muted-foreground">
-          Arrow keys pick a line, with Shift several. Enter comments, Esc closes.
+          {t("workbench.linePicker.keysHint")}
         </p>
         <div
           ref={list}
           role="listbox"
           tabIndex={0}
-          aria-label={`Lines of ${path}`}
+          aria-label={t("workbench.linePicker.lines", { path })}
           aria-describedby={`${id}-hint`}
           aria-multiselectable
           aria-activedescendant={`${id}-${active}`}
@@ -178,7 +180,9 @@ export function DiffLinePicker({
         </div>
         <div className="flex justify-end">
           <Button size="xs" disabled={!range} onClick={comment}>
-            {range ? `Comment on ${rangeLabel(range)}` : "Comment"}
+            {range
+              ? t("workbench.linePicker.commentOn", { range: rangeText(range) })
+              : t("workbench.linePicker.comment")}
           </Button>
         </div>
       </PopoverContent>

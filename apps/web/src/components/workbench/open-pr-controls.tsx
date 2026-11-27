@@ -1,5 +1,6 @@
 import { GitPullRequest } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "@/lib/i18n";
 import { prRequestedHint } from "@/lib/pull-request";
 import { useLayoutStore } from "@/stores/layout";
 import { useAskForPullRequest, usePullRequestOffer } from "./open-pr";
@@ -18,10 +19,11 @@ export function PrRequestedButton({
   size: "xs" | "sm";
   variant?: "ghost";
 }) {
+  const { t } = useTranslation();
   return (
     <span title={prRequestedHint(requested)} className="inline-flex">
       <Button size={size} variant={variant} disabled>
-        <GitPullRequest /> PR requested
+        <GitPullRequest /> {t("workbench.git.prRequested")}
       </Button>
     </span>
   );
@@ -32,13 +34,14 @@ export function PrRequestedButton({
  * progress (pressed here, in the Git bar or in the Issue / PR tab), or the session's open PR.
  */
 export function PushToastPrAction({ sessionId }: { sessionId: string }) {
+  const { t } = useTranslation();
   const offer = usePullRequestOffer(sessionId);
   const askForPr = useAskForPullRequest(sessionId);
   const openTab = useLayoutStore((s) => s.openRightTab);
   if (offer.pr) {
     return (
       <button type="button" data-button data-action onClick={() => openTab("github")}>
-        View PR #{offer.pr.number}
+        {t("workbench.git.viewPr", { number: offer.pr.number })}
       </button>
     );
   }
@@ -53,7 +56,7 @@ export function PushToastPrAction({ sessionId }: { sessionId: string }) {
           className="opacity-60"
           style={{ cursor: "default" }}
         >
-          PR requested
+          {t("workbench.git.prRequested")}
         </button>
       </span>
     );
@@ -61,7 +64,7 @@ export function PushToastPrAction({ sessionId }: { sessionId: string }) {
   if (!offer.canAsk) return null;
   return (
     <button type="button" data-button data-action onClick={askForPr}>
-      Open PR
+      {t("workbench.git.openPr")}
     </button>
   );
 }

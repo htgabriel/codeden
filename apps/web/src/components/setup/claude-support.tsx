@@ -5,6 +5,7 @@ import { useCallback } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useClient } from "@/lib/api";
+import { i18n, useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 const KEY = ["setup", "claude-sdk"] as const;
@@ -25,6 +26,7 @@ export function useClaudeSdkStatus(enabled: boolean) {
 
 /** Start (or join) the install; the status query picks up the progress. */
 export function useInstallClaudeSdk() {
+  const { t } = useTranslation();
   const client = useClient();
   const queryClient = useQueryClient();
   return useCallback(async (): Promise<ClaudeSdkStatus | null> => {
@@ -33,30 +35,32 @@ export function useInstallClaudeSdk() {
       queryClient.setQueryData<ClaudeSdkStatus>(KEY, status);
       return status;
     } catch (error) {
-      toast.error("Couldn't start the install", { description: (error as Error).message });
+      toast.error(t("prefs.claudeSdk.installFailed"), { description: (error as Error).message });
       return null;
     }
-  }, [client, queryClient]);
+  }, [client, queryClient, t]);
 }
 
 function message(status: ClaudeSdkStatus | undefined): string {
-  if (!status) return "Checking…";
+  const t = i18n.t;
+  if (!status) return t("prefs.setup.checking");
   switch (status.state) {
     case "ready":
       return status.source === "workspace"
-        ? `Agent SDK ${status.version} (development checkout)`
-        : `Agent SDK ${status.version} installed`;
+        ? t("prefs.claudeSdk.readyWorkspace", { version: status.version })
+        : t("prefs.claudeSdk.ready", { version: status.version });
     case "installing":
-      return status.progress ?? "Installing…";
+      return status.progress ?? t("prefs.claudeSdk.installing");
     case "failed":
-      return status.error ?? "The install failed";
+      return status.error ?? t("prefs.claudeSdk.failed");
     default:
-      return "Installs the Claude Agent SDK from npm (about 5 MB) when you continue";
+      return t("prefs.claudeSdk.missing");
   }
 }
 
 /** The checklist row under Claude Code. */
 export function ClaudeSupportRow() {
+  const { t } = useTranslation();
   const { data } = useClaudeSdkStatus(true);
   const install = useInstallClaudeSdk();
   const state = data?.state;
@@ -82,7 +86,7 @@ export function ClaudeSupportRow() {
         </span>
       )}
       <div className="min-w-0 flex-1">
-        <div className="text-[13.5px] font-medium">Claude Code support</div>
+        <div className="text-[13.5px] font-medium">{t("prefs.claudeSdk.title")}</div>
         {/* Wraps rather than truncates: on a phone a cut-off line hides what will happen. */}
         <div
           className={cn(
@@ -97,12 +101,12 @@ export function ClaudeSupportRow() {
       </div>
       {state === "failed" && (
         <Button size="sm" variant="outline" onClick={() => void install()}>
-          <RotateCw /> Retry
+          <RotateCw /> {t("prefs.whisper.retry")}
         </Button>
       )}
       {state === "missing" && (
         <Button size="xs" variant="ghost" onClick={() => void install()}>
-          <Download /> Install now
+          <Download /> {t("prefs.claudeSdk.installNow")}
         </Button>
       )}
     </div>

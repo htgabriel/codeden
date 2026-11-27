@@ -1,4 +1,5 @@
 import { TERMINAL_CONTROL_PREFIX, TerminalServerMessage } from "@codeden/contracts";
+import { i18n } from "@/lib/i18n";
 import type { OpenTerminalOptions, TerminalChannel, TerminalEvent } from "./types";
 
 /**
@@ -51,7 +52,8 @@ export function openTerminalSocket(baseUrl: string, opts: OpenTerminalOptions): 
     for (const l of dataListeners) l(text);
   };
   ws.onclose = (e) => {
-    if (!opened && e.code !== 1000) emit({ type: "error", message: "Terminal unavailable" });
+    if (!opened && e.code !== 1000)
+      emit({ type: "error", message: i18n.t("messages.api.terminalUnavailable") });
   };
 
   return {

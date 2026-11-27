@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 /** A unified patch from the server, one coloured line per row. */
@@ -54,7 +55,7 @@ export function PatchDialog({
   error,
   onConfirm,
   saving,
-  confirmLabel = "Save to file",
+  confirmLabel,
   note,
 }: {
   open: boolean;
@@ -68,18 +69,19 @@ export function PatchDialog({
   /** A line above the diff saying what the change means. */
   note?: ReactNode;
 }) {
+  const { t } = useTranslation();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-3xl" data-testid="patch-dialog">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription className="font-mono text-2xs break-all">
-            {diff?.absolutePath ?? "Preparing the diff…"}
+            {diff?.absolutePath ?? t("shell.patch.preparing")}
             {diff && (
               <span className="ml-2 font-sans">
                 <span className="text-status-done">+{diff.additions}</span>{" "}
                 <span className="text-status-failed">−{diff.deletions}</span>
-                {!diff.exists && " · new file"}
+                {!diff.exists && ` · ${t("shell.configEditor.newFile")}`}
               </span>
             )}
           </DialogDescription>
@@ -90,27 +92,25 @@ export function PatchDialog({
             <p className="p-4 text-xs text-status-failed">{error}</p>
           ) : !diff ? (
             <div className="flex items-center gap-2 p-4 text-xs text-muted-foreground">
-              <Loader2 className="size-3.5 animate-spin" /> Asking the server for the diff…
+              <Loader2 className="size-3.5 animate-spin" /> {t("shell.patch.asking")}
             </div>
           ) : diff.changed ? (
             <PatchView patch={diff.patch} />
           ) : (
-            <p className="p-4 text-xs text-muted-foreground">No changes to write.</p>
+            <p className="p-4 text-xs text-muted-foreground">{t("shell.patch.noChanges")}</p>
           )}
         </div>
         <DialogFooter className="items-center sm:justify-between">
           <span className="flex items-center gap-1.5 text-2xs text-muted-foreground">
             <ShieldCheck className="size-3.5 text-status-done" />
-            {diff?.exists === false
-              ? "Creates the file in place."
-              : "The current file is backed up to CodeDen's backups folder first."}
+            {diff?.exists === false ? t("shell.patch.creates") : t("shell.patch.backedUp")}
           </span>
           <div className="flex gap-2">
             <Button variant="ghost" onClick={() => onOpenChange(false)}>
-              Keep editing
+              {t("shell.patch.keepEditing")}
             </Button>
             <Button onClick={onConfirm} disabled={saving || !diff?.changed}>
-              {saving ? "Saving…" : confirmLabel}
+              {saving ? t("shell.patch.saving") : (confirmLabel ?? t("shell.patch.save"))}
             </Button>
           </div>
         </DialogFooter>

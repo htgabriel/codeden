@@ -54,15 +54,15 @@ export const session = {
   empty: {
     review: {
       title: "Review session",
-      body: "Reviews the changes of <link>{{source}}</link>, read-only, in its own worktree with that session's code. Once the worktree is ready, CodeDen sends the agent a review brief as its first message. The original session is unchanged.",
+      body: "Reviews the changes of <l>{{source}}</l>, read-only, in its own worktree with that session's code. Once the worktree is ready, CodeDen sends the agent a review brief as its first message. The original session is unchanged.",
     },
     handoff: {
       title: "Handed-off session",
-      body: "Continues <link>{{source}}</link> with its code so far, in its own worktree and branch. Once the worktree is ready, CodeDen sends the agent a brief of the work as its first message. The original session is unchanged.",
+      body: "Continues <l>{{source}}</l> with its code so far, in its own worktree and branch. Once the worktree is ready, CodeDen sends the agent a brief of the work as its first message. The original session is unchanged.",
     },
     fork: {
       title: "Forked session",
-      body: "Forked from <link>{{source}}</link>. The agent has the conversation and the code {{upTo}}, in its own worktree and branch. Send a message to continue; the original session is unchanged.",
+      body: "Forked from <l>{{source}}</l>. The agent has the conversation and the code {{upTo}}, in its own worktree and branch. Send a message to continue; the original session is unchanged.",
     },
   },
   origin: {

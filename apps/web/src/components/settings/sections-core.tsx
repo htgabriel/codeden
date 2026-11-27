@@ -67,18 +67,18 @@ export function GeneralSettings() {
         </SettingRow>
       </SettingsSection>
       <SettingsSection
-        title="Follow-up prompts"
-        description="Suggested next prompts appear as chips when a turn completes."
+        title={t("prefs.general.followupsTitle")}
+        description={t("prefs.general.followupsDescription")}
       >
-        <SettingRow label="Show follow-up chips">
+        <SettingRow label={t("prefs.general.showFollowups")}>
           <Switch
             checked={settings.followups.enabled}
             onCheckedChange={(v) => update({ followups: { enabled: v } })}
           />
         </SettingRow>
         <SettingRow
-          label="Send on click"
-          help="Off: a click fills the composer so you can edit first."
+          label={t("prefs.general.sendOnClick")}
+          help={t("prefs.general.sendOnClickHelp")}
         >
           <Switch
             checked={settings.followups.sendOnClick}
@@ -87,22 +87,16 @@ export function GeneralSettings() {
         </SettingRow>
       </SettingsSection>
       <SettingsSection
-        title="Agent sessions"
-        description="What CodeDen does by itself to keep agent sessions going."
+        title={t("prefs.general.agentSessionsTitle")}
+        description={t("prefs.general.agentSessionsDescription")}
       >
-        <SettingRow
-          label="Pass on pull request feedback"
-          help="In sessions you start, tells the agent when its pull request's checks fail, a reviewer requests changes or it has merge conflicts. Once per commit, up to three times per pull request. The project manager follows up on work it started."
-        >
+        <SettingRow label={t("prefs.general.prFeedback")} help={t("prefs.general.prFeedbackHelp")}>
           <Switch
             checked={settings.sessions.prFeedback}
             onCheckedChange={(v) => update({ sessions: { prFeedback: v } })}
           />
         </SettingRow>
-        <SettingRow
-          label="Retry after passing failures"
-          help="When a turn fails because the API was overloaded or the connection dropped, continue after 20 s, 90 s and 5 min; after a usage limit, continue once it resets. Applies to every agent session."
-        >
+        <SettingRow label={t("prefs.general.autoRetry")} help={t("prefs.general.autoRetryHelp")}>
           <Switch
             checked={settings.sessions.autoRetry}
             onCheckedChange={(v) => update({ sessions: { autoRetry: v } })}
@@ -111,10 +105,10 @@ export function GeneralSettings() {
       </SettingsSection>
       <TokenSaverSettingsSection />
       <AgentEnvironmentSettings />
-      <SettingsSection title="Background work">
+      <SettingsSection title={t("prefs.general.backgroundTitle")}>
         <SettingRow
-          label="Automations"
-          help="Master switch. Each automation is still off until you enable it."
+          label={t("prefs.general.automations")}
+          help={t("prefs.general.automationsHelp")}
         >
           <Switch
             checked={settings.automations.enabled}
@@ -122,11 +116,11 @@ export function GeneralSettings() {
           />
         </SettingRow>
         <SettingRow
-          label="Global factory kill switch"
+          label={t("prefs.general.killSwitch")}
           help={
             settings.factory.killSwitch
-              ? "On: no project's factory loop runs."
-              : "Stops every project's factory loop and all factory sessions at once."
+              ? t("prefs.general.killSwitchOn")
+              : t("prefs.general.killSwitchOff")
           }
         >
           <KillSwitchButton scope="global" on={settings.factory.killSwitch} size="xs" />
@@ -134,31 +128,31 @@ export function GeneralSettings() {
         <UpdateModeSetting />
       </SettingsSection>
       <SettingsSection
-        title="Worktrees"
-        description="Archiving a session removes its worktree unless it has uncommitted changes. Branches and checkpoints are kept, and a cleaned-up worktree is recreated when you message the session again."
+        title={t("prefs.general.worktreesTitle")}
+        description={t("prefs.general.worktreesDescription")}
       >
-        <SettingRow
-          label="Clean up inactive worktrees"
-          help="Skips sessions with an open pull request and worktrees with uncommitted changes."
-        >
+        <SettingRow label={t("prefs.general.cleanup")} help={t("prefs.general.cleanupHelp")}>
           <Switch
             checked={settings.worktrees.cleanup}
             onCheckedChange={(v) => update({ worktrees: { cleanup: v } })}
           />
         </SettingRow>
-        <SettingRow label="Inactive for" help="Days without activity before cleanup.">
+        <SettingRow
+          label={t("prefs.general.inactiveFor")}
+          help={t("prefs.general.inactiveForHelp")}
+        >
           <div className="flex items-baseline gap-2 text-xs text-muted-foreground">
             <NumberField
               min={1}
               max={365}
-              aria-label="Days before cleanup"
+              aria-label={t("prefs.general.daysBeforeCleanup")}
               disabled={!settings.worktrees.cleanup}
               value={settings.worktrees.afterDays}
               onChange={(afterDays) => update({ worktrees: { afterDays } })}
               wrapperClassName="w-20"
               className="h-8 text-xs"
             />
-            days
+            {t("prefs.general.days")}
           </div>
         </SettingRow>
       </SettingsSection>
@@ -166,13 +160,10 @@ export function GeneralSettings() {
   );
 }
 
-const roles: { role: Role; label: string; help: string }[] = [
-  { role: "orchestrator", label: "Orchestrator", help: "Your front door across projects." },
-  { role: "pm", label: "Project managers", help: "Triage, planning and follow-up per project." },
-  { role: "agent", label: "Agent sessions", help: "Default for new coding sessions." },
-];
+const roles: Role[] = ["orchestrator", "pm", "agent"];
 
 export function ProviderSettings() {
+  const { t } = useTranslation();
   const { settings, update } = useSettings();
   const providers = useSnapshotData((s) => s.runner.providers, []);
   // The same checks as the setup checklist, so the two screens never disagree.
@@ -180,8 +171,8 @@ export function ProviderSettings() {
   return (
     <>
       <SettingsSection
-        title="Installed providers"
-        description="Detected on this machine and reused with their own logins."
+        title={t("prefs.providers.installedTitle")}
+        description={t("prefs.providers.installedDescription")}
       >
         {providers.map((p) => {
           const availability = providerAvailability(p.id, checks);
@@ -191,7 +182,10 @@ export function ProviderSettings() {
               label={p.displayName}
               help={
                 availability.ready
-                  ? `${p.models.length} models · ${Object.entries(p.capabilities).filter(([, v]) => v).length} capabilities`
+                  ? t("prefs.providers.summary", {
+                      models: p.models.length,
+                      capabilities: Object.entries(p.capabilities).filter(([, v]) => v).length,
+                    })
                   : (availability.detail ?? undefined)
               }
             >
@@ -205,7 +199,7 @@ export function ProviderSettings() {
                       : "bg-status-waiting/12 text-status-waiting",
                   )}
                 >
-                  {availability.ready ? "Ready" : availability.reason}
+                  {availability.ready ? t("prefs.providers.ready") : availability.reason}
                 </span>
               </div>
             </SettingRow>
@@ -213,19 +207,23 @@ export function ProviderSettings() {
         })}
       </SettingsSection>
       <SettingsSection
-        title="Defaults per role"
-        description="Each role can run on any provider. Changing the provider of the orchestrator or of project managers starts a fresh conversation for them on their next message."
+        title={t("prefs.providers.rolesTitle")}
+        description={t("prefs.providers.rolesDescription")}
       >
-        {roles.map(({ role, label, help }) => {
+        {roles.map((role) => {
           const current = settings.providers[role];
           const auto = current.provider === "auto";
           return (
-            <SettingRow key={role} label={label} help={help}>
+            <SettingRow
+              key={role}
+              label={t(`prefs.providers.roles.${role}.label`)}
+              help={t(`prefs.providers.roles.${role}.help`)}
+            >
               <div className="rounded-lg border border-border px-1 py-0.5">
                 <ModelPicker
                   providers={providers}
                   align="end"
-                  placeholder="Auto"
+                  placeholder={t("settings.appearance.auto")}
                   value={
                     auto
                       ? null
@@ -242,7 +240,7 @@ export function ProviderSettings() {
                         close();
                       }}
                     >
-                      Auto: the first ready provider and its default model
+                      {t("prefs.providers.autoChoice")}
                     </PickerFooterChoice>
                   )}
                 />
@@ -251,8 +249,8 @@ export function ProviderSettings() {
           );
         })}
         <SettingRow
-          label="Switch provider automatically when a limit is hit"
-          help="When the orchestrator's or a project manager's provider reaches its usage limit, CodeDen moves them to another ready provider, sends your message again and says so in their chat and the inbox. They move back once the limit has reset. Off: the turn fails and waits for you."
+          label={t("prefs.providers.autoSwitch")}
+          help={t("prefs.providers.autoSwitchHelp")}
         >
           <Switch
             checked={settings.providers.autoSwitchOnLimit}
@@ -268,11 +266,12 @@ export function ProviderSettings() {
 }
 
 export function AutonomySettings() {
+  const { t } = useTranslation();
   const { settings, update } = useSettings();
   return (
     <SettingsSection
-      title="Default permissions"
-      description="From Read-only to Full, mapped onto each provider's native enforcement. Override per project, per session and per automation."
+      title={t("prefs.autonomy.title")}
+      description={t("prefs.autonomy.description")}
     >
       <div className="grid gap-2 p-3">
         {(Object.keys(AUTONOMY) as (keyof typeof AUTONOMY)[]).map((level) => {
@@ -294,7 +293,7 @@ export function AutonomySettings() {
                   {a.label}
                   {level === "auto" && (
                     <span className="ml-2 text-2xs font-normal text-muted-foreground">
-                      recommended
+                      {t("prefs.autonomy.recommended")}
                     </span>
                   )}
                 </span>
@@ -304,42 +303,31 @@ export function AutonomySettings() {
           );
         })}
       </div>
-      <SettingRow
-        label="Risky actions"
-        help="Writes outside the worktree, force pushes, deleting branches, global installs, unlisted network hosts and secrets access always go to your inbox in Auto."
-      >
-        <span className="text-2xs text-muted-foreground">Always ask</span>
+      <SettingRow label={t("prefs.autonomy.risky")} help={t("prefs.autonomy.riskyHelp")}>
+        <span className="text-2xs text-muted-foreground">{t("prefs.autonomy.alwaysAsk")}</span>
       </SettingRow>
     </SettingsSection>
   );
 }
 
 export function UtilitySettings() {
+  const { t } = useTranslation();
   const { settings, update } = useSettings();
   const providers = useSnapshotData((s) => s.runner.providers, []);
-  const jobs = [
-    ["followups", "Follow-up suggestions", "When the agent didn't suggest any itself."],
-    ["sessionTitles", "Session titles", "Short titles from the first message."],
-    ["noticeSummaries", "Notice summaries", "One-line summaries in PM wake-ups."],
-    [
-      "handoffSummaries",
-      "Handoff summaries",
-      "What a session did, in the brief of a handoff. Off: its last reply.",
-    ],
-  ] as const;
+  const jobs = ["followups", "sessionTitles", "noticeSummaries", "handoffSummaries"] as const;
   const utilityAuto = settings.utilityModel.provider === "auto";
   return (
     <SettingsSection
-      title="Utility model"
-      description="One small, cheap model for side jobs. Runs through an installed provider, no extra API key. It also writes read-aloud TL;DRs, chosen in Voice."
+      title={t("settings.sections.utility")}
+      description={t("prefs.utility.description")}
     >
-      <SettingRow label="Model">
+      <SettingRow label={t("prefs.utility.model")}>
         <div className="rounded-lg border border-border px-1 py-0.5">
           <ModelPicker
             providers={providers}
             align="end"
             effort={false}
-            placeholder="Auto (smallest available)"
+            placeholder={t("prefs.utility.placeholder")}
             value={
               utilityAuto
                 ? null
@@ -360,14 +348,18 @@ export function UtilitySettings() {
                   close();
                 }}
               >
-                Auto: the smallest available model
+                {t("prefs.utility.autoChoice")}
               </PickerFooterChoice>
             )}
           />
         </div>
       </SettingRow>
-      {jobs.map(([key, label, help]) => (
-        <SettingRow key={key} label={label} help={help}>
+      {jobs.map((key) => (
+        <SettingRow
+          key={key}
+          label={t(`prefs.utility.jobs.${key}.label`)}
+          help={t(`prefs.utility.jobs.${key}.help`)}
+        >
           <Switch
             checked={settings.utilityModel.jobs[key]}
             onCheckedChange={(v) => update({ utilityModel: { jobs: { [key]: v } } })}

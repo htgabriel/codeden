@@ -7,6 +7,7 @@ import { StartComposer, useRoleSession } from "@/components/orchestration/role-c
 import { QueuedMessages } from "@/components/thread/queued-messages";
 import { Transcript } from "@/components/thread/transcript";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTranslation } from "@/lib/i18n";
 import { useTranscript } from "@/lib/queries";
 import { activeTurn } from "@/lib/transcript/reducer";
 import { latestTurns } from "./latest-turns";
@@ -17,6 +18,7 @@ const LATEST_TURNS = 3;
 /** The PM session's latest turns, streamed like any session, and its composer. */
 function PmThread({ session, projectId }: { session: Session; projectId: string }) {
   // Only the turns it shows: the PM's whole history stays on the server.
+  const { t } = useTranslation();
   const { transcript, isLoading } = useTranscript(session.id, { turns: LATEST_TURNS });
   const threadId = transcript?.rootThreadId ?? session.rootThreadId ?? null;
   const running = Boolean(transcript && threadId && activeTurn(transcript, threadId));
@@ -36,7 +38,7 @@ function PmThread({ session, projectId }: { session: Session; projectId: string 
           className="shrink-0 border-b border-border px-3 py-1.5 text-center text-3xs text-muted-foreground hover:text-foreground"
           data-testid="factory-view-chat-earlier"
         >
-          {latest.hidden} earlier {latest.hidden === 1 ? "turn" : "turns"} in the full chat
+          {t("factoryView.chat.earlier", { count: latest.hidden })}
         </Link>
       )}
       {hasItems && latest && threadId ? (
@@ -52,7 +54,9 @@ function PmThread({ session, projectId }: { session: Session; projectId: string 
           <Skeleton className="h-4 w-5/6" />
         </div>
       ) : (
-        <p className="flex-1 p-3 text-2xs text-muted-foreground">No messages yet.</p>
+        <p className="flex-1 p-3 text-2xs text-muted-foreground">
+          {t("factoryView.chat.noMessages")}
+        </p>
       )}
       <QueuedMessages session={session} running={running} />
       <SessionComposer session={session} running={running} />
@@ -75,6 +79,7 @@ export function QuickChat({
   /** Its own header; Floor mode's PM chat draws one of its own. */
   header?: boolean;
 }) {
+  const { t } = useTranslation();
   const session = useRoleSession("pm", projectId);
   return (
     <div className="flex min-h-0 flex-1 flex-col" data-testid="factory-view-chat">
@@ -84,10 +89,10 @@ export function QuickChat({
         }
       >
         <Bot className="size-4 text-primary" aria-hidden />
-        <h2 className="text-[13px] font-medium">Project manager</h2>
+        <h2 className="text-[13px] font-medium">{t("factoryView.chat.title")}</h2>
         {session && (
           <span className="text-3xs text-muted-foreground">
-            {session.status === "running" ? "answering…" : null}
+            {session.status === "running" ? t("factoryView.chat.answering") : null}
           </span>
         )}
         <Link
@@ -95,7 +100,7 @@ export function QuickChat({
           params={{ projectId }}
           className="ml-auto inline-flex items-center gap-0.5 text-2xs text-primary hover:underline"
         >
-          Open full chat <ArrowUpRight className="size-3" aria-hidden />
+          {t("factoryView.chat.openFull")} <ArrowUpRight className="size-3" aria-hidden />
         </Link>
         {onCollapse && (
           <button
@@ -103,7 +108,7 @@ export function QuickChat({
             onClick={onCollapse}
             className="text-2xs text-muted-foreground hover:text-foreground"
           >
-            Hide
+            {t("factoryView.chat.hide")}
           </button>
         )}
       </header>
@@ -111,10 +116,7 @@ export function QuickChat({
         <PmThread session={session} projectId={projectId} />
       ) : (
         <>
-          <p className="flex-1 p-3 text-2xs text-muted-foreground">
-            Ask the PM what the factory is doing, or to let an issue in. Your first message starts
-            it.
-          </p>
+          <p className="flex-1 p-3 text-2xs text-muted-foreground">{t("factoryView.chat.intro")}</p>
           <StartComposer kind="pm" projectId={projectId} />
         </>
       )}

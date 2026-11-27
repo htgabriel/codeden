@@ -17,6 +17,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { ago } from "@/lib/format";
+import { useTranslation } from "@/lib/i18n";
 import { useProject, useSession, useSnapshotData } from "@/lib/queries";
 import {
   canSearchTranscripts,
@@ -31,11 +32,8 @@ import { PageHeader } from "./page-header";
 
 const PAGE = 50;
 const ALL = "all";
-const ROLES: { value: Role; label: string }[] = [
-  { value: "agent", label: "Agents" },
-  { value: "pm", label: "PMs" },
-  { value: "orchestrator", label: "Orchestrator" },
-];
+/** Labels: `pages.search.roles`. */
+const ROLES = ["agent", "pm", "orchestrator"] as const satisfies readonly Role[];
 
 function Badge({ children }: { children: string }) {
   return (
@@ -47,6 +45,7 @@ function Badge({ children }: { children: string }) {
 
 function HitRow({ hit }: { hit: TranscriptSearchHit }) {
   // An older archived session isn't in the snapshot: it is fetched by id.
+  const { t } = useTranslation();
   const session = useSession(hit.sessionId);
   const project = useProject(session?.projectId);
   return (
@@ -59,13 +58,13 @@ function HitRow({ hit }: { hit: TranscriptSearchHit }) {
       <div className="flex min-w-0 items-center gap-2 text-[13px]">
         {session && <StatusDot status={session.status} />}
         <span className="min-w-0 truncate font-medium">
-          {session ? (session.title ?? session.purpose) : "Session"}
+          {session ? (session.title ?? session.purpose) : t("pages.search.session")}
         </span>
         {project && (
           <span className="min-w-0 truncate text-xs text-muted-foreground">{project.name}</span>
         )}
-        <Badge>{(session && roleBadge(session.role)) ?? "Agent"}</Badge>
-        {session?.archivedAt && <Badge>Archived</Badge>}
+        <Badge>{(session && roleBadge(session.role)) ?? t("pages.search.agent")}</Badge>
+        {session?.archivedAt && <Badge>{t("pages.search.archived")}</Badge>}
         <span className="ml-auto shrink-0 pl-2 text-2xs text-muted-foreground" title={hit.ts}>
           {ago(hit.ts)}
         </span>
@@ -79,27 +78,27 @@ function HitRow({ hit }: { hit: TranscriptSearchHit }) {
 }
 
 function Results({ q, filters }: { q: string; filters: TranscriptSearchFilters }) {
+  const { t } = useTranslation();
   const { hits, query, error, searching, hasMore, loadingMore, loadMore } =
     useTranscriptSearchPages(q, { ...filters, limit: PAGE });
 
   if (!q.trim()) {
     return (
-      <EmptyState icon={<TextSearch />} title="Search every transcript" className="py-16">
-        Find what was asked, answered or run in any session, archived ones included: a message, a
-        command, a file path.
+      <EmptyState icon={<TextSearch />} title={t("pages.search.startTitle")} className="py-16">
+        {t("pages.search.startHint")}
       </EmptyState>
     );
   }
   if (!canSearchTranscripts(q)) {
     return (
-      <EmptyState icon={<TextSearch />} title="Keep typing" className="py-16">
-        Search needs a word of at least 3 characters.
+      <EmptyState icon={<TextSearch />} title={t("pages.search.keepTyping")} className="py-16">
+        {t("pages.search.keepTypingHint")}
       </EmptyState>
     );
   }
   if (error) {
     return (
-      <EmptyState icon={<SearchX />} title="Couldn't search transcripts" className="py-16">
+      <EmptyState icon={<SearchX />} title={t("pages.search.failed")} className="py-16">
         {error.message}
       </EmptyState>
     );
@@ -118,12 +117,10 @@ function Results({ q, filters }: { q: string; filters: TranscriptSearchFilters }
   }
   if (hits.length === 0 && !hasMore) {
     return (
-      <EmptyState icon={<SearchX />} title="No matches" className="py-16">
-        Nothing in{" "}
+      <EmptyState icon={<SearchX />} title={t("pages.search.noMatches")} className="py-16">
         {filters.projectId || filters.role || filters.includeArchived === false
-          ? "these sessions"
-          : "any transcript"}{" "}
-        contains every word of “{query}”.
+          ? t("pages.search.noMatchesFiltered", { query })
+          : t("pages.search.noMatchesAll", { query })}
       </EmptyState>
     );
   }
@@ -138,7 +135,7 @@ function Results({ q, filters }: { q: string; filters: TranscriptSearchFilters }
         <div className="flex justify-center pt-4">
           <Button variant="outline" size="sm" onClick={loadMore} disabled={loadingMore}>
             {loadingMore && <Loader2 className="animate-spin" />}
-            {hits.length === 0 ? "Search older transcripts" : "Load more"}
+            {hits.length === 0 ? t("pages.search.searchOlder") : t("pages.search.loadMore")}
           </Button>
         </div>
       )}
@@ -164,6 +161,7 @@ function Filters({
   filters: TranscriptSearchFilters;
   onChange: (next: TranscriptSearchFilters) => void;
 }) {
+  const { t } = useTranslation();
   const projects = useSnapshotData((s) => s.projects, []);
   return (
     <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -171,11 +169,11 @@ function Filters({
         value={filters.projectId ?? ALL}
         onValueChange={(v) => onChange({ ...filters, projectId: v === ALL ? undefined : v })}
       >
-        <SelectTrigger size="sm" className="w-44" aria-label="Project">
+        <SelectTrigger size="sm" className="w-44" aria-label={t("pages.search.project")}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value={ALL}>All projects</SelectItem>
+          <SelectItem value={ALL}>{t("pages.search.allProjects")}</SelectItem>
           {projects.map((p) => (
             <SelectItem key={p.id} value={p.id}>
               {p.name}
@@ -187,14 +185,14 @@ function Filters({
         value={filters.role ?? ALL}
         onValueChange={(v) => onChange({ ...filters, role: v === ALL ? undefined : (v as Role) })}
       >
-        <SelectTrigger size="sm" className="w-36" aria-label="Role">
+        <SelectTrigger size="sm" className="w-36" aria-label={t("pages.search.role")}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value={ALL}>All roles</SelectItem>
+          <SelectItem value={ALL}>{t("pages.search.allRoles")}</SelectItem>
           {ROLES.map((r) => (
-            <SelectItem key={r.value} value={r.value}>
-              {r.label}
+            <SelectItem key={r} value={r}>
+              {t(`pages.search.roles.${r}`)}
             </SelectItem>
           ))}
         </SelectContent>
@@ -206,7 +204,7 @@ function Filters({
           onCheckedChange={(includeArchived) => onChange({ ...filters, includeArchived })}
         />
         <label htmlFor="search-archived" className="text-xs text-muted-foreground">
-          Archived sessions
+          {t("pages.search.archivedSessions")}
         </label>
       </span>
     </div>
@@ -220,6 +218,7 @@ function Filters({
  * there (and a subagent's thread at the item).
  */
 export function SearchPage({ q, filters }: { q: string; filters: TranscriptSearchFilters }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [text, setText] = useState(q);
   const settled = useDebouncedValue(text, 250);
@@ -241,8 +240,8 @@ export function SearchPage({ q, filters }: { q: string; filters: TranscriptSearc
     <>
       <PageHeader
         icon={<TextSearch />}
-        title="Search transcripts"
-        meta="Messages, replies, commands and file paths across every session, newest first"
+        title={t("pages.search.title")}
+        meta={t("pages.search.meta")}
       />
       <div className="min-h-0 flex-1 overflow-y-auto scroll-thin">
         <div className="mx-auto w-full max-w-3xl px-4 py-5 sm:px-6 sm:py-6">
@@ -253,8 +252,8 @@ export function SearchPage({ q, filters }: { q: string; filters: TranscriptSearc
               type="search"
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder="webhook retry, prisma migrate, src/cart…"
-              aria-label="Search transcripts"
+              placeholder={t("pages.search.placeholder")}
+              aria-label={t("pages.search.title")}
               className="h-10 pl-9"
             />
           </div>

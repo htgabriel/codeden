@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect, useRef } from "react";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 /**
@@ -20,6 +21,7 @@ export function CommandOutput({
   cwd?: string;
   notice?: ReactNode;
 }) {
+  const { t } = useTranslation();
   const ref = useRef<HTMLPreElement>(null);
   const pinned = useRef(true);
 
@@ -46,7 +48,7 @@ export function CommandOutput({
                 : "bg-status-failed/12 text-status-failed",
             )}
           >
-            exit {exitCode}
+            {t("workbench.checkRun.exit", { code: exitCode })}
           </span>
         )}
       </div>
@@ -67,7 +69,7 @@ export function CommandOutput({
         </pre>
       ) : (
         <div className="px-3 py-2 font-mono text-[11.5px] text-muted-foreground/60">
-          {running ? "Waiting for output…" : "No output"}
+          {running ? t("workbench.output.waiting") : t("workbench.output.none")}
         </div>
       )}
     </div>

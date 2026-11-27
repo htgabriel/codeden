@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Bot, Minus } from "lucide-react";
 import type { CSSProperties, Ref } from "react";
 import { useRoleSession } from "@/components/orchestration/role-chat";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { QuickChat } from "../quick-chat";
 
@@ -24,11 +25,12 @@ export function PmChat({
   ref?: Ref<HTMLElement>;
 }) {
   const session = useRoleSession("pm", projectId);
+  const { t } = useTranslation();
   const busy = session?.status === "running" || session?.status === "starting";
   return (
     <aside
       ref={ref}
-      aria-label="Project manager chat"
+      aria-label={t("factoryView.pmChat.label")}
       className={cn(
         "flex min-h-0 flex-col overflow-hidden rounded-lg border border-border bg-background shadow-md",
         className,
@@ -38,7 +40,7 @@ export function PmChat({
     >
       <header className="flex h-9 shrink-0 items-center gap-2 border-b border-border px-2.5 text-xs">
         <Bot className="size-3.5 text-primary" aria-hidden />
-        <h2 className="font-medium">PM chat</h2>
+        <h2 className="font-medium">{t("factoryView.pmChat.title")}</h2>
         <span
           aria-hidden
           className={cn(
@@ -46,19 +48,21 @@ export function PmChat({
             busy ? "bg-status-running motion-safe:animate-pulse" : "bg-status-idle",
           )}
         />
-        {busy && <span className="text-2xs text-muted-foreground">answering…</span>}
+        {busy && (
+          <span className="text-2xs text-muted-foreground">{t("factoryView.chat.answering")}</span>
+        )}
         <Link
           to="/projects/$projectId/pm"
           params={{ projectId }}
           className="ml-auto text-2xs text-primary hover:underline"
         >
-          Full chat
+          {t("factoryView.pmChat.fullChat")}
         </Link>
         <button
           type="button"
           onClick={onFold}
           className="rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-          aria-label="Fold the PM chat"
+          aria-label={t("factoryView.pmChat.fold")}
           data-testid="factory-view-pm-chat-fold"
         >
           <Minus className="size-3.5" aria-hidden />

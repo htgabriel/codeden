@@ -35,7 +35,7 @@ function ForkedEmpty({ origin }: { origin: ForkOrigin }) {
       <Trans
         i18nKey={`session.empty.${kind}.body`}
         values={{ source: name, upTo }}
-        components={{ link }}
+        components={{ l: link }}
       />
     </EmptyState>
   );
@@ -54,6 +54,7 @@ export function SessionPage({
   focusItemId?: string;
   focusThread?: { threadId: string; itemId: string };
 }) {
+  const { t } = useTranslation();
   const forkedFrom = useSession(sessionId)?.forkedFrom;
   const openChildThread = useLayoutStore((s) => s.openChildThread);
   const childThreadId = focusThread?.threadId;
@@ -70,8 +71,12 @@ export function SessionPage({
         forkedFrom ? (
           <ForkedEmpty origin={forkedFrom} />
         ) : (
-          <EmptyState icon={<MessageSquareDashed />} title="No messages yet" className="flex-1">
-            Describe the task. The agent works in its own worktree and branch.
+          <EmptyState
+            icon={<MessageSquareDashed />}
+            title={t("pages.session.noMessages")}
+            className="flex-1"
+          >
+            {t("pages.session.worktreeHint")}
           </EmptyState>
         )
       }

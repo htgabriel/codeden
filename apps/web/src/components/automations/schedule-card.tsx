@@ -18,6 +18,7 @@ import { useClient } from "@/lib/api";
 import { automationKeys, stateIn, switchValue } from "@/lib/automations";
 import { formatAt } from "@/lib/cron";
 import { until } from "@/lib/format";
+import { useTranslation } from "@/lib/i18n";
 import { useSnapshotData } from "@/lib/queries";
 import { SOURCE_LABEL } from "./meta";
 import type { useAutomationActions } from "./use-automation-actions";
@@ -44,6 +45,7 @@ export function ScheduleCard({
   projectId: string;
   actions: ReturnType<typeof useAutomationActions>;
 }) {
+  const { t } = useTranslation();
   const client = useClient();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -53,28 +55,28 @@ export function ScheduleCard({
   const on = switchValue(item, projectId);
   const scheduled = a.trigger.type === "cron";
   const why = !on
-    ? "Switched off"
+    ? t("automations.scheduleCard.switchedOff")
     : !globalOn
-      ? "Automations are off globally"
+      ? t("automations.scheduleCard.globalOff")
       : state && !state.enabled
-        ? "Off for this project"
+        ? t("automations.scheduleCard.projectOff")
         : state?.paused
-          ? "Paused in this project"
-          : "On";
+          ? t("automations.scheduleCard.pausedHere")
+          : t("automations.scheduleCard.on");
   const reload = useMutation({
     mutationFn: () => client.automations.reload(),
     onSuccess: () => {
-      toast.success("Re-read automation files");
+      toast.success(t("automations.scheduleCard.reloaded"));
       void queryClient.invalidateQueries({ queryKey: automationKeys.all });
     },
   });
   const remove = useMutation({
     mutationFn: () => client.automations.remove(a.id),
     onSuccess: () => {
-      toast.success(`${a.name} deleted`);
+      toast.success(t("automations.detail.deleted", { name: a.name }));
       void navigate({ to: "/projects/$projectId/automations", params: { projectId } });
     },
-    onError: (e) => toast.error("Couldn't delete", { description: e.message }),
+    onError: (e) => toast.error(t("automations.detail.deleteFailed"), { description: e.message }),
   });
 
   return (
@@ -86,41 +88,49 @@ export function ScheduleCard({
         <Switch
           checked={on}
           onCheckedChange={(enabled) => actions.toggle.mutate({ item, enabled })}
-          aria-label={`Enable ${a.name}`}
+          aria-label={t("automations.row.enableAria", { name: a.name })}
         />
-        <span className="text-[13px] font-medium">{on ? "Enabled" : "Disabled"}</span>
+        <span className="text-[13px] font-medium">
+          {on ? t("automations.scheduleCard.enabled") : t("automations.scheduleCard.disabled")}
+        </span>
         <span className="ml-auto text-3xs text-muted-foreground">{why}</span>
       </div>
       <div className="space-y-1.5 border-t border-border pt-3">
         {scheduled && (
-          <Row label="Next run">
+          <Row label={t("automations.scheduleCard.nextRun")}>
             {state?.nextRunAt ? (
               <span title={formatAt(state.nextRunAt)}>
                 {until(state.nextRunAt)}
                 {state.skipNextAt === state.nextRunAt && (
-                  <span className="text-status-waiting"> · will skip</span>
+                  <span className="text-status-waiting">
+                    {t("automations.scheduleCard.willSkip")}
+                  </span>
                 )}
               </span>
             ) : (
-              <span className="text-muted-foreground">Not scheduled</span>
+              <span className="text-muted-foreground">
+                {t("automations.scheduleCard.notScheduled")}
+              </span>
             )}
           </Row>
         )}
-        <Row label="Source">
+        <Row label={t("automations.scheduleCard.source")}>
           {SOURCE_LABEL[a.source]}
           {a.templateId && <span className="text-muted-foreground"> · {a.templateId}</span>}
         </Row>
-        <Row label="Work key">
+        <Row label={t("automations.form.workKey")}>
           <code className="font-mono text-2xs">{a.workKey ?? `automation:${a.templateId}`}</code>
         </Row>
-        <Row label="Applies to">
-          {a.target.type === "project" ? "This project" : "All projects"}
+        <Row label={t("automations.scheduleCard.appliesTo")}>
+          {a.target.type === "project"
+            ? t("automations.form.thisProject")
+            : t("automations.form.allProjects")}
         </Row>
       </div>
       {item.path && (
         <div className="rounded-lg border border-border bg-surface px-3 py-2 text-2xs">
           <div className="flex items-center gap-1.5 text-muted-foreground">
-            <FileCode2 className="size-3.5" /> Defined in a file; edit it there
+            <FileCode2 className="size-3.5" /> {t("automations.scheduleCard.definedInFile")}
           </div>
           <code className="mt-1 block font-mono break-all">{item.path}</code>
           <Button
@@ -130,7 +140,7 @@ export function ScheduleCard({
             onClick={() => reload.mutate()}
             disabled={reload.isPending}
           >
-            <RefreshCw /> Reload
+            <RefreshCw /> {t("automations.scheduleCard.reload")}
           </Button>
         </div>
       )}
@@ -140,7 +150,7 @@ export function ScheduleCard({
           onClick={() => actions.run.mutate({ id: a.id, name: a.name })}
           disabled={actions.run.isPending || a.action.type === "triage"}
         >
-          <Play /> Run now
+          <Play /> {t("automations.row.runNow")}
         </Button>
         {scheduled &&
           state?.enabled &&
@@ -151,7 +161,7 @@ export function ScheduleCard({
               onClick={() => actions.unskipNext.mutate(a.id)}
               disabled={actions.unskipNext.isPending}
             >
-              <Undo2 /> Undo skip
+              <Undo2 /> {t("automations.scheduleCard.undoSkip")}
             </Button>
           ) : (
             <Button
@@ -160,7 +170,7 @@ export function ScheduleCard({
               onClick={() => actions.skipNext.mutate(a.id)}
               disabled={!state.nextRunAt || actions.skipNext.isPending}
             >
-              <SkipForward /> Skip next
+              <SkipForward /> {t("automations.scheduleCard.skipNext")}
             </Button>
           ))}
         {a.target.type === "all_projects" && state?.enabledOverride != null && (
@@ -169,9 +179,9 @@ export function ScheduleCard({
             variant="ghost"
             onClick={() => actions.clearOverride.mutate(a.id)}
             disabled={actions.clearOverride.isPending}
-            title="Follow the automation's own switch in this project again"
+            title={t("automations.scheduleCard.clearOverrideTitle")}
           >
-            <Eraser /> Clear project override
+            <Eraser /> {t("automations.scheduleCard.clearOverride")}
           </Button>
         )}
         {state?.enabled && a.trigger.type !== "manual" && (
@@ -180,7 +190,10 @@ export function ScheduleCard({
             variant="ghost"
             onClick={() => actions.pause.mutate({ id: a.id, paused: !state.paused })}
           >
-            {state.paused ? <Play /> : <Pause />} {state.paused ? "Resume" : "Pause"}
+            {state.paused ? <Play /> : <Pause />}{" "}
+            {state.paused
+              ? t("automations.scheduleCard.resume")
+              : t("automations.scheduleCard.pause")}
           </Button>
         )}
         {a.source === "database" && (
@@ -188,9 +201,10 @@ export function ScheduleCard({
             size="sm"
             variant="ghost"
             className="ml-auto text-muted-foreground hover:text-status-failed"
-            aria-label="Delete automation"
+            aria-label={t("automations.scheduleCard.deleteAria")}
             onClick={() => {
-              if (window.confirm(`Delete "${a.name}"? Its run history stays.`)) remove.mutate();
+              if (window.confirm(t("automations.scheduleCard.confirmDelete", { name: a.name })))
+                remove.mutate();
             }}
           >
             <Trash2 />

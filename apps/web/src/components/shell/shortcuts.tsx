@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useTranslation } from "@/lib/i18n";
 import { formatCombo, isTyping, matchesCombo, SHORTCUTS, type ShortcutId } from "@/lib/shortcuts";
 import { useComposerStore } from "@/stores/composer";
 import { type RightTab, useLayoutStore } from "@/stores/layout";
@@ -61,13 +62,14 @@ export function useGlobalShortcuts() {
 
 /** A grouped list of shortcuts, used by the dialog and Settings. */
 export function ShortcutList() {
+  const { t } = useTranslation();
   const groups = ["General", "Navigation", "Panels", "Composer"] as const;
   return (
     <div className="grid gap-5 sm:grid-cols-2">
       {groups.map((g) => (
         <div key={g}>
           <div className="mb-1.5 text-2xs font-medium tracking-wider text-muted-foreground uppercase">
-            {g}
+            {t(`shell.shortcuts.groups.${g}`)}
           </div>
           <div className="divide-y divide-border rounded-lg border border-border">
             {SHORTCUTS.filter((s) => s.group === g).map((s) => (
@@ -84,14 +86,15 @@ export function ShortcutList() {
 }
 
 export function ShortcutsDialog() {
+  const { t } = useTranslation();
   const open = useUiStore((s) => s.shortcutsOpen);
   const setOpen = useUiStore((s) => s.setShortcutsOpen);
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Keyboard shortcuts</DialogTitle>
-          <DialogDescription>Everything important is one keystroke away.</DialogDescription>
+          <DialogTitle>{t("sidebar.keyboardShortcuts")}</DialogTitle>
+          <DialogDescription>{t("shell.shortcuts.description")}</DialogDescription>
         </DialogHeader>
         <ShortcutList />
       </DialogContent>

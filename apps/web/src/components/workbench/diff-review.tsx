@@ -9,8 +9,9 @@ import {
   anchorComments,
   labelCommentButtons,
   type ReviewAnchors,
-  rangeLabel,
+  rangeText,
 } from "@/lib/diff-review";
+import { Trans, useTranslation } from "@/lib/i18n";
 import { sendToSession } from "@/lib/send-to-session";
 import { cn } from "@/lib/utils";
 import {
@@ -25,7 +26,6 @@ import {
 } from "@/stores/diff-review";
 
 const busyStatuses: SessionStatus[] = ["starting", "running", "waiting"];
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 const noAnchors: ReviewAnchors = { byPath: new Map(), ranges: new Map(), outdated: [] };
 
 /**
@@ -108,17 +108,20 @@ export function LineComments({ sessionId, ids }: { sessionId: string; ids: strin
  * lines as they were, and can be edited or deleted on its own.
  */
 export function OutdatedComments({ sessionId, ids }: { sessionId: string; ids: string[] }) {
+  const { t } = useTranslation();
   const all = useDiffReviewStore((s) => sessionComments(s, sessionId));
   const outdated = all.filter((c) => ids.includes(c.id));
   if (outdated.length === 0) return null;
   return (
     <section
-      aria-label="Outdated comments"
+      aria-label={t("workbench.diffReview.outdatedLabel")}
       className="space-y-1.5 rounded-lg border border-dashed border-border p-2"
     >
       <p className="px-0.5 text-2xs text-muted-foreground">
-        <span className="font-medium text-foreground">Outdated</span> · no longer in this diff.
-        Still sent, quoting the lines as they were.
+        <Trans
+          i18nKey="workbench.diffReview.outdated"
+          components={{ b: <span className="font-medium text-foreground" /> }}
+        />
       </p>
       {outdated.map((c) => (
         <CommentCard key={c.id} sessionId={sessionId} comment={c} outdated />
@@ -153,11 +156,12 @@ function CommentCard({
   comment: ReviewComment;
   outdated?: boolean;
 }) {
+  const { t } = useTranslation();
   const { setDraft, save, cancel, edit, remove } = useDiffReviewStore.getState();
   // A comment on its way to the agent reads as sent: no editing until the review settles.
   const locked = useDiffReviewStore((s) => isSending(s, sessionId, comment.id));
   // Where its lines are now; an outdated one names the lines it was written on, as it's sent.
-  const label = rangeLabel(outdated ? comment.range : currentRange(comment));
+  const label = rangeText(outdated ? comment.range : currentRange(comment));
   const editing = comment.draft !== undefined && !locked;
   return (
     <div
@@ -168,16 +172,18 @@ function CommentCard({
       <div className="flex items-center gap-1.5 px-2.5 pt-1.5 text-3xs text-muted-foreground">
         <MessageSquare className="size-3" />
         <span className="flex-1 truncate">
-          {outdated ? `${comment.path}, ${label}` : `Comment on ${label}`}
+          {outdated
+            ? `${comment.path}, ${label}`
+            : t("workbench.linePicker.commentOn", { range: label })}
         </span>
-        {locked && <span className="py-1">Sending…</span>}
+        {locked && <span className="py-1">{t("workbench.diffReview.sending")}</span>}
         {!editing && !locked && (
           <>
             <Button
               size="icon-xs"
               variant="ghost"
-              aria-label="Edit comment"
-              title="Edit"
+              aria-label={t("workbench.diffReview.editComment")}
+              title={t("workbench.queue.edit")}
               onClick={() => edit(sessionId, comment.id)}
             >
               <Pencil />
@@ -185,8 +191,8 @@ function CommentCard({
             <Button
               size="icon-xs"
               variant="ghost"
-              aria-label="Delete comment"
-              title="Delete"
+              aria-label={t("workbench.diffReview.deleteComment")}
+              title={t("workbench.queue.delete")}
               onClick={() => remove(sessionId, [comment.id])}
             >
               <Trash2 />
@@ -203,8 +209,8 @@ function CommentCard({
         <div className="space-y-1.5 p-2 pt-1">
           <Textarea
             ref={focusWhenShown}
-            aria-label={`Comment on ${label}`}
-            placeholder="What should the agent change here?"
+            aria-label={t("workbench.linePicker.commentOn", { range: label })}
+            placeholder={t("workbench.diffReview.placeholder")}
             value={comment.draft}
             onChange={(e) => setDraft(sessionId, comment.id, e.target.value)}
             onKeyDown={(e) => {
@@ -225,12 +231,12 @@ function CommentCard({
               size="xs"
               disabled={!comment.draft?.trim()}
               onClick={() => save(sessionId, comment.id)}
-              title="Save the comment (Ctrl/Cmd+Enter)"
+              title={t("workbench.diffReview.saveHint")}
             >
-              Comment
+              {t("workbench.linePicker.comment")}
             </Button>
             <Button size="xs" variant="ghost" onClick={() => cancel(sessionId, comment.id)}>
-              Cancel
+              {t("common.cancel")}
             </Button>
           </div>
         </div>
@@ -261,6 +267,7 @@ export function ReviewBar({
   diffShown?: boolean;
   onShow?: (comment: ReviewComment) => void;
 }) {
+  const { t } = useTranslation();
   const client = useClient();
   const all = useDiffReviewStore((s) => sessionComments(s, session.id));
   // In the store, not this component: leaving the panel mid-send keeps Send disabled.
@@ -271,8 +278,7 @@ export function ReviewBar({
   const hidden = all.filter((c) => isUnsavedEdit(c) && !(diffShown && c.scopeKey === scopeKey));
   const otherView = hidden.find((c) => c.scopeKey !== scopeKey);
   const cancelHidden = () => {
-    const what = hidden.length === 1 ? "the unsaved comment" : `${hidden.length} unsaved comments`;
-    if (!window.confirm(`Cancel ${what}? What you typed is lost.`)) return;
+    if (!window.confirm(t("workbench.diffReview.confirmCancel", { count: hidden.length }))) return;
     for (const c of hidden) useDiffReviewStore.getState().cancel(session.id, c.id);
   };
   const send = () => {
@@ -282,10 +288,15 @@ export function ReviewBar({
       .sendReview(session.id, (text) => sendToSession(client, session, { text }, "queue"))
       .then((result) => {
         if (result !== "sent") return;
-        if (busy) toast("Review queued", { description: "It's sent when the current turn ends." });
-        else toast("Review sent to the agent");
+        if (busy)
+          toast(t("workbench.diffReview.queued"), {
+            description: t("workbench.diffReview.queuedHint"),
+          });
+        else toast(t("workbench.diffReview.sent"));
       })
-      .catch((e: Error) => toast.error("Review not sent", { description: e.message }));
+      .catch((e: Error) =>
+        toast.error(t("workbench.diffReview.notSent"), { description: e.message }),
+      );
   };
   if (saved.length === 0 && hidden.length === 0) return null;
   return (
@@ -297,11 +308,11 @@ export function ReviewBar({
         <div className="flex h-9 items-center gap-1.5 px-3 text-xs pointer-coarse:h-auto pointer-coarse:min-h-11">
           <MessageSquare className="size-3.5 text-primary" />
           <span className="font-medium tabular-nums" aria-live="polite">
-            {plural(saved.length, "comment")}
+            {t("workbench.diffReview.comments", { count: saved.length })}
           </span>
           {elsewhere > 0 && (
             <span className="truncate text-2xs text-muted-foreground">
-              ({elsewhere} in another view)
+              {t("workbench.diffReview.elsewhere", { count: elsewhere })}
             </span>
           )}
           <div className="ml-auto flex items-center gap-1">
@@ -311,24 +322,23 @@ export function ReviewBar({
               className="text-xs text-muted-foreground"
               disabled={sending}
               onClick={() => {
-                if (window.confirm(`Discard ${plural(all.length, "draft comment")}?`))
+                if (window.confirm(t("workbench.diffReview.confirmDiscard", { count: all.length })))
                   useDiffReviewStore.getState().clear(session.id);
               }}
             >
-              Discard
+              {t("workbench.diffReview.discard")}
             </Button>
             <Button
               size="sm"
               className="text-xs"
               disabled={sending || unsaved}
               title={
-                unsaved
-                  ? "Save or cancel the comment you're editing first"
-                  : "Send every comment to the agent as one message"
+                unsaved ? t("workbench.diffReview.saveFirst") : t("workbench.diffReview.sendHint")
               }
               onClick={send}
             >
-              <SendHorizontal /> {sending ? "Sending…" : "Send to agent"}
+              <SendHorizontal />{" "}
+              {sending ? t("workbench.diffReview.sending") : t("workbench.diffReview.send")}
             </Button>
           </div>
         </div>
@@ -344,18 +354,19 @@ export function ReviewBar({
           <span
             className="min-w-0 flex-1 truncate"
             role="status"
-            title="Save or cancel it to send the review"
+            title={t("workbench.diffReview.hiddenHint")}
           >
-            {hidden.length === 1 ? "An unsaved comment" : `${hidden.length} unsaved comments`}{" "}
-            {otherView ? "in another view" : "not shown here"}
+            {otherView
+              ? t("workbench.diffReview.unsavedElsewhere", { count: hidden.length })
+              : t("workbench.diffReview.unsavedHidden", { count: hidden.length })}
           </span>
           {otherView && onShow && (
             <Button size="xs" variant="outline" onClick={() => onShow(otherView)}>
-              Show
+              {t("workbench.diffReview.show")}
             </Button>
           )}
           <Button size="xs" variant="ghost" onClick={cancelHidden}>
-            {hidden.length === 1 ? "Cancel edit" : "Cancel edits"}
+            {t("workbench.diffReview.cancelEdits", { count: hidden.length })}
           </Button>
         </div>
       )}

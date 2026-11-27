@@ -1,4 +1,5 @@
 import type { GitHubPrRef, Project, QueuedMessage, Session } from "@codeden/contracts";
+import { i18n } from "@/lib/i18n";
 import type { TranscriptState } from "./transcript/reducer";
 
 /**
@@ -124,6 +125,6 @@ export function pullRequestOffer(input: {
 /** Why the control says "PR requested", for its hover text. */
 export function prRequestedHint(requested: "queued" | "sent"): string {
   return requested === "queued"
-    ? "Queued behind the running turn: the agent opens the pull request when that turn ends"
-    : "The agent is opening a pull request";
+    ? i18n.t("messages.pullRequest.queued")
+    : i18n.t("messages.pullRequest.sent");
 }

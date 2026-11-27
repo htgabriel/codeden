@@ -1,4 +1,5 @@
 import type { FactoryStatus } from "@codeden/contracts";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { type StatTile, viewStats } from "./view-stats";
 
@@ -20,11 +21,12 @@ function Bar({ bar }: { bar: NonNullable<StatTile["bar"]> }) {
 
 /** One compact row of figures: spend, merges, agents, open PRs, failures, time to merge. */
 export function StatsStrip({ f }: { f: FactoryStatus }) {
+  const { t: tr } = useTranslation();
   const tiles = viewStats(f);
   return (
     <dl
       className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6"
-      aria-label="Factory figures"
+      aria-label={tr("factoryView.stats.figures")}
       data-testid="factory-view-stats"
     >
       {tiles.map((t) => (

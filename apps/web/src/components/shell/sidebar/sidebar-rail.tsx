@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Bot, Inbox, PanelLeftOpen, Search } from "lucide-react";
 import { Fragment, type ReactNode } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useTranslation } from "@/lib/i18n";
 import { useSnapshot } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 import { SIDEBAR, useLayoutStore } from "@/stores/layout";
@@ -39,6 +40,7 @@ function RailItem({
 
 /** Collapsed sidebar: a 56px icon rail with the same destinations. */
 export function SidebarRail({ onExpand }: { onExpand?: () => void } = {}) {
+  const { t } = useTranslation();
   const { data } = useSnapshot();
   const toggleLayout = useLayoutStore((s) => s.toggleSidebar);
   // On touch tablets the rail stays, and expanding opens the drawer over the page.
@@ -57,23 +59,27 @@ export function SidebarRail({ onExpand }: { onExpand?: () => void } = {}) {
         <Logo className="size-[22px]" />
       </div>
       <div className="flex flex-col items-center gap-1">
-        <RailItem label="Expand sidebar · Ctrl B">
-          <button type="button" onClick={toggleSidebar} aria-label="Expand sidebar">
+        <RailItem label={t("shell.rail.expandTooltip")}>
+          <button type="button" onClick={toggleSidebar} aria-label={t("shell.rail.expand")}>
             <PanelLeftOpen className="size-4" />
           </button>
         </RailItem>
-        <RailItem label="Search · Ctrl K">
-          <button type="button" onClick={() => openPalette(true)} aria-label="Search">
+        <RailItem label={t("shell.rail.searchTooltip")}>
+          <button
+            type="button"
+            onClick={() => openPalette(true)}
+            aria-label={t("shell.rail.search")}
+          >
             <Search className="size-4" />
           </button>
         </RailItem>
-        <RailItem label="Orchestrator" active={orchestratorActive}>
-          <Link to="/" aria-label="Orchestrator">
+        <RailItem label={t("sidebar.orchestrator")} active={orchestratorActive}>
+          <Link to="/" aria-label={t("sidebar.orchestrator")}>
             <Bot className="size-4 text-primary" />
           </Link>
         </RailItem>
-        <RailItem label={`Inbox · ${inboxCount}`} active={inboxActive}>
-          <Link to="/inbox" aria-label="Inbox">
+        <RailItem label={`${t("sidebar.inbox")} · ${inboxCount}`} active={inboxActive}>
+          <Link to="/inbox" aria-label={t("sidebar.inbox")}>
             <Inbox className="size-4" />
             {inboxCount > 0 && (
               <span className="absolute top-1 right-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-status-waiting px-1 text-[9px] font-bold text-black/80">
@@ -91,7 +97,7 @@ export function SidebarRail({ onExpand }: { onExpand?: () => void } = {}) {
           const endsPinned = p.pinned && data.projects[i + 1]?.pinned === false;
           return (
             <Fragment key={p.id}>
-              <RailItem label={p.pinned ? `${p.name} · pinned` : p.name}>
+              <RailItem label={p.pinned ? t("shell.rail.pinned", { name: p.name }) : p.name}>
                 <Link to="/projects/$projectId" params={{ projectId: p.id }} aria-label={p.name}>
                   <ProjectTile project={p} className="size-6 rounded-md text-xs" />
                   {waiting && (

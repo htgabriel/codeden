@@ -2,6 +2,7 @@ import { Loader2, RefreshCw } from "lucide-react";
 import { Component, type ComponentType, lazy, type ReactNode, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { isChunkLoadError } from "@/lib/chunk-error";
+import { useTranslation } from "@/lib/i18n";
 
 /**
  * A component whose code loads from its own chunk the first time it renders, so a heavy library
@@ -28,10 +29,11 @@ export function lazyComponent<P extends object>(
 
 /** A spinner in the middle of the area a panel fills, while its code loads. */
 export function PanelLoading() {
+  const { t } = useTranslation();
   return (
     <div
       role="status"
-      aria-label="Loading"
+      aria-label={t("shell.common.loading")}
       className="flex h-full min-h-0 items-center justify-center text-muted-foreground"
     >
       <Loader2 className="size-4 animate-spin" />
@@ -62,14 +64,15 @@ export class ChunkErrorBoundary extends Component<
 
 /** In place of a part or page whose code didn't load, usually because CodeDen was updated. */
 export function ReloadPrompt() {
+  const { t } = useTranslation();
   return (
     <div
       role="alert"
       className="flex h-full min-h-0 flex-col items-center justify-center gap-2 p-4 text-center text-xs text-muted-foreground"
     >
-      <p>This part of CodeDen didn't load. CodeDen may have been updated since you opened it.</p>
+      <p>{t("shell.common.partDidntLoad")}</p>
       <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
-        <RefreshCw /> Reload
+        <RefreshCw /> {t("shell.configEditor.reload")}
       </Button>
     </div>
   );

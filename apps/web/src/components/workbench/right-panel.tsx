@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { DiffPanel, FilesPanel, TerminalView } from "@/components/on-demand";
 import { Button } from "@/components/ui/button";
+import { i18n, useTranslation } from "@/lib/i18n";
 import { useSession } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 import { type RightTab, useLayoutStore } from "@/stores/layout";
@@ -19,17 +20,18 @@ import { ChildThreadPanel } from "./child-thread-panel";
 import { DetailsPanel } from "./details-panel";
 import { GitHubPanel } from "./github-panel";
 
-const TABS: { id: RightTab; label: string; icon: LucideIcon }[] = [
-  { id: "diff", label: "Diff", icon: FileDiff },
-  { id: "files", label: "Files", icon: Files },
-  { id: "browser", label: "Browser", icon: Globe },
-  { id: "terminal", label: "Terminal", icon: SquareTerminal },
-  { id: "github", label: "Issue / PR", icon: GitPullRequest },
-  { id: "details", label: "Details", icon: Info },
+const TABS: { id: RightTab; label: () => string; icon: LucideIcon }[] = [
+  { id: "diff", label: () => i18n.t("workbench.rightPanel.diff"), icon: FileDiff },
+  { id: "files", label: () => i18n.t("workbench.rightPanel.files"), icon: Files },
+  { id: "browser", label: () => i18n.t("workbench.rightPanel.browser"), icon: Globe },
+  { id: "terminal", label: () => i18n.t("workbench.rightPanel.terminal"), icon: SquareTerminal },
+  { id: "github", label: () => i18n.t("workbench.rightPanel.github"), icon: GitPullRequest },
+  { id: "details", label: () => i18n.t("workbench.rightPanel.details"), icon: Info },
 ];
 
 /** Right panel (§13): diff, files, browser, terminal, issue/PR, details, and subagent threads. */
 export function RightPanel({ sessionId, width }: { sessionId: string; width: number | string }) {
+  const { t } = useTranslation();
   const tab = useLayoutStore((s) => s.rightTab);
   const openTab = useLayoutStore((s) => s.openRightTab);
   const toggleRight = useLayoutStore((s) => s.toggleRight);
@@ -50,17 +52,17 @@ export function RightPanel({ sessionId, width }: { sessionId: string; width: num
               active={active === "thread"}
               onClick={() => openTab("thread")}
               icon={Bot}
-              label="Subagent"
+              label={t("workbench.subagent.title")}
               accent
             />
           )}
-          {TABS.map((t) => (
+          {TABS.map((item) => (
             <TabButton
-              key={t.id}
-              active={active === t.id}
-              onClick={() => openTab(t.id)}
-              icon={t.icon}
-              label={t.label}
+              key={item.id}
+              active={active === item.id}
+              onClick={() => openTab(item.id)}
+              icon={item.icon}
+              label={item.label()}
               compact={typeof width === "number" && width < 470}
             />
           ))}
@@ -70,7 +72,7 @@ export function RightPanel({ sessionId, width }: { sessionId: string; width: num
           size="icon-sm"
           className="shrink-0 text-muted-foreground"
           onClick={() => toggleRight(false)}
-          aria-label="Close panel"
+          aria-label={t("workbench.rightPanel.close")}
         >
           <X />
         </Button>

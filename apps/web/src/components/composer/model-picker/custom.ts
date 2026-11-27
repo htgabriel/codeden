@@ -1,11 +1,12 @@
 import type { CustomModel, ModelInfo, ProviderInfo } from "@codeden/contracts";
+import { i18n } from "@/lib/i18n";
 import { resolveModel } from "./logic";
 
 /** Custom model ids by provider id (`settings.models.custom`). */
 export type CustomModels = Record<string, CustomModel[]>;
 
 /** Description a custom model shows in the picker. */
-export const CUSTOM_DESCRIPTION = "Custom model id, sent to the provider as is";
+export const customDescription = () => i18n.t("workbench.picker.customDescription");
 
 /**
  * Effort levels for a custom model: those of the provider's default model, or none when the
@@ -59,7 +60,7 @@ export function withCustomModels(
         ...extra.map((c) => ({
           id: c.id,
           label: c.label ?? c.id,
-          description: CUSTOM_DESCRIPTION,
+          description: customDescription(),
           ...efforts,
           efforts: [...efforts.efforts],
         })),
@@ -79,10 +80,11 @@ export function addCustomModel(
 ): { list: CustomModel[] } | { error: string } {
   const id = entry.id.trim();
   const label = entry.label?.trim();
-  if (!id) return { error: "Enter a model id" };
-  if (list.some((m) => m.id === id)) return { error: `${id} is already a custom model` };
+  if (!id) return { error: i18n.t("workbench.picker.enterModelId") };
+  if (list.some((m) => m.id === id))
+    return { error: i18n.t("workbench.picker.alreadyCustom", { id }) };
   if (provider.models.some((m) => m.id === id)) {
-    return { error: `${provider.displayName} already lists ${id}` };
+    return { error: i18n.t("workbench.picker.alreadyListed", { name: provider.displayName, id }) };
   }
   return { list: [...list, { id, ...(label ? { label } : {}) }] };
 }

@@ -2,6 +2,7 @@ import type { UpdateStatus } from "@codeden/contracts";
 import { AlertTriangle, ArrowUpCircle, CheckCircle2, Loader2, X } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Trans, useTranslation } from "@/lib/i18n";
 import {
   dismissUpdate,
   updateDismissed,
@@ -45,6 +46,7 @@ function Bar({
   actions?: ReactNode;
   onClose?: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="@container shrink-0 px-3 pt-2">
       <div
@@ -72,7 +74,7 @@ function Bar({
           <Button
             size="icon-xs"
             variant="ghost"
-            aria-label="Dismiss"
+            aria-label={t("shell.attention.dismiss")}
             className="absolute top-1.5 right-1.5 @[40rem]:static"
             onClick={onClose}
           >
@@ -84,16 +86,13 @@ function Bar({
   );
 }
 
-const Code = ({ children }: { children: ReactNode }) => (
-  <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">{children}</code>
-);
-
 /**
  * The self-update banner (§16): a newer version on open ("What's new · Update now · Later"),
  * then install progress, the restart hand-over and failures with Retry. Non-blocking: it sits
  * above the page and never takes focus.
  */
 export function UpdateBanner() {
+  const { t } = useTranslation();
   const { data } = useUpdates();
   const actions = useUpdateActions();
   const phase = useHandoverStore((s) => s.phase);
@@ -107,6 +106,13 @@ export function UpdateBanner() {
 
   const view = bannerView(data, phase, handoverTarget);
   if (!view || hidden === view.key) return null;
+  const restartToFinish = (
+    <Trans
+      i18nKey="shell.update.restartToFinish"
+      values={{ command: data.restartCommand ?? "" }}
+      components={{ code: <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs" /> }}
+    />
+  );
   const later = () => {
     if (data.latest) dismissUpdate(data.latest);
     setHidden(view.key);
@@ -116,28 +122,30 @@ export function UpdateBanner() {
     case "updated":
       return (
         <Bar tone="done" state="updated" onClose={() => setHidden(view.key)}>
-          <span className="font-medium">CodeDen updated to {view.version}.</span>{" "}
-          <span className="text-muted-foreground">
-            Running sessions carry on where they left off.
-          </span>
+          <span className="font-medium">
+            {t("shell.update.updated", { version: view.version })}
+          </span>{" "}
+          <span className="text-muted-foreground">{t("shell.update.carryOn")}</span>
         </Bar>
       );
     case "handover":
       return (
         <Bar tone="busy" state="restarting">
-          Updating CodeDen to {view.version}... restarting. This page reloads when it is back.
+          {t("shell.update.handover", { version: view.version })}
         </Bar>
       );
     case "timeout":
       return (
         <Bar tone="warn" state="timeout" onClose={() => setHidden(view.key)}>
-          Update installed. Restart CodeDen to finish: <Code>{data.restartCommand}</Code>
+          {restartToFinish}
         </Bar>
       );
     case "installing":
       return (
         <Bar tone="busy" state="installing">
-          <span className="font-medium">Installing CodeDen {view.version}...</span>{" "}
+          <span className="font-medium">
+            {t("shell.update.installing", { version: view.version })}
+          </span>{" "}
           <span className="truncate text-muted-foreground" data-testid="update-progress">
             {data.progress}
           </span>
@@ -152,12 +160,12 @@ export function UpdateBanner() {
           actions={
             canUpdate(data) && (
               <Button size="xs" onClick={install} disabled={actions.install.isPending}>
-                Retry
+                {t("shell.update.retry")}
               </Button>
             )
           }
         >
-          Couldn't update to {view.version}: {data.installError}
+          {t("shell.update.failed", { version: view.version, error: data.installError ?? "" })}
         </Bar>
       );
     case "installed":
@@ -168,15 +176,15 @@ export function UpdateBanner() {
           onClose={() => setHidden(view.key)}
           actions={
             <Button size="xs" onClick={() => actions.restart.mutate()}>
-              Restart now
+              {t("shell.update.restartNow")}
             </Button>
           }
         >
-          CodeDen {view.version} is installed and starts the next time you open CodeDen.
+          {t("shell.update.installed", { version: view.version })}
         </Bar>
       ) : (
         <Bar tone="done" state="installed" onClose={() => setHidden(view.key)}>
-          Update installed. Restart CodeDen to finish: <Code>{data.restartCommand}</Code>
+          {restartToFinish}
         </Bar>
       );
     case "available":
@@ -189,24 +197,26 @@ export function UpdateBanner() {
             actions={
               <>
                 <Button size="xs" variant="ghost" onClick={() => setNotesOpen(true)}>
-                  What's new
+                  {t("shell.update.whatsNew")}
                 </Button>
                 {canUpdate(data) && (
                   <Button size="xs" onClick={install} disabled={actions.install.isPending}>
-                    Update now
+                    {t("shell.update.updateNow")}
                   </Button>
                 )}
                 <Button size="xs" variant="ghost" onClick={later}>
-                  Later
+                  {t("shell.update.later")}
                 </Button>
               </>
             }
           >
-            <span className="font-medium">CodeDen {view.version} is available.</span>{" "}
+            <span className="font-medium">
+              {t("shell.update.available", { version: view.version })}
+            </span>{" "}
             <span className="text-muted-foreground">
               {data.source === "source"
-                ? "You're running from source: pull and rebuild to update."
-                : `You're on ${data.current}. Updating takes a moment and restarts CodeDen.`}
+                ? t("shell.update.fromSource")
+                : t("shell.update.youreOn", { current: data.current })}
             </span>
             {requestError && (
               <span className="ml-1 text-status-failed">{requestError.message}</span>

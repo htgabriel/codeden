@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useTranslation } from "@/lib/i18n";
-import { NOT_A_REPO_REASON } from "@/lib/new-session";
+import { notARepoReason } from "@/lib/new-session";
 import { TRIGGER_CLASS } from "./model-picker/trigger";
 
 /**
@@ -39,7 +39,7 @@ export function WorkspacePicker({ path }: { path: string }) {
           <GitBranch className="mt-0.5 size-4" />
           <span className="min-w-0 flex-1">
             <span className="block text-[13px]">{t("orchestrator.workspace.newWorktree")}</span>
-            <span className="block text-2xs text-muted-foreground">{NOT_A_REPO_REASON}</span>
+            <span className="block text-2xs text-muted-foreground">{notARepoReason()}</span>
           </span>
         </DropdownMenuItem>
         <DropdownMenuItem className="items-start py-1.5">

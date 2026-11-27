@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { IssueBadge, PrBadge } from "@/components/common/bits";
 import { ChecksBadge } from "@/components/github/github-bits";
 import { useClient } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n";
 import { useProject } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 import { useLayoutStore } from "@/stores/layout";
@@ -18,6 +19,7 @@ export function SessionGithubBadges({
   session: Session;
   className?: string;
 }) {
+  const { t } = useTranslation();
   const client = useClient();
   const project = useProject(session.projectId);
   const openTab = useLayoutStore((s) => s.openRightTab);
@@ -38,7 +40,11 @@ export function SessionGithubBadges({
   return (
     <span className={cn("items-center gap-1.5", className)} data-testid="session-github-badges">
       {issue && (
-        <button type="button" onClick={open} title={issue.title ?? `Issue #${issue.number}`}>
+        <button
+          type="button"
+          onClick={open}
+          title={issue.title ?? t("workbench.github.issueN", { number: issue.number })}
+        >
           <IssueBadge issue={issue} className="h-6" />
         </button>
       )}
@@ -47,7 +53,7 @@ export function SessionGithubBadges({
           type="button"
           onClick={open}
           className="inline-flex h-6 items-center gap-1 rounded-full border border-border pr-1.5"
-          title={prRef.title ?? `PR #${prRef.number}`}
+          title={prRef.title ?? t("workbench.github.prN", { number: prRef.number })}
         >
           <PrBadge pr={prRef} className="h-6 border-0" />
           {pr && <ChecksBadge checks={pr.checks} withCount={false} />}

@@ -1,4 +1,5 @@
 import type { DiffScope } from "@codeden/contracts";
+import { i18n } from "@/lib/i18n";
 
 /**
  * Line comments on a diff, sent to the agent as one review message. Pure helpers: reading the
@@ -15,8 +16,8 @@ export function labelCommentButtons(host: ParentNode): void {
   for (const view of host.querySelectorAll("diffs-container")) {
     const buttons = view.shadowRoot?.querySelectorAll("[data-utility-button]:not([aria-label])");
     for (const button of buttons ?? []) {
-      button.setAttribute("aria-label", "Comment");
-      button.setAttribute("title", "Comment (drag for several lines)");
+      button.setAttribute("aria-label", i18n.t("messages.diffReview.comment"));
+      button.setAttribute("title", i18n.t("messages.diffReview.commentTitle"));
     }
   }
 }
@@ -279,6 +280,27 @@ export function rangeLabel(range: ReviewRange): string {
   }
   if (range.start === range.end) return `${sideWord(range.side)} line ${range.start}`;
   return `${sideWord(range.side)} lines ${range.start}–${range.end}`;
+}
+
+/**
+ * `rangeLabel` in the UI language, for what the user reads. The message to the agent keeps
+ * `rangeLabel`, in English.
+ */
+export function rangeText(range: ReviewRange): string {
+  const t = i18n.t;
+  const word = (side: DiffSide) =>
+    t(side === "additions" ? "messages.diffReview.new" : "messages.diffReview.old");
+  const side = word(range.side);
+  if (range.side !== range.endSide) {
+    return t("messages.diffReview.across", {
+      side,
+      start: range.start,
+      endSide: word(range.endSide),
+      end: range.end,
+    });
+  }
+  if (range.start === range.end) return t("messages.diffReview.line", { side, start: range.start });
+  return t("messages.diffReview.lines", { side, start: range.start, end: range.end });
 }
 
 /** A code fence longer than any run of backticks in the quoted lines, so code can't close it. */

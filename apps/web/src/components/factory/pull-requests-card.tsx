@@ -2,6 +2,7 @@ import type { FactoryPrEntry } from "@codeden/contracts";
 import { Link } from "@tanstack/react-router";
 import { GitPullRequest } from "lucide-react";
 import { StatusDot } from "@/components/common/status-dot";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { PR_STATE_LABEL } from "./meta";
 
@@ -17,6 +18,7 @@ export function PullRequestsCard({
   projectId: string;
   pullRequests: FactoryPrEntry[];
 }) {
+  const { t } = useTranslation();
   const queued = pullRequests.filter((p) => p.queuePosition !== null).length;
   return (
     <section
@@ -25,18 +27,16 @@ export function PullRequestsCard({
     >
       <div className="flex items-center gap-2 border-b border-border px-3 py-1.5 text-2xs font-medium text-muted-foreground">
         <GitPullRequest className="size-3.5" />
-        Pull requests
-        <span
-          className="font-normal text-muted-foreground/80"
-          title="With auto-merge on, the factory merges every pull request that passed its checks, oldest approved first. One that is behind the default branch merges on its own CI unless it has to be re-tested first."
-        >
-          · merge queue {queued > 0 ? `${queued} waiting` : "empty"}
+        {t("factory.prs.title")}
+        <span className="font-normal text-muted-foreground/80" title={t("factory.prs.queueTitle")}>
+          ·{" "}
+          {queued > 0 ? t("factory.prs.queueWaiting", { n: queued }) : t("factory.prs.queueEmpty")}
         </span>
         <span className="ml-auto tabular-nums">{pullRequests.length}</span>
       </div>
       {pullRequests.length === 0 ? (
         <p className="px-2 py-3 text-center text-3xs text-muted-foreground/70">
-          No open factory pull requests
+          {t("factory.prs.empty")}
         </p>
       ) : (
         <ol className="space-y-0.5 p-1.5">
@@ -50,6 +50,7 @@ export function PullRequestsCard({
 }
 
 function PrRow({ projectId, entry }: { projectId: string; entry: FactoryPrEntry }) {
+  const { t } = useTranslation();
   const state = PR_STATE_LABEL[entry.state];
   return (
     <li data-testid="factory-pr" data-state={entry.state}>
@@ -67,8 +68,8 @@ function PrRow({ projectId, entry }: { projectId: string; entry: FactoryPrEntry 
           )}
           title={
             entry.queuePosition !== null
-              ? `Number ${entry.queuePosition} in the merge queue`
-              : "Not in the merge queue"
+              ? t("factory.prs.position", { n: entry.queuePosition })
+              : t("factory.prs.notQueued")
           }
           data-testid="factory-pr-position"
         >

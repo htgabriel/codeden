@@ -4,6 +4,7 @@ import { useShallow } from "zustand/react/shallow";
 import { subagentCostLines, subagentCostText } from "@/components/usage/format";
 import { useSubagentCost } from "@/components/usage/subagent-cost";
 import { subagentStatsParts, subagentStatsTitle } from "@/lib/format";
+import { useTranslation } from "@/lib/i18n";
 import { threadItems } from "@/lib/transcript/reducer";
 import { cn } from "@/lib/utils";
 import { useLayoutStore } from "@/stores/layout";
@@ -38,6 +39,7 @@ function useChildActivity(
  * (§7.3).
  */
 export function SubagentCard({ item, sessionId }: { item: ItemOf<"subagent">; sessionId: string }) {
+  const { t } = useTranslation();
   const openChild = useLayoutStore((s) => s.openChildThread);
   const { line, steps } = useChildActivity(sessionId, item.childThreadId);
   const { cost, billing } = useSubagentCost(sessionId, item);
@@ -65,7 +67,7 @@ export function SubagentCard({ item, sessionId }: { item: ItemOf<"subagent">; se
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-2">
           <span className="min-w-0 truncate text-[13px] font-medium">
-            {item.description ?? "Subagent"}
+            {item.description ?? t("workbench.subagent.title")}
           </span>
           {item.agentType && (
             <span className="shrink-0 rounded-full bg-muted px-2 py-px font-mono text-3xs text-muted-foreground">
@@ -87,7 +89,10 @@ export function SubagentCard({ item, sessionId }: { item: ItemOf<"subagent">; se
             <CheckCircle2 className="size-3 shrink-0 text-status-done" />
           )}
           <span className={cn("truncate", running && "text-shine")}>
-            {running ? (line ?? "Starting…") : (item.summary ?? (failed ? "Failed" : "Finished"))}
+            {running
+              ? (line ?? t("workbench.subagent.starting"))
+              : (item.summary ??
+                (failed ? t("workbench.subagent.failed") : t("workbench.subagent.finished")))}
           </span>
           {stats.length > 0 ? (
             <span
@@ -100,14 +105,14 @@ export function SubagentCard({ item, sessionId }: { item: ItemOf<"subagent">; se
           ) : (
             steps > 0 && (
               <span className="shrink-0 text-muted-foreground/60 tabular-nums">
-                · {steps} steps
+                · {t("workbench.work.steps", { count: steps })}
               </span>
             )
           )}
         </span>
       </span>
       <span className="flex shrink-0 items-center gap-1 self-center text-2xs text-muted-foreground opacity-70 transition-opacity group-hover:opacity-100">
-        Open <ArrowUpRight className="size-3.5" />
+        {t("workbench.subagent.open")} <ArrowUpRight className="size-3.5" />
       </span>
     </button>
   );

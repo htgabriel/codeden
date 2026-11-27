@@ -10,6 +10,7 @@ import { SessionCostText } from "@/components/usage/session-cost";
 import { useCompactSession } from "@/lib/compact-session";
 import { forkOriginLabel, forkOriginText } from "@/lib/fork-origin";
 import { ago, compact, duration, statusLabel } from "@/lib/format";
+import { i18n, useTranslation } from "@/lib/i18n";
 import { useSession } from "@/lib/queries";
 import { useTranscriptsStore } from "@/stores/transcripts";
 import { useVoiceStore } from "@/stores/voice";
@@ -25,10 +26,10 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 }
 
 const startedByLabel = {
-  user: "You",
-  orchestrator: "Orchestrator",
-  pm: "Project manager",
-  automation: "Automation",
+  user: () => i18n.t("workbench.details.startedBy.user"),
+  orchestrator: () => i18n.t("workbench.details.startedBy.orchestrator"),
+  pm: () => i18n.t("workbench.details.startedBy.pm"),
+  automation: () => i18n.t("workbench.details.startedBy.automation"),
 };
 
 /**
@@ -36,8 +37,9 @@ const startedByLabel = {
  * CodeDen runs for it, whatever its agent writes in `.codeden/project.json` since.
  */
 function ChecksRow({ checks }: { checks: SessionChecks }) {
+  const { t } = useTranslation();
   return (
-    <Row label="Checks">
+    <Row label={t("workbench.details.checks")}>
       <ul className="space-y-0.5" data-testid="session-checks">
         {checks.commands.map((c, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: the frozen list never changes
@@ -47,7 +49,7 @@ function ChecksRow({ checks }: { checks: SessionChecks }) {
             </code>
             {c.timeoutSec !== undefined && (
               <span className="shrink-0 text-2xs text-muted-foreground">
-                · {duration(c.timeoutSec * 1000)} limit
+                · {t("workbench.details.limit", { duration: duration(c.timeoutSec * 1000) })}
               </span>
             )}
           </li>
@@ -55,9 +57,9 @@ function ChecksRow({ checks }: { checks: SessionChecks }) {
       </ul>
       <span className="block text-2xs text-muted-foreground">
         {checks.untilPass
-          ? `Keeps going until they pass, up to ${checks.maxRounds} ${checks.maxRounds === 1 ? "round" : "rounds"}`
-          : "Keep going until checks pass is off"}
-        {" · fixed when the session started"}
+          ? t("workbench.details.untilPass", { count: checks.maxRounds })
+          : t("workbench.details.untilPassOff")}
+        {t("workbench.details.fixed")}
       </span>
     </Row>
   );
@@ -93,6 +95,7 @@ function ForkedFromRow({ origin }: { origin: ForkOrigin }) {
  * it can't run.
  */
 function CompactNow({ session }: { session: Session }) {
+  const { t } = useTranslation();
   const action = useCompactSession(session);
   if (!action.supported) return null;
   return (
@@ -102,13 +105,11 @@ function CompactNow({ session }: { session: Session }) {
       className="-my-1 text-muted-foreground"
       onClick={action.compact}
       disabled={action.blocked !== null}
-      title={
-        action.blocked ??
-        "Summarize the conversation to free up context. The agent keeps a summary of the work so far."
-      }
+      title={action.blocked ?? t("workbench.details.compactHint")}
       data-testid="compact-now"
     >
-      <FoldVertical /> {action.pending ? "Compacting…" : "Compact now"}
+      <FoldVertical />{" "}
+      {action.pending ? t("workbench.details.compacting") : t("workbench.details.compactNow")}
     </Button>
   );
 }
@@ -118,6 +119,7 @@ function CompactNow({ session }: { session: Session }) {
  * session's cost from the usage ledger. A figure that wasn't reported shows as "—" (§12.6).
  */
 function ContextWindow({ session }: { session: Session }) {
+  const { t } = useTranslation();
   const usage = useTranscriptsStore((s) => s.byId[session.id]?.usage ?? null);
   const used = usage?.contextTokens;
   const size = usage?.contextWindow;
@@ -125,12 +127,15 @@ function ContextWindow({ session }: { session: Session }) {
   const reading =
     used === undefined && size === undefined
       ? "—"
-      : `${used !== undefined ? compact(used) : "—"} / ${size ? compact(size) : "—"} tokens`;
+      : t("workbench.details.tokens", {
+          used: used !== undefined ? compact(used) : "—",
+          size: size ? compact(size) : "—",
+        });
   return (
     <section className="space-y-2">
       <div className="flex items-center justify-between gap-3">
         <h3 className="text-2xs font-medium tracking-wider text-muted-foreground uppercase">
-          Context window
+          {t("workbench.details.contextWindow")}
         </h3>
         <CompactNow session={session} />
       </div>
@@ -140,7 +145,7 @@ function ContextWindow({ session }: { session: Session }) {
         </div>
       )}
       <div className="flex justify-between gap-3 text-2xs text-muted-foreground tabular-nums">
-        <span title={pct === null ? "Not reported by the provider yet" : undefined}>{reading}</span>
+        <span title={pct === null ? t("workbench.details.notReported") : undefined}>{reading}</span>
         <SessionCostText sessionId={session.id} />
       </div>
     </section>
@@ -149,59 +154,62 @@ function ContextWindow({ session }: { session: Session }) {
 
 /** Session metadata, usage and what's loaded into its context (§8.4, §12.4). */
 export function DetailsPanel({ session }: { session: Session }) {
+  const { t } = useTranslation();
   const muted = useVoiceStore((s) => Boolean(s.muted[session.id]));
   const setMuted = useVoiceStore((s) => s.setMuted);
 
   return (
     <div className="h-full space-y-5 overflow-y-auto p-4 scroll-thin">
       <section className="divide-y divide-border/60">
-        <Row label="Status">
+        <Row label={t("workbench.details.status")}>
           {statusLabel[session.status]}
           {session.progress && (
             <span className="block text-2xs text-muted-foreground">{session.progress.text}</span>
           )}
         </Row>
-        <Row label="Purpose">{session.purpose}</Row>
-        <Row label="Work key">
+        <Row label={t("workbench.details.purpose")}>{session.purpose}</Row>
+        <Row label={t("workbench.details.workKey")}>
           <code className="font-mono text-[12px]">{session.workKey}</code>
         </Row>
-        <Row label="Started by">
-          {startedByLabel[session.startedBy.kind]} · {ago(session.createdAt)}
+        <Row label={t("workbench.details.startedByLabel")}>
+          {startedByLabel[session.startedBy.kind]()} · {ago(session.createdAt)}
         </Row>
         {session.forkedFrom && <ForkedFromRow origin={session.forkedFrom} />}
-        <Row label="Provider">
+        <Row label={t("workbench.details.provider")}>
           <span className="inline-flex items-center gap-1.5">
             <ProviderMark provider={session.provider} /> {session.provider} ·{" "}
-            {session.model ?? "default"}
+            {session.model ?? t("workbench.details.defaultModel")}
             {session.effort ? ` · ${session.effort}` : ""}
           </span>
         </Row>
-        <Row label="Autonomy">
+        <Row label={t("workbench.details.autonomy")}>
           <AutonomyBadge level={session.autonomy} />
         </Row>
         {session.checks && session.checks.commands.length > 0 && (
           <ChecksRow checks={session.checks} />
         )}
         {session.branch && (
-          <Row label="Branch">
+          <Row label={t("workbench.details.branch")}>
             <code className="font-mono text-[12px]">{session.branch}</code>{" "}
-            <span className="text-2xs text-muted-foreground">from {session.baseBranch}</span>
+            <span className="text-2xs text-muted-foreground">
+              {t("workbench.details.fromBranch", { branch: session.baseBranch ?? "" })}
+            </span>
           </Row>
         )}
         {session.worktreePath ? (
-          <Row label="Worktree">
+          <Row label={t("workbench.details.worktree")}>
             <code className="font-mono text-[11.5px] text-muted-foreground">
               {session.worktreePath}
             </code>
           </Row>
         ) : (
           // Runs in place: in the project folder, or the folder it was started in.
-          <Row label="Folder">
+          <Row label={t("workbench.details.folder")}>
             <code className="font-mono text-[11.5px] text-muted-foreground">{session.cwd}</code>
           </Row>
         )}
         {session.scope.paths && (
-          <Row label="Scope">
+          <Row label={t("workbench.details.scope")}>
             <code className="font-mono text-[12px]">{session.scope.paths.join(", ")}</code>
           </Row>
         )}
@@ -212,20 +220,22 @@ export function DetailsPanel({ session }: { session: Session }) {
       <LoadedConfig session={session} />
       <div className="flex items-center justify-between gap-3 text-[13px]">
         <span>
-          Read this session aloud
+          {t("workbench.details.readAloud")}
           <span className="block text-2xs text-muted-foreground">
-            When read-aloud is on in Settings › Voice
+            {t("workbench.details.readAloudHint")}
           </span>
         </span>
         <Switch
           checked={!muted}
           onCheckedChange={(on) => setMuted(session.id, !on)}
-          aria-label="Read this session aloud"
+          aria-label={t("workbench.details.readAloud")}
         />
       </div>
       <p className="flex items-center gap-1.5 text-3xs text-muted-foreground/70">
-        <Brain className="size-3" /> Session {session.id} · resumable
-        {session.resumeToken ? "" : " after first turn"}
+        <Brain className="size-3" />{" "}
+        {session.resumeToken
+          ? t("workbench.details.resumable", { id: session.id })
+          : t("workbench.details.resumableAfter", { id: session.id })}
       </p>
     </div>
   );

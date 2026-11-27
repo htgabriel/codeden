@@ -23,6 +23,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 /** One action in a row menu. */
@@ -177,11 +178,12 @@ export function RowMenuButton({
   label: string;
   className?: string;
 }) {
+  const { t } = useTranslation();
   return (
     <DropdownMenu open={menu.open} onOpenChange={menu.setOpen}>
       <DropdownMenuTrigger
         aria-label={label}
-        title="More actions"
+        title={t("shell.rowMenu.more")}
         onPointerDown={(e) => e.stopPropagation()}
         className={cn(
           "flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-sidebar-border hover:text-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring data-[state=open]:bg-sidebar-border data-[state=open]:text-foreground",
