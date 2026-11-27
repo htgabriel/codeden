@@ -1,4 +1,5 @@
 import type { SessionStatus, SubagentStats } from "@codeden/contracts";
+import { i18n } from "@/lib/i18n";
 
 /** "now", "3m", "2h", "4d" — compact age for dense lists. */
 export function ageShort(iso: string, now = Date.now()): string {
@@ -11,32 +12,34 @@ export function ageShort(iso: string, now = Date.now()): string {
   return `${Math.round(h / 24)}d`;
 }
 
-/** "just now", "3 min ago", "2 h ago", "yesterday". */
+/** "just now", "3 min ago", "2 h ago", "yesterday" (in the UI language). */
 export function ago(iso: string, now = Date.now()): string {
+  const t = i18n.t;
   const short = ageShort(iso, now);
-  if (short === "now") return "just now";
-  if (short.endsWith("m")) return `${short.slice(0, -1)} min ago`;
-  if (short.endsWith("h")) return `${short.slice(0, -1)} h ago`;
+  if (short === "now") return t("format.justNow");
+  if (short.endsWith("m")) return t("format.minAgo", { n: short.slice(0, -1) });
+  if (short.endsWith("h")) return t("format.hAgo", { n: short.slice(0, -1) });
   const d = Number(short.slice(0, -1));
-  return d === 1 ? "yesterday" : `${d} days ago`;
+  return d === 1 ? t("format.yesterday") : t("format.daysAgo", { n: d });
 }
 
-/** "in 38 min", "in 2 h 30 min", "tomorrow 09:00", "Mon 09:00". */
+/** "in 38 min", "in 2 h 30 min", "tomorrow 09:00", "Mon 09:00" (in the UI language). */
 export function until(iso: string, now = Date.now()): string {
+  const t = i18n.t;
   const target = new Date(iso);
   const mins = Math.round((target.getTime() - now) / 60_000);
-  if (mins <= 0) return "now";
-  if (mins < 60) return `in ${mins} min`;
+  if (mins <= 0) return t("format.now");
+  if (mins < 60) return t("format.inMin", { n: mins });
   if (mins < 6 * 60) {
     const h = Math.floor(mins / 60);
     const m = mins % 60;
-    return m ? `in ${h} h ${m} min` : `in ${h} h`;
+    return m ? t("format.inHMin", { h, m }) : t("format.inH", { h });
   }
   const time = target.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
   const today = new Date(now);
   const tomorrow = new Date(now + 86_400_000);
-  if (target.toDateString() === today.toDateString()) return `today ${time}`;
-  if (target.toDateString() === tomorrow.toDateString()) return `tomorrow ${time}`;
+  if (target.toDateString() === today.toDateString()) return t("format.today", { time });
+  if (target.toDateString() === tomorrow.toDateString()) return t("format.tomorrow", { time });
   // A weekday alone is ambiguous from a week out.
   if (mins >= 6 * 24 * 60)
     return `${target.toLocaleDateString([], { day: "numeric", month: "short" })} ${time}`;
@@ -115,18 +118,19 @@ export const statusTone: Record<SessionStatus, Tone> = {
   stopped: "idle",
 };
 
-export const statusLabel: Record<SessionStatus, string> = {
-  created: "Created",
-  queued: "Queued",
-  starting: "Starting",
-  running: "Working",
-  waiting: "Needs you",
-  idle: "Idle",
-  interrupted: "Interrupted",
-  completed: "Done",
-  failed: "Failed",
-  stopped: "Stopped",
-};
+/** Session status labels, read in the UI language each time they are shown. */
+export const statusLabel = Object.defineProperties({} as Record<SessionStatus, string>, {
+  created: { get: () => i18n.t("format.status.created"), enumerable: true },
+  queued: { get: () => i18n.t("format.status.queued"), enumerable: true },
+  starting: { get: () => i18n.t("format.status.starting"), enumerable: true },
+  running: { get: () => i18n.t("format.status.running"), enumerable: true },
+  waiting: { get: () => i18n.t("format.status.waiting"), enumerable: true },
+  idle: { get: () => i18n.t("format.status.idle"), enumerable: true },
+  interrupted: { get: () => i18n.t("format.status.interrupted"), enumerable: true },
+  completed: { get: () => i18n.t("format.status.completed"), enumerable: true },
+  failed: { get: () => i18n.t("format.status.failed"), enumerable: true },
+  stopped: { get: () => i18n.t("format.status.stopped"), enumerable: true },
+});
 
 /** Sessions that count as live work for Now / Next. */
 export function isActive(status: SessionStatus): boolean {

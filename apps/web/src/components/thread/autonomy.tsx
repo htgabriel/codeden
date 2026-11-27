@@ -1,40 +1,66 @@
 import type { AutonomyLevel, ProviderInfo } from "@codeden/contracts";
 import { Eye, type LucideIcon, ShieldAlert, ShieldCheck, ShieldOff } from "lucide-react";
+import { i18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 /**
  * The permission levels of an agent session (§11.2), from Read-only to Full, with one plain
- * line each. Stored as `autonomy`; shown everywhere as "Permissions".
+ * line each. Stored as `autonomy`; shown everywhere as "Permissions". The texts are getters so
+ * they follow the UI language (§13).
  */
 export const AUTONOMY: Record<
   AutonomyLevel,
   { label: string; short: string; description: string; icon: LucideIcon; tone: string }
 > = {
   read_only: {
-    label: "Read-only",
-    short: "Read-only",
-    description: "Can read and run checks, but never edits files, commits or pushes.",
+    get label() {
+      return i18n.t("autonomy.readOnly.label");
+    },
+    get short() {
+      return i18n.t("autonomy.readOnly.label");
+    },
+    get description() {
+      return i18n.t("autonomy.readOnly.description");
+    },
     icon: Eye,
     tone: "text-chart-1",
   },
   supervised: {
-    label: "Supervised",
-    short: "Supervised",
-    description: "Asks before edits and commands.",
+    get label() {
+      return i18n.t("autonomy.supervised.label");
+    },
+    get short() {
+      return i18n.t("autonomy.supervised.label");
+    },
+    get description() {
+      return i18n.t("autonomy.supervised.description");
+    },
     icon: ShieldAlert,
     tone: "text-chart-2",
   },
   auto: {
-    label: "Auto",
-    short: "Auto",
-    description: "Works freely in its worktree and asks only for risky actions.",
+    get label() {
+      return i18n.t("autonomy.auto.label");
+    },
+    get short() {
+      return i18n.t("autonomy.auto.label");
+    },
+    get description() {
+      return i18n.t("autonomy.auto.description");
+    },
     icon: ShieldCheck,
     tone: "text-status-done",
   },
   full: {
-    label: "Full",
-    short: "Full",
-    description: "Never asks.",
+    get label() {
+      return i18n.t("autonomy.full.label");
+    },
+    get short() {
+      return i18n.t("autonomy.full.label");
+    },
+    get description() {
+      return i18n.t("autonomy.full.description");
+    },
     icon: ShieldOff,
     tone: "text-status-waiting",
   },
@@ -55,7 +81,7 @@ export function AutonomyBadge({ level, className }: { level: AutonomyLevel; clas
   const a = AUTONOMY[level];
   return (
     <span
-      title={`Permissions: ${a.description}`}
+      title={i18n.t("autonomy.badgeTitle", { description: a.description })}
       className={cn(
         "inline-flex h-6 items-center gap-1.5 rounded-md border border-border/80 px-2 text-2xs text-muted-foreground",
         className,
