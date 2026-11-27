@@ -4,6 +4,7 @@ import { StatusDot } from "@/components/common/status-dot";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { isMockMode } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n";
 import { runnerStatusText } from "@/lib/runner-status";
 import { cn } from "@/lib/utils";
 import { useConnectionStore } from "@/stores/connection";
@@ -39,6 +40,7 @@ function IconButton({
 
 /** Runner status line plus quick actions. `compact` renders a vertical stack for the rail. */
 export function SidebarFooter({ compact = false }: { compact?: boolean }) {
+  const { t } = useTranslation();
   const runner = useConnectionStore((s) => s.runner);
   const socket = useConnectionStore((s) => s.socket);
   const preference = useThemeStore((s) => s.preference);
@@ -70,10 +72,13 @@ export function SidebarFooter({ compact = false }: { compact?: boolean }) {
         </div>
       )}
       {compact && <StatusDot tone={tone} className="mb-1" />}
-      <IconButton label="Keyboard shortcuts" onClick={() => openShortcuts(true)}>
+      <IconButton label={t("sidebar.keyboardShortcuts")} onClick={() => openShortcuts(true)}>
         <Keyboard />
       </IconButton>
-      <IconButton label={dark ? "Light theme" : "Dark theme"} onClick={toggleTheme}>
+      <IconButton
+        label={dark ? t("sidebar.lightTheme") : t("sidebar.darkTheme")}
+        onClick={toggleTheme}
+      >
         {dark ? <Sun /> : <Moon />}
       </IconButton>
       <Tooltip>
@@ -82,7 +87,7 @@ export function SidebarFooter({ compact = false }: { compact?: boolean }) {
             variant="ghost"
             size="icon-sm"
             className="text-muted-foreground"
-            aria-label="Agent configuration"
+            aria-label={t("sidebar.agentConfiguration")}
             asChild
           >
             <Link to="/agents">
@@ -90,7 +95,7 @@ export function SidebarFooter({ compact = false }: { compact?: boolean }) {
             </Link>
           </Button>
         </TooltipTrigger>
-        <TooltipContent>Agent configuration</TooltipContent>
+        <TooltipContent>{t("sidebar.agentConfiguration")}</TooltipContent>
       </Tooltip>
       <Tooltip>
         <TooltipTrigger asChild>
@@ -98,7 +103,7 @@ export function SidebarFooter({ compact = false }: { compact?: boolean }) {
             variant="ghost"
             size="icon-sm"
             className="text-muted-foreground"
-            aria-label="Settings"
+            aria-label={t("common.settings")}
             asChild
           >
             <Link to="/settings/$section" params={{ section: "general" }}>
@@ -106,7 +111,7 @@ export function SidebarFooter({ compact = false }: { compact?: boolean }) {
             </Link>
           </Button>
         </TooltipTrigger>
-        <TooltipContent>Settings</TooltipContent>
+        <TooltipContent>{t("common.settings")}</TooltipContent>
       </Tooltip>
     </div>
   );

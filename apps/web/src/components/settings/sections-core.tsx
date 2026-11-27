@@ -1,4 +1,4 @@
-import type { Role } from "@codeden/contracts";
+import type { Role, UiLanguagePreference } from "@codeden/contracts";
 import { ProviderMark } from "@/components/common/bits";
 import { NumberField } from "@/components/common/number-field";
 import { PickerFooterChoice } from "@/components/composer/model-picker/footer";
@@ -7,8 +7,10 @@ import { ModelPicker } from "@/components/composer/model-picker/model-picker";
 import { KillSwitchButton } from "@/components/factory/kill-switch";
 import { AUTONOMY } from "@/components/thread/autonomy";
 import { Switch } from "@/components/ui/switch";
+import { useTranslation } from "@/lib/i18n";
 import { useSetupStatus, useSnapshotData } from "@/lib/queries";
 import { cn } from "@/lib/utils";
+import { useLanguageStore } from "@/stores/language";
 import { type ThemePreference, useThemeStore } from "@/stores/theme";
 import { AgentEnvironmentSettings } from "./agent-environment";
 import { CustomModelSettings } from "./custom-models";
@@ -19,13 +21,19 @@ import { TokenSaverSettingsSection } from "./token-saver";
 import { UpdateModeSetting } from "./update-mode";
 
 export function GeneralSettings() {
+  const { t } = useTranslation();
   const { settings, update } = useSettings();
   const preference = useThemeStore((s) => s.preference);
   const setPreference = useThemeStore((s) => s.setPreference);
+  const language = useLanguageStore((s) => s.preference);
+  const setLanguage = useLanguageStore((s) => s.setPreference);
   return (
     <>
-      <SettingsSection title="Appearance">
-        <SettingRow label="Theme" help="Dark is the default; light mirrors it.">
+      <SettingsSection title={t("settings.appearance.title")}>
+        <SettingRow
+          label={t("settings.appearance.theme")}
+          help={t("settings.appearance.themeHelp")}
+        >
           <Segmented<ThemePreference>
             value={preference}
             onChange={(v) => {
@@ -33,9 +41,27 @@ export function GeneralSettings() {
               update({ appearance: { theme: v } });
             }}
             options={[
-              { value: "dark", label: "Dark" },
-              { value: "light", label: "Light" },
-              { value: "system", label: "System" },
+              { value: "dark", label: t("settings.appearance.dark") },
+              { value: "light", label: t("settings.appearance.light") },
+              { value: "system", label: t("settings.appearance.system") },
+            ]}
+          />
+        </SettingRow>
+        <SettingRow
+          label={t("settings.appearance.language")}
+          help={t("settings.appearance.languageHelp")}
+        >
+          <Segmented<UiLanguagePreference>
+            value={language}
+            onChange={(v) => {
+              setLanguage(v);
+              update({ appearance: { language: v } });
+            }}
+            options={[
+              { value: "auto", label: t("settings.appearance.auto") },
+              // Each language is named in itself, so it can be found from any language.
+              { value: "en", label: "English" },
+              { value: "pt-BR", label: "Português (Brasil)" },
             ]}
           />
         </SettingRow>

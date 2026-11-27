@@ -35,6 +35,8 @@ import { UpdateCheck } from "@/components/settings/update-check";
 import { Logo } from "@/components/shell/logo";
 import { ShortcutList } from "@/components/shell/shortcuts";
 import { isMockMode } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n";
+import type { en } from "@/lib/i18n/locales/en";
 import { platform } from "@/lib/platform";
 import { useSnapshot } from "@/lib/queries";
 import { cn } from "@/lib/utils";
@@ -42,9 +44,10 @@ import { PageHeader } from "./page-header";
 
 function About() {
   // The server's version (the web bundle's constant may be older after a relabelled build).
+  const { t } = useTranslation();
   const version = useSnapshot().data?.serverVersion ?? CODEDEN_VERSION;
   return (
-    <SettingsSection title="About">
+    <SettingsSection title={t("settings.sections.about")}>
       {/* A narrow card (a phone, a squeezed column): the logo above the text, which keeps the width. */}
       <div className="@container">
         <div className="flex flex-col items-start gap-3 p-5 @[30rem]:flex-row @[30rem]:items-center @[30rem]:gap-4">
@@ -73,39 +76,47 @@ function About() {
   );
 }
 
-const SECTIONS: { id: string; label: string; icon: LucideIcon; render: () => ReactNode }[] = [
-  { id: "general", label: "General", icon: Settings2, render: () => <GeneralSettings /> },
-  { id: "providers", label: "Providers", icon: Bot, render: () => <ProviderSettings /> },
-  { id: "autonomy", label: "Autonomy", icon: ShieldCheck, render: () => <AutonomySettings /> },
-  { id: "github", label: "GitHub", icon: GitPullRequest, render: () => <GithubSettings /> },
-  { id: "voice", label: "Voice", icon: Mic, render: () => <VoiceSettings /> },
-  { id: "images", label: "Image generation", icon: ImageIcon, render: () => <ImageSettings /> },
-  { id: "utility", label: "Utility model", icon: Cpu, render: () => <UtilitySettings /> },
+type SectionId = keyof typeof en.settings.sections;
+type Section = { id: SectionId; icon: LucideIcon; render: () => ReactNode };
+
+const SECTIONS: Section[] = [
+  { id: "general", icon: Settings2, render: () => <GeneralSettings /> },
+  { id: "providers", icon: Bot, render: () => <ProviderSettings /> },
+  { id: "autonomy", icon: ShieldCheck, render: () => <AutonomySettings /> },
+  { id: "github", icon: GitPullRequest, render: () => <GithubSettings /> },
+  { id: "voice", icon: Mic, render: () => <VoiceSettings /> },
+  { id: "images", icon: ImageIcon, render: () => <ImageSettings /> },
+  { id: "utility", icon: Cpu, render: () => <UtilitySettings /> },
   {
     id: "notifications",
-    label: "Notifications",
     icon: Bell,
     render: () => <NotificationSettings />,
   },
-  { id: "network", label: "Network access", icon: Smartphone, render: () => <NetworkSettings /> },
+  { id: "network", icon: Smartphone, render: () => <NetworkSettings /> },
   ...(platform.capabilities.osIntegration
-    ? [{ id: "desktop", label: "App", icon: AppWindow, render: () => <DesktopSettings /> }]
+    ? [{ id: "desktop", icon: AppWindow, render: () => <DesktopSettings /> } satisfies Section]
     : []),
-  { id: "shortcuts", label: "Keyboard shortcuts", icon: Keyboard, render: () => <ShortcutList /> },
-  { id: "about", label: "About", icon: Info, render: () => <About /> },
+  { id: "shortcuts", icon: Keyboard, render: () => <ShortcutList /> },
+  { id: "about", icon: Info, render: () => <About /> },
 ];
 
 /** Settings with a left section nav. */
 export function SettingsPage({ section }: { section: string }) {
   const active = SECTIONS.find((s) => s.id === section) ?? SECTIONS[0];
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  const label = (id: SectionId) => t(`settings.sections.${id}`);
   return (
     <>
-      <PageHeader icon={<Settings2 />} title="Settings" meta={active?.label} />
+      <PageHeader
+        icon={<Settings2 />}
+        title={t("common.settings")}
+        meta={active && label(active.id)}
+      />
       {/* Phones: a section picker instead of the side nav. */}
       <div className="shrink-0 border-b border-border px-4 py-2 md:hidden">
         <select
-          aria-label="Settings section"
+          aria-label={t("settings.sectionNav")}
           className="h-10 w-full rounded-lg border border-border bg-background px-3 text-[13px]"
           value={active?.id}
           onChange={(e) =>
@@ -115,7 +126,7 @@ export function SettingsPage({ section }: { section: string }) {
         >
           {SECTIONS.map((s) => (
             <option key={s.id} value={s.id}>
-              {s.label}
+              {label(s.id)}
             </option>
           ))}
         </select>
@@ -133,7 +144,7 @@ export function SettingsPage({ section }: { section: string }) {
               )}
             >
               <s.icon className={cn("size-4", s.id === active?.id && "text-primary")} />
-              {s.label}
+              {label(s.id)}
             </Link>
           ))}
           <div className="my-2 h-px bg-border" />
@@ -141,13 +152,13 @@ export function SettingsPage({ section }: { section: string }) {
             to="/agents"
             className="flex h-8 items-center gap-2.5 rounded-md px-2.5 text-[13px] text-muted-foreground hover:bg-accent/60 hover:text-foreground"
           >
-            <SlidersHorizontal className="size-4" /> Agent configuration
+            <SlidersHorizontal className="size-4" /> {t("sidebar.agentConfiguration")}
           </Link>
           <Link
             to="/setup"
             className="flex h-8 items-center gap-2.5 rounded-md px-2.5 text-[13px] text-muted-foreground hover:bg-accent/60 hover:text-foreground"
           >
-            <Sparkles className="size-4" /> First-run setup
+            <Sparkles className="size-4" /> {t("settings.firstRunSetup")}
           </Link>
         </nav>
         <div className="min-h-0 flex-1 overflow-y-auto scroll-thin">

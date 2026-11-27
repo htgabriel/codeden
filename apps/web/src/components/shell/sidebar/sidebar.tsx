@@ -16,6 +16,7 @@ import { StatusDot } from "@/components/common/status-dot";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useTranslation } from "@/lib/i18n";
 import { splitPinned } from "@/lib/project-order";
 import { useSnapshot } from "@/lib/queries";
 import { cn } from "@/lib/utils";
@@ -34,12 +35,13 @@ function WaitingOnYou({
   sessions: Session[];
   projectName: (id: string | null) => string;
 }) {
+  const { t } = useTranslation();
   if (sessions.length === 0) return null;
   return (
     <div className="mx-3 mt-2 rounded-lg border border-status-waiting/15 bg-status-waiting/[0.04] p-1">
       <div className="flex items-center gap-2 px-2 pt-1 pb-0.5">
         <span className="text-3xs font-semibold tracking-[0.08em] text-status-waiting/90 uppercase">
-          Waiting on you
+          {t("sidebar.waitingOnYou")}
         </span>
         <span className="ml-auto text-3xs font-semibold text-status-waiting tabular-nums">
           {sessions.length}
@@ -70,6 +72,7 @@ function WaitingOnYou({
  * phone/tablet drawer, `onClose` replaces the collapse button.
  */
 export function Sidebar({ width, onClose }: { width: number | string; onClose?: () => void }) {
+  const { t } = useTranslation();
   const { data } = useSnapshot();
   const toggleSidebar = useLayoutStore((s) => s.toggleSidebar);
   const openPalette = useUiStore((s) => s.setPaletteOpen);
@@ -96,7 +99,7 @@ export function Sidebar({ width, onClose }: { width: number | string; onClose?: 
             size="icon-sm"
             className="ml-auto text-muted-foreground"
             onClick={onClose}
-            aria-label="Close menu"
+            aria-label={t("sidebar.closeMenu")}
           >
             <X />
           </Button>
@@ -108,12 +111,12 @@ export function Sidebar({ width, onClose }: { width: number | string; onClose?: 
                 size="icon-sm"
                 className="ml-auto text-muted-foreground"
                 onClick={toggleSidebar}
-                aria-label="Collapse sidebar"
+                aria-label={t("sidebar.collapse")}
               >
                 <PanelLeftClose />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Collapse sidebar · Ctrl B</TooltipContent>
+            <TooltipContent>{t("sidebar.collapseTooltip")}</TooltipContent>
           </Tooltip>
         )}
       </div>
@@ -125,7 +128,7 @@ export function Sidebar({ width, onClose }: { width: number | string; onClose?: 
           className="flex h-8 w-full items-center gap-2 rounded-md border border-sidebar-border bg-background/40 px-2.5 text-[13px] text-muted-foreground shadow-xs transition-colors hover:border-input hover:text-foreground pointer-coarse:h-10"
         >
           <Search className="size-3.5" />
-          <span>Search or run…</span>
+          <span>{t("sidebar.searchOrRun")}</span>
           <Hotkey keys="Ctrl K" className="ml-auto" />
         </button>
       </div>
@@ -135,12 +138,12 @@ export function Sidebar({ width, onClose }: { width: number | string; onClose?: 
           <span className="flex size-4 items-center justify-center rounded-[5px] bg-primary/15 text-primary">
             <Bot className="size-3" />
           </span>
-          <span className="flex-1 font-medium">Orchestrator</span>
+          <span className="flex-1 font-medium">{t("sidebar.orchestrator")}</span>
           {orchestrator && <StatusDot status={orchestrator.status} />}
         </NavRow>
         <NavRow href="/inbox" link={{ to: "/inbox" }}>
           <Inbox className="size-4 text-muted-foreground" />
-          <span className="flex-1">Inbox</span>
+          <span className="flex-1">{t("sidebar.inbox")}</span>
           {inbox.length > 0 && (
             <span
               className={cn(
@@ -156,7 +159,7 @@ export function Sidebar({ width, onClose }: { width: number | string; onClose?: 
         </NavRow>
         <NavRow href="/reports" link={{ to: "/reports" }}>
           <ChartColumnBig className="size-4 text-muted-foreground" />
-          <span className="flex-1">Usage</span>
+          <span className="flex-1">{t("sidebar.usage")}</span>
         </NavRow>
       </nav>
 
@@ -173,40 +176,40 @@ export function Sidebar({ width, onClose }: { width: number | string; onClose?: 
       >
         <div className="flex min-w-0 flex-col gap-1 px-3 pb-3">
           {pinned.length > 0 && (
-            <section aria-label="Pinned projects" className="flex flex-col gap-1">
+            <section aria-label={t("sidebar.pinnedProjects")} className="flex flex-col gap-1">
               <div className="flex h-7 items-center gap-1.5 pt-1 pl-2">
                 <Pin className="size-3 text-muted-foreground/70" />
-                <SectionLabel>Pinned</SectionLabel>
+                <SectionLabel>{t("sidebar.pinned")}</SectionLabel>
               </div>
               <SortableProjectGroup
                 projects={pinned}
                 sessions={data?.sessions ?? []}
-                label="Pinned"
+                label={t("sidebar.pinned")}
               />
             </section>
           )}
-          <section aria-label="Projects" className="flex flex-col gap-1">
+          <section aria-label={t("sidebar.projects")} className="flex flex-col gap-1">
             <div className={cn("flex h-7 items-center pl-2", pinned.length > 0 && "mt-2")}>
-              <SectionLabel>Projects</SectionLabel>
+              <SectionLabel>{t("sidebar.projects")}</SectionLabel>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon-xs"
                     className="ml-auto text-muted-foreground"
-                    aria-label="Add project"
+                    aria-label={t("sidebar.addProject")}
                     onClick={() => openAddProject(true)}
                   >
                     <Plus />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Add a project</TooltipContent>
+                <TooltipContent>{t("sidebar.addProjectTooltip")}</TooltipContent>
               </Tooltip>
             </div>
             <SortableProjectGroup
               projects={others}
               sessions={data?.sessions ?? []}
-              label="Projects"
+              label={t("sidebar.projects")}
             />
           </section>
           {data && data.projects.length === 0 && (
@@ -215,7 +218,7 @@ export function Sidebar({ width, onClose }: { width: number | string; onClose?: 
               onClick={() => openAddProject(true)}
               className={cn(rowBase, "text-muted-foreground")}
             >
-              <FolderPlus className="size-4" /> Add your first project
+              <FolderPlus className="size-4" /> {t("sidebar.addFirstProject")}
             </button>
           )}
           {data && (
@@ -223,7 +226,7 @@ export function Sidebar({ width, onClose }: { width: number | string; onClose?: 
               to="/setup"
               className="mt-2 px-2 text-3xs text-muted-foreground/60 hover:text-muted-foreground"
             >
-              Run first-time setup again
+              {t("sidebar.runSetupAgain")}
             </Link>
           )}
         </div>

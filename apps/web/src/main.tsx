@@ -8,9 +8,11 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ApiRequestError, ClientProvider, createClient } from "@/lib/api";
 import { installClipboardFallback } from "@/lib/clipboard";
 import { notifyCopyFailed } from "@/lib/copy";
+import { applyLanguage, browserLanguages, resolveLanguage } from "@/lib/i18n";
 import { platform } from "@/lib/platform";
 import { startRealtime } from "@/lib/realtime";
 import { router } from "@/router";
+import { useLanguageStore } from "@/stores/language";
 import { applyTheme, useThemeStore } from "@/stores/theme";
 import "./index.css";
 
@@ -30,6 +32,11 @@ const client = createClient();
 
 applyTheme(useThemeStore.getState().preference);
 useThemeStore.subscribe((s) => applyTheme(s.preference));
+const syncLanguage = () =>
+  void applyLanguage(resolveLanguage(useLanguageStore.getState().preference, browserLanguages()));
+syncLanguage();
+useLanguageStore.subscribe(syncLanguage);
+window.addEventListener("languagechange", syncLanguage);
 startRealtime(client, queryClient);
 // Phones on the LAN use plain http, where browsers hide the Clipboard API; code block copy
 // buttons in rendered markdown call it directly.

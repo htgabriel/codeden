@@ -1,0 +1,89 @@
+/**
+ * The English catalog: the source of every UI string and the fallback for missing ones (§13).
+ * It ships in the entry chunk; other languages load on demand (`../index.ts`). Keys are grouped
+ * by area; plurals use i18next's `_one` / `_other` suffixes and `{{name}}` interpolation.
+ */
+export const en = {
+  common: {
+    cancel: "Cancel",
+    settings: "Settings",
+  },
+  sidebar: {
+    waitingOnYou: "Waiting on you",
+    closeMenu: "Close menu",
+    collapse: "Collapse sidebar",
+    collapseTooltip: "Collapse sidebar · Ctrl B",
+    searchOrRun: "Search or run…",
+    orchestrator: "Orchestrator",
+    inbox: "Inbox",
+    usage: "Usage",
+    pinned: "Pinned",
+    pinnedProjects: "Pinned projects",
+    projects: "Projects",
+    addProject: "Add project",
+    addProjectTooltip: "Add a project",
+    addFirstProject: "Add your first project",
+    runSetupAgain: "Run first-time setup again",
+    keyboardShortcuts: "Keyboard shortcuts",
+    lightTheme: "Light theme",
+    darkTheme: "Dark theme",
+    agentConfiguration: "Agent configuration",
+  },
+  settings: {
+    firstRunSetup: "First-run setup",
+    sectionNav: "Settings section",
+    sections: {
+      general: "General",
+      providers: "Providers",
+      autonomy: "Autonomy",
+      github: "GitHub",
+      voice: "Voice",
+      images: "Image generation",
+      utility: "Utility model",
+      notifications: "Notifications",
+      network: "Network access",
+      desktop: "App",
+      shortcuts: "Keyboard shortcuts",
+      about: "About",
+    },
+    appearance: {
+      title: "Appearance",
+      theme: "Theme",
+      themeHelp: "Dark is the default; light mirrors it.",
+      dark: "Dark",
+      light: "Light",
+      system: "System",
+      language: "Language",
+      languageHelp: "Auto follows your browser's language. Agents keep working in English.",
+      auto: "Auto",
+    },
+  },
+  triage: {
+    heading: "Should I take this on?",
+    classification: "PM: Ready",
+    classificationTitle: "The PM's triage classification",
+    issue: "Issue",
+    rationale: "PM's rationale",
+    accepted: "Accepted",
+    declined: "Declined",
+    reasonPlaceholder: "Why not? (optional, kept with the decision)",
+    reasonLabel: "Reason to decline",
+    decline: "Decline",
+    declineEllipsis: "Decline…",
+    starting: "Starting…",
+    takeItOn: "Take it on",
+    takeItOnHint: "Take it on starts an agent session for the issue",
+    recordFailed: "Couldn't record the decision",
+    conflict: "Matching work is already running",
+    conflictHint: "Decide on the conflict card in your inbox.",
+    queued: "Queued behind running work",
+    taking: "Taking it on",
+    openSession: "Open session",
+    declinedToast: "Declined; the issue keeps its triage labels",
+  },
+} as const;
+
+/** The shape every other catalog must match: same keys, any strings. */
+export type Catalog<T = typeof en> = {
+  [K in keyof T]: T[K] extends string ? string : Catalog<T[K]>;
+};

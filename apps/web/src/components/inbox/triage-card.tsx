@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useClient } from "@/lib/api";
+import { useTranslation } from "@/lib/i18n";
 import { platform } from "@/lib/platform";
 
 /** "Should I take this on? #12 Fix the login" -> the issue title part. */
@@ -20,29 +21,29 @@ function questionOf(item: InboxItem): string {
  * decline closes the decision with an optional reason.
  */
 export function TriageCard({ item }: { item: InboxItem }) {
+  const { t } = useTranslation();
   const client = useClient();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [declining, setDeclining] = useState(false);
   const [reason, setReason] = useState("");
   const open = item.status === "open";
-  const fail = (e: Error) =>
-    toast.error("Couldn't record the decision", { description: e.message });
+  const fail = (e: Error) => toast.error(t("triage.recordFailed"), { description: e.message });
 
   const onAccepted = (res: TriageDecisionResponse) => {
     const start = res.start;
     if (start?.status === "conflict") {
       void queryClient.invalidateQueries({ queryKey: ["conflicts"] });
-      toast.warning("Matching work is already running", {
-        description: "Decide on the conflict card in your inbox.",
+      toast.warning(t("triage.conflict"), {
+        description: t("triage.conflictHint"),
       });
       return;
     }
     const sessionId = start && "sessionId" in start ? start.sessionId : null;
-    toast.success(start?.status === "queued" ? "Queued behind running work" : "Taking it on", {
+    toast.success(start?.status === "queued" ? t("triage.queued") : t("triage.taking"), {
       action: sessionId
         ? {
-            label: "Open session",
+            label: t("triage.openSession"),
             onClick: () => void navigate({ to: "/sessions/$sessionId", params: { sessionId } }),
           }
         : undefined,
@@ -56,7 +57,7 @@ export function TriageCard({ item }: { item: InboxItem }) {
   const decline = useMutation({
     mutationFn: () =>
       client.automations.declineTriage(item.id, reason.trim() ? { reason: reason.trim() } : {}),
-    onSuccess: () => toast.success("Declined; the issue keeps its triage labels"),
+    onSuccess: () => toast.success(t("triage.declinedToast")),
     onError: fail,
   });
   const busy = accept.isPending || decline.isPending;
@@ -66,14 +67,14 @@ export function TriageCard({ item }: { item: InboxItem }) {
       <div className="flex items-center gap-2 border-b border-border px-4 py-2 text-2xs">
         <Filter className="size-3.5 text-primary" />
         <span className="font-semibold tracking-wider text-primary uppercase">
-          Should I take this on?
+          {t("triage.heading")}
         </span>
         <span
           className="ml-auto rounded-full bg-status-done/12 px-2 py-px font-medium text-status-done"
           data-testid="triage-classification"
-          title="The PM's triage classification"
+          title={t("triage.classificationTitle")}
         >
-          PM: Ready
+          {t("triage.classification")}
         </span>
       </div>
       <div className="space-y-3 px-4 py-3">
@@ -87,14 +88,14 @@ export function TriageCard({ item }: { item: InboxItem }) {
               className="shrink-0 text-muted-foreground"
               onClick={() => item.issue && platform.openExternal(item.issue.url)}
             >
-              <ExternalLink /> Issue
+              <ExternalLink /> {t("triage.issue")}
             </Button>
           )}
         </div>
         {item.body && (
           <div className="rounded-lg border border-border bg-surface px-3 py-2">
             <div className="text-3xs font-medium tracking-wider text-muted-foreground uppercase">
-              PM's rationale
+              {t("triage.rationale")}
             </div>
             <p className="mt-1 text-[13px] leading-relaxed" data-testid="triage-rationale">
               {item.body}
@@ -103,7 +104,7 @@ export function TriageCard({ item }: { item: InboxItem }) {
         )}
         {!open ? (
           <p className="text-2xs text-muted-foreground">
-            {item.status === "resolved" ? "Accepted" : "Declined"}
+            {item.status === "resolved" ? t("triage.accepted") : t("triage.declined")}
           </p>
         ) : declining ? (
           <div className="flex items-center gap-2">
@@ -111,8 +112,8 @@ export function TriageCard({ item }: { item: InboxItem }) {
               autoFocus
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Why not? (optional, kept with the decision)"
-              aria-label="Reason to decline"
+              placeholder={t("triage.reasonPlaceholder")}
+              aria-label={t("triage.reasonLabel")}
               className="h-8 text-[13px]"
             />
             <Button
@@ -121,16 +122,16 @@ export function TriageCard({ item }: { item: InboxItem }) {
               disabled={busy}
               onClick={() => decline.mutate()}
             >
-              Decline
+              {t("triage.decline")}
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setDeclining(false)}>
-              Cancel
+              {t("common.cancel")}
             </Button>
           </div>
         ) : (
           <div className="flex flex-wrap items-center gap-1.5">
             <Button size="sm" onClick={() => accept.mutate()} disabled={busy}>
-              <Check /> {accept.isPending ? "Starting…" : "Take it on"}
+              <Check /> {accept.isPending ? t("triage.starting") : t("triage.takeItOn")}
             </Button>
             <Button
               size="sm"
@@ -139,10 +140,10 @@ export function TriageCard({ item }: { item: InboxItem }) {
               onClick={() => setDeclining(true)}
               disabled={busy}
             >
-              <X /> Decline…
+              <X /> {t("triage.declineEllipsis")}
             </Button>
             <span className="ml-auto text-3xs text-muted-foreground">
-              Take it on starts an agent session for the issue
+              {t("triage.takeItOnHint")}
             </span>
           </div>
         )}
